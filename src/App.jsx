@@ -8,10 +8,11 @@ import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import PlantScanner from './pages/PlantScanner';
+import PlantScanner from './components/PlantScanner/PlantScanner';
 import SymptomChecker from './pages/SymptomChecker';
 import AIRecommendations from './pages/AIRecommendations';
 import PaymentSuccess from './pages/PaymentSuccess';
+import ScanHistory from './pages/ScanHistory';
 
 const App = () => {
   return (
@@ -31,6 +32,7 @@ const App = () => {
             <Route path="/symptom-checker" element={<SymptomChecker />} />
             <Route path="/ai-recommendations" element={<AIRecommendations />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/scan-history" element={<ScanHistory />} />
           </Routes>
         </main>
       </div>

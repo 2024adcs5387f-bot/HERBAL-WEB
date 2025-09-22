@@ -11,6 +11,7 @@ import {
   Package,
   Leaf,
   BookOpen,
+  History,
   Search,
   Bell,
   Sun,
@@ -69,6 +70,7 @@ const Navbar = () => {
     { name: 'Home', href: '/', icon: Leaf },
     { name: 'Products', href: '/products', icon: Package },
     { name: 'Plant Scanner', href: '/plant-scanner', icon: Leaf },
+    { name: 'Scan History', href: '/scan-history', icon: History },
     { name: 'Symptom Checker', href: '/symptom-checker', icon: BookOpen },
     { name: 'AI Recommendations', href: '/ai-recommendations', icon: BookOpen },
   ];

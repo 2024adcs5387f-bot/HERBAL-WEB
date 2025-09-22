@@ -1,0 +1,306 @@
+.plant-scanner {
+	position: relative;
+	overflow: hidden;
+	background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 35%, #ecfdf5 70%);
+	/* Create stacking context so pseudo elements sit behind content */
+	isolation: isolate;
+}
+
+/* Background image layer to ensure broad browser support */
+.plant-bg-layer {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background-repeat: no-repeat;
+	background-position: left -80px top -60px, right -120px bottom -120px;
+	background-size: 520px 520px, 640px 640px;
+	background-image: url("../../assets/gallery-1.png"), url("../../assets/gallery-2.png");
+	opacity: 0.14;
+}
+
+@media (min-width: 640px) {
+	.plant-bg-layer {
+		background-position: left -100px top -80px, right -140px bottom -160px;
+		background-size: 600px 600px, 760px 760px;
+	}
+}
+
+@media (min-width: 1024px) {
+	.plant-bg-layer {
+		background-position: left -120px top -100px, right -160px bottom -200px;
+		background-size: 720px 720px, 900px 900px;
+	}
+}
+
+@media (min-width: 640px) {
+	.plant-scanner {
+		background: radial-gradient(1200px 600px at 10% 0%, #bbf7d0 0%, transparent 40%),
+			linear-gradient(135deg, #a7f3d0 0%, #d1fae5 50%, #ecfdf5 100%);
+	}
+}
+
+@media (min-width: 1024px) {
+	.plant-scanner {
+		background: radial-gradient(1600px 800px at 15% -10%, #86efac 0%, transparent 55%),
+			radial-gradient(1400px 700px at 100% 0%, #a7f3d0 0%, transparent 55%),
+			linear-gradient(135deg, #bbf7d0 0%, #a7f3d0 50%, #ecfdf5 100%);
+		background-color: #ecfdf5;
+}
+
+/* Dark mode variant if .dark is on html */
+.dark .plant-scanner {
+	background: radial-gradient(1200px 600px at 10% 0%, rgba(34, 197, 94, 0.15) 0%, transparent 40%),
+		radial-gradient(1400px 700px at 100% 0%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+		linear-gradient(135deg, #052e16 0%, #064e3b 50%, #065f46 100%);
+	background-color: #052e16;
+	}
+}
+
+.plant-scanner .card {
+	background: #ffffff;
+	border-radius: 16px;
+	border: 1px solid #eef2f0;
+	box-shadow: 0 10px 24px rgba(16, 185, 129, 0.08);
+}
+
+/* Unified button sizing + hover green */
+.plant-scanner button {
+	min-width: 150px;
+	cursor: pointer;
+	border: none !important;
+	transition: background-color 200ms ease, color 200ms ease, transform 150ms ease, box-shadow 200ms ease;
+	position: relative;
+}
+
+.plant-scanner button:hover {
+	background-color: #16a34a;
+	color: #ffffff;
+	transform: translateY(-1px);
+	box-shadow: 0 8px 20px rgba(22, 163, 74, 0.25);
+}
+
+.plant-scanner button:active {
+	transform: translateY(0);
+	box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+}
+
+/* Light yellow after-layer accent */
+.plant-scanner button::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: radial-gradient(160px 100px at 10% 0%, rgba(254, 249, 195, 0.35), transparent 60%),
+		radial-gradient(180px 120px at 90% 100%, rgba(254, 249, 195, 0.25), transparent 60%);
+	opacity: 0.08;
+	pointer-events: none;
+	transition: opacity 200ms ease;
+}
+
+.plant-scanner button:hover::after {
+	opacity: 0.18;
+}
+
+/* Decorative plant images - responsive and non-interactive */
+.plant-scanner::before,
+.plant-scanner::after {
+	content: "";
+	position: absolute;
+	pointer-events: none;
+	opacity: 0.12;
+	background-repeat: no-repeat;
+	background-size: cover;
+	filter: saturate(1.1);
+	/* Sit behind content */
+	z-index: 0;
+}
+
+/* Left/top plant image */
+.plant-scanner::before {
+	background-image: url("../../assets/gallery-1.png");
+	width: 420px;
+	height: 420px;
+	top: -80px;
+	left: -60px;
+	transform: rotate(-8deg);
+}
+
+/* Right/bottom plant image */
+.plant-scanner::after {
+	background-image: url("../../assets/gallery-2.png");
+	width: 520px;
+	height: 520px;
+	bottom: -120px;
+	right: -100px;
+	transform: rotate(6deg);
+}
+
+/* Medium screens: scale and reposition for better balance */
+@media (min-width: 640px) {
+	.plant-scanner::before {
+		width: 520px;
+		height: 520px;
+		top: -100px;
+		left: -80px;
+	}
+	.plant-scanner::after {
+		width: 620px;
+		height: 620px;
+		bottom: -140px;
+		right: -120px;
+	}
+}
+
+/* Large screens: increase presence slightly */
+@media (min-width: 1024px) {
+	.plant-scanner::before {
+		width: 640px;
+		height: 640px;
+		top: -120px;
+		left: -100px;
+	}
+	.plant-scanner::after {
+		width: 760px;
+		height: 760px;
+		bottom: -160px;
+		right: -160px;
+	}
+}
+
+/* Dark mode: deepen gradient and slightly increase contrast of images */
+.dark .plant-scanner::before,
+.dark .plant-scanner::after {
+	opacity: 0.18;
+	filter: saturate(1.2) brightness(0.9);
+}
+
+.plant-scanner .btn-primary {
+	background: linear-gradient(90deg, #059669, #047857);
+	color: #ffffff;
+	border-radius: 12px;
+	padding: 1rem 1.25rem;
+	font-size: 22px;
+	transition: transform 0.1s ease, box-shadow 0.2s ease;
+	position: relative;
+	overflow: hidden;
+}
+
+.plant-scanner .btn-primary:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 8px 20px rgba(5, 150, 105, 0.35);
+	background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.plant-scanner .btn-primary::before,
+.plant-scanner .btn-primary::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	pointer-events: none;
+}
+
+.plant-scanner .btn-primary::before {
+	background: radial-gradient(120px 80px at 0% 0%, rgba(255,255,255,0.35), transparent 60%);
+}
+
+.plant-scanner .btn-primary::after {
+	background: radial-gradient(140px 90px at 100% 100%, rgba(255,255,255,0.25), transparent 60%);
+}
+
+.plant-scanner .btn-secondary {
+	background: #f1f5f9;
+	color: #0f172a;
+	border-radius: 12px;
+	padding: 0.875rem 1.125rem;
+	font-size: 22px;
+	transition: background 0.2s ease;
+	position: relative;
+	overflow: hidden;
+}
+
+.plant-scanner .btn-secondary:hover {
+	background: #e2e8f0;
+	box-shadow: 0 6px 16px rgba(2, 132, 99, 0.15);
+}
+
+.plant-scanner .btn-secondary::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: radial-gradient(110px 70px at 10% 0%, rgba(2, 132, 99, 0.08), transparent 60%);
+	pointer-events: none;
+}
+
+.plant-scanner .status-pill {
+	border-radius: 999px;
+	padding: 0.25rem 0.625rem;
+	font-weight: 600;
+	font-size: 0.8125rem;
+}
+
+.plant-scanner .upload-tile {
+	border: 2px dashed #86efac;
+	border-radius: 14px;
+	background: #f0fdf4;
+	transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
+}
+
+.plant-scanner .upload-tile:hover {
+	border-color: #22c55e;
+	background: #ecfccb;
+	transform: translateY(-1px);
+}
+
+.plant-scanner .modal {
+	backdrop-filter: blur(4px);
+}
+
+.plant-scanner .result-accent {
+	background: linear-gradient(90deg, #10b981, #059669);
+	color: #ffffff;
+}
+
+.plant-scanner .result-pill {
+	background: #dcfce7;
+	color: #166534;
+	border-radius: 999px;
+	padding: 0.25rem 0.5rem;
+	font-weight: 600;
+}
+
+.plant-scanner .image-preview {
+	border-radius: 12px;
+	object-fit: cover;
+}
+
+.plant-scanner .scroll-smooth {
+	scroll-behavior: smooth;
+}
+
+/* Default text sizing to 22px for readable body text */
+.plant-scanner p,
+.plant-scanner li,
+.plant-scanner span,
+.plant-scanner button,
+.plant-scanner input,
+.plant-scanner label,
+.plant-scanner .text {
+	font-size: 22px;
+}
+
+/* Icon sizing: scale common lucide icons */
+.plant-scanner svg {
+	width: 28px;
+	height: 28px;
+}
+
+/* Slightly larger hero icon */
+.plant-scanner .hero-icon svg {
+	width: 40px;
+	height: 40px;
+}
+
+
