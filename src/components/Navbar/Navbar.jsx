@@ -159,7 +159,7 @@ const Navbar = () => {
         Learn, Treat, Research and Heal with the best HerbalMarket
       </p> */}
 
-      <style jsx>{`
+      <style>{`
         .navbar-brand {
           color: #2E7D32 !important;
           font-weight: bold;

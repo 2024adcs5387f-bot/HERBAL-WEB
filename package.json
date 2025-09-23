@@ -10,15 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-
     "@fortawesome/fontawesome-free": "^7.0.1",
     "@fortawesome/fontawesome-svg-core": "^7.0.1",
     "@fortawesome/free-solid-svg-icons": "^7.0.1",
     "@fortawesome/react-fontawesome": "^3.0.2",
     "@popperjs/core": "^2.11.8",
+    "@supabase/supabase-js": "^2.57.4",
     "bootstrap": "^5.3.8",
     "framer-motion": "^12.19.2",
-
     "lucide-react": "^0.517.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

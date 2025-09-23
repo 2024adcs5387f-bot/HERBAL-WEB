@@ -2,6 +2,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
+import TopSearchBar from './components/Topbar/TopSearchBar';
+import PrivateRoute from './components/PrivateRoute';
+import PublicRoute from './components/PublicRoute';
 import Home from './pages/Home';
 import Products from './pages/product/product';
 import ProductDetail from './pages/ProductDetail';
@@ -14,6 +17,10 @@ import SymptomChecker from './pages/SymptomChecker';
 import AIRecommendations from './pages/AIRecommendations';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Research from './pages/Research';
+import ResearchHub from './pages/ResearchHub';
+import Profile from './pages/user/Profile';
+import AdminDashboard from './pages/user/AdminDashboard';
+import NotFound from './pages/NotFound';
 
 const App = () => {
   return (

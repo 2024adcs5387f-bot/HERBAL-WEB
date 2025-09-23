@@ -8,10 +8,23 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
+    // If Supabase isn't configured, don't attempt to call it
+    if (!supabase) {
+      setSession(null);
+      setUser(null);
+      return;
+    }
+
     const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
+      try {
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+      } catch (err) {
+        console.warn("Auth: failed to get session from Supabase", err);
+        setSession(null);
+        setUser(null);
+      }
     };
 
     getSession();
@@ -24,7 +37,9 @@ export const AuthProvider = ({ children }) => {
     );
 
     return () => {
-      listener.subscription.unsubscribe();
+      try {
+        listener?.subscription?.unsubscribe?.();
+      } catch {}
     };
   }, []);
 
