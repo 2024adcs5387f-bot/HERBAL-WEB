@@ -1,6 +1,7 @@
 // File: src/components/user/forms/LoginForm.jsx
 import React, { useState } from "react";
 import { signIn } from "../../../services/userService";
+import { ensureAppJwt } from "../../../services/authService";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -18,6 +19,8 @@ const LoginForm = () => {
 
     try {
       const session = await signIn({ email, password });
+      // Ensure backend JWT is available for protected API calls
+      try { await ensureAppJwt(); } catch {}
       console.log("Logged in user session:", session);
       navigate("/dashboard"); // Redirect after login
     } catch (err) {

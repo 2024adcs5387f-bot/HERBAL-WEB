@@ -261,7 +261,7 @@ const product = () => {
                                     <FontAwesomeIcon icon={faTags} /> Category
                                 </div>
                                 <div className="filter-tags">
-                                    {["All", "Teas", "Oils", "Capsules", "Skincare", "Tinctures"].map(category => (
+                                  {["All", "Teas", "Oils", "Capsules", "Skincare", "Tinctures"].map(category => (
                                         <div
                                             key={category}
                                             className={`filter-tag ${activeCategory === category ? 'active' : ''}`}
@@ -273,68 +273,29 @@ const product = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Price Filter */}
-                        <div className="col-md-4">
-                            <div className="filter-group">
-                                <div className="filter-title">
-                                    <FontAwesomeIcon icon={faDollarSign} /> Price Range (UGX)
-                                </div>
-                                <input
-                                    type="range"
-                                    className="form-range price-slider"
-                                    min="0"
-                                    max="500000"
-                                    step="10000"
-                                    value={priceRange}
-                                    onChange={(e) => setPriceRange(parseInt(e.target.value))}
-                                />
-                                <div className="price-values">
-                                    <span>UGX 0</span>
-                                    <span>UGX {formatPrice(priceRange)}</span>
-                                    <span>UGX 500,000+</span>
+                        <div className="row">
+                            <div className="col-md-6">
+                                <div className="form-check form-switch">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        id="organicFilter"
+                                        checked={isOrganicOnly}
+                                        onChange={(e) => setIsOrganicOnly(e.target.checked)}
+                                    />
+                                    <label className="form-check-label" htmlFor="organicFilter">
+                                        Certified Organic Only
+                                    </label>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* Benefits Filter */}
-                        <div className="col-md-4">
-                            <div className="filter-group">
-                                <div className="filter-title">
-                                    <FontAwesomeIcon icon={faHeart} /> Benefits
-                                </div>
-                                <div className="filter-tags">
-                                    {["Relaxation", "Immunity", "Digestion", "Skin Health", "Energy"].map(benefit => (
-                                        <div key={benefit} className="filter-tag">
-                                            {benefit}
-                                        </div>
-                                    ))}
-                                </div>
+                            <div className="col-md-6 text-end">
+                                <button className="btn btn-primary">Apply Filters</button>
+                                <button className="btn btn-outline-secondary">Reset Filters</button>
                             </div>
                         </div>
                     </div>
-
-                    <div className="row">
-                        <div className="col-md-6">
-                            <div className="form-check form-switch">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    id="organicFilter"
-                                    checked={isOrganicOnly}
-                                    onChange={(e) => setIsOrganicOnly(e.target.checked)}
-                                />
-                                <label className="form-check-label" htmlFor="organicFilter">
-                                    Certified Organic Only
-                                </label>
-                            </div>
-                        </div>
-                        <div className="col-md-6 text-end">
-                            <button className="btn btn-primary">Apply Filters</button>
-                            <button className="btn btn-outline-secondary">Reset Filters</button>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Products Section */}
                 <div className="row mt-4">
@@ -386,7 +347,7 @@ const product = () => {
                                         alt={product.name}
                                         loading="lazy"
                                         decoding="async"
-                                        fetchpriority="low"
+                                        fetchPriority="low"
                                         width={600}
                                         height={400}
                                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -407,8 +368,6 @@ const product = () => {
                             </div>
                         ))}
                     </div>
-
-                    {/* Pagination */}
                     <nav className="mt-5">
                         <ul className="pagination justify-content-center">
                             <li className="page-item disabled">

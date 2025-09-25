@@ -13,18 +13,28 @@ const PrivateRoute = ({ children, roles = [] }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    let mounted = true;
+    const timer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 10000); // safety timeout: 10s
+
+    (async () => {
       try {
         const currentUser = await getCurrentUser();
-        setUser(currentUser);
+        if (mounted) setUser(currentUser);
       } catch (err) {
-        console.error(err);
-        setUser(null);
+        console.error("PrivateRoute auth check failed:", err);
+        if (mounted) setUser(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
+        clearTimeout(timer);
       }
+    })();
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
     };
-    fetchUser();
   }, []);
 
   if (loading) return <div>Loading...</div>;

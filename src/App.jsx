@@ -2,6 +2,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
+import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import { initAuthBridge } from './services/authService';
 import Home from './pages/Home';
 import Products from './pages/product/product';
 import ProductDetail from './pages/ProductDetail';
@@ -27,6 +30,10 @@ import SupabaseHealth from './pages/health/SupabaseHealth';
 import Logout from './pages/Logout';
 
 const App = () => {
+  useEffect(() => {
+    initAuthBridge();
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen">
@@ -109,6 +116,7 @@ const App = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
+        <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
       </div>
     </Router>
   );

@@ -1,5 +1,6 @@
 // src/api/research.js
 import { supabase } from "../config/supabase";
+import { ensureAppJwt } from "../services/authService";
 
 // Fetch research posts with optional query params (sorting, filtering, pagination)
 export const fetchResearchPosts = async (params = {}) => {
@@ -12,6 +13,15 @@ export const fetchResearchPosts = async (params = {}) => {
         ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
+
+    if (!res.ok) {
+      try {
+        const errJson = await res.json();
+        throw new Error(errJson?.message || `Failed to fetch posts (${res.status})`);
+      } catch {
+        throw new Error(`Failed to fetch posts (${res.status})`);
+      }
+    }
 
     const data = await res.json();
     if (!data.success) throw new Error(data.message || "Failed to fetch posts");
@@ -44,9 +54,8 @@ export const fetchResearchPost = async (id) => {
 
 // Create a new research post
 export const createResearchPost = async (newPost) => {
-  // Always try backend first (it accepts optional auth); if that fails, fall back to Supabase client
+  // Try backend first (accepts optional auth); if fail, fall back to Supabase client
   try {
-    // Include authorId if we have a Supabase session to help backend associate author
     try {
       const { data: auth } = await supabase.auth.getUser();
       if (auth?.user && !newPost.authorId) {
@@ -65,11 +74,9 @@ export const createResearchPost = async (newPost) => {
     });
     const data = await res.json();
     if (data?.success && data?.data?.post) return data.data.post;
-  } catch (err) {
-    // continue to fallback
-  }
+  } catch {}
 
-  // Fallback: insert directly into Supabase with RLS using logged-in Supabase user
+  // Fallback: insert directly into Supabase with RLS
   try {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth?.user) throw new Error("User must be logged in to create a post");
@@ -167,23 +174,58 @@ export const voteOnPost = async (postId, value) => {
 // Delete a research post (author must be a researcher)
 export const deleteResearchPost = async (postId) => {
   try {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("User must be logged in to delete");
-    const res = await fetch(`/api/research/${postId}`, {
+    // Attempt backend delete with current token
+    let token = localStorage.getItem("token");
+    let res = await fetch(`/api/research/${postId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
-    const data = await res.json();
-    return data.success;
+
+    // If unauthorized/forbidden, try to refresh backend JWT and retry once
+    if (res.status === 401 || res.status === 403) {
+      await ensureAppJwt().catch(() => {});
+      token = localStorage.getItem("token");
+      res = await fetch(`/api/research/${postId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+    }
+
+    // If backend succeeds, return
+    if (res.ok) {
+      const data = await res.json().catch(() => ({ success: false }));
+      return !!data?.success;
+    }
+
+    // Fallback: try Supabase client-side delete with RLS using current Supabase session
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth?.user) throw new Error("No Supabase session");
+
+      const { error } = await supabase
+        .from("research_posts")
+        .delete()
+        .eq("id", postId)
+        .eq("author_id", auth.user.id);
+      if (error) throw error;
+      return true;
+    } catch (e) {
+      console.error("Supabase fallback delete failed:", e?.message || e);
+      return false;
+    }
   } catch (err) {
     console.error(err);
     return false;
   }
 };
 
+// Save a research post (author must be a researcher)
 export const savePost = async (postId, action) => {
   try {
     const token = localStorage.getItem("token");

@@ -17,6 +17,8 @@ import paymentRoutes from './routes/payments.js';
 import researchRoutes from './routes/research.js';
 import uploadRoutes from './routes/uploads.js';
 import knowledgeRoutes from './routes/knowledge.js';
+import proxyRoutes from './routes/proxy.js';
+import sessionRoutes from './routes/session.js';
 
 // Import error handler
 import { errorHandler } from './middleware/errorHandler.js';
@@ -73,6 +75,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/proxy', proxyRoutes);
+app.use('/api/session', sessionRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
