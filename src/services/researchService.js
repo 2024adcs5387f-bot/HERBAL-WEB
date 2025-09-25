@@ -4,8 +4,16 @@ import { supabase } from "../config/supabase";
 const TABLE = "research_posts";
 
 const researchService = {
+  // Check if Supabase is initialized
+  _checkSupabase() {
+    if (!supabase) {
+      throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+    }
+  },
+
   // Fetch all research posts
   async getAllPosts() {
+    this._checkSupabase();
     const { data, error } = await supabase
       .from(TABLE)
       .select("*")
@@ -16,6 +24,7 @@ const researchService = {
 
   // Fetch a single post by ID
   async getPostById(id) {
+    this._checkSupabase();
     const { data, error } = await supabase
       .from(TABLE)
       .select("*")
@@ -27,6 +36,7 @@ const researchService = {
 
   // Add a new research post
   async addPost(post) {
+    this._checkSupabase();
     const { data, error } = await supabase
       .from(TABLE)
       .insert([post])
@@ -38,6 +48,7 @@ const researchService = {
 
   // Update an existing post
   async updatePost(id, updates) {
+    this._checkSupabase();
     const { data, error } = await supabase
       .from(TABLE)
       .update(updates)
@@ -50,6 +61,7 @@ const researchService = {
 
   // Delete a post
   async deletePost(id) {
+    this._checkSupabase();
     const { data, error } = await supabase
       .from(TABLE)
       .delete()
@@ -60,6 +72,7 @@ const researchService = {
 
   // Filter posts by herbs, diseases, and status
   async filterPosts({ herbs = [], diseases = [], status = [] }) {
+    this._checkSupabase();
     let query = supabase.from(TABLE).select("*").order("created_at", { ascending: false });
 
     if (herbs.length) query = query.in("related_herb_id", herbs);

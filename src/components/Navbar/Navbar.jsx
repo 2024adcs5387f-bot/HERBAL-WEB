@@ -7,51 +7,63 @@ const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
   const [hasResearchAccess, setHasResearchAccess] = useState(false);
   const [user, setUser] = useState(null);
-
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Sticky on scroll
   useEffect(() => {
-
     const updateCartCount = () => {
-      try {
-        const cartPageItems = localStorage.getItem('cartPageItems');
-        const cartPageItemsCount = cartPageItems
-          ? JSON.parse(cartPageItems).reduce((sum, item) => sum + (item.qty || 0), 0)
-          : 0;
-        setCartCount(cartPageItemsCount);
-      } catch (e) {
-        setCartCount(0);
-      }
-    };
+    try {
+      const cartPageItems = localStorage.getItem('cartPageItems');
+      const cartPageItemsCount = cartPageItems
+        ? JSON.parse(cartPageItems).reduce((sum, item) => sum + (item.qty || 0), 0)
+        : 0;
+      setCartCount(cartPageItemsCount);
+    } catch (e) {
+      setCartCount(0);
+    }
+  };
 
-    updateCartCount();
+  // Determine user and research access (herbalist or researcher)
+  (async () => {
+    try {
+      const u = await getCurrentUser();
+      setUser(u || null);
+      const role = u?.profile?.user_type || u?.user_type;
+      setHasResearchAccess(role === 'researcher' || role === 'herbalist');
+    } catch (_) {
+      setUser(null);
+      setHasResearchAccess(false);
+    }
+  })();
 
-    // Determine user and research access (herbalist or researcher)
-    (async () => {
-      try {
-        const u = await getCurrentUser();
-        setUser(u || null);
-        const role = u?.profile?.user_type || u?.user_type;
-        setHasResearchAccess(role === 'researcher' || role === 'herbalist');
-      } catch (_) {
-        setUser(null);
-        setHasResearchAccess(false);
-      }
-    })();
+  window.addEventListener('storage', updateCartCount);
+  window.addEventListener('cartUpdated', updateCartCount);
 
-    window.addEventListener('storage', updateCartCount);
-    window.addEventListener('cartUpdated', updateCartCount);
-
-    return () => {
-      window.removeEventListener('storage', updateCartCount);
-      window.removeEventListener('cartUpdated', updateCartCount);
-    };
+  return () => {
+    window.removeEventListener('storage', updateCartCount);
+    window.removeEventListener('cartUpdated', updateCartCount);
+  };
   }, []);
 
   const researchHubPath = '/research-hub';
 
+  const handleLogout = async () => {
+    try {
+      // Clear user session (you may need to implement this in your auth service)
+      // For example: await authService.logout();
+      setUser(null);
+      // Redirect to home or login page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const toggleDropdown = () => setShowDropdown(!showDropdown);
+  const closeDropdown = () => setShowDropdown(false);
+
   return (
-    <div style={{
+    <div className="navbar-container" style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -66,64 +78,146 @@ const Navbar = () => {
       <div className="top-nav" style={{ margin: 0, padding: 20 }}>
         <div className="container">
           <div className="d-flex justify-content-between align-items-center">
-            <Link className="navbar-brand" to="/"style={{paddingRight:50}}>
+            <Link className="navbar-brand" to="/" style={{paddingRight: 50}}>
               <i className="fas fa-leaf me-2"></i>HerbalMarket <br />
               <small className="text-muted ms-2 d-none d-md-inline">Natural Wellness</small>
             </Link>
 
-            <div className="d-flex nav-search me-3" style={{ width: '50%',borderRadius:'5px' }}>
-              <input className="form-control border-0" type="search" placeholder="What are you looking for?"
-                aria-label="Search" />
-              <button className="btn btn-green px-3" type="submit" style={{borderRadius:0}}>
+            <div className="d-flex nav-search me-3" style={{ width: '50%', borderRadius: '5px' }}>
+              <input 
+                className="form-control border-0" 
+                type="search" 
+                placeholder="What are you looking for?"
+                aria-label="Search" 
+              />
+              <button className="btn btn-green px-3" type="submit" style={{borderRadius: 0}}>
                 <i className="fas fa-search"></i>
               </button>
             </div>
 
             <div className="d-flex align-items-center">
-              <Link to="/cart" className="cart-icon me-3 text-decoration-none text-dark">
-                <i className="fas fa-shopping-cart fa-lg"></i>
-                {cartCount > 0 && (
-                  <span className="cart-count">{cartCount}</span>
-                )}
-              </Link>
-              <Link to="/login" className="btn btn-green btn-sm me-2">
-                <i className="fas fa-user me-1"></i> Sign In
-              </Link>
-
-              <Link 
-                to="/register" 
-                className="btn btn-sm me-4" 
-                style={{
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  textDecoration: 'none',
-                  transition: 'background-color 0.3s',
-                  ':hover': {
-                    backgroundColor: '#c82333',
-                    color: 'white'
-                  }
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgb(221, 17, 10)'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc3545'}
-              >
-                <i className="fas fa-user-plus me-1"></i> Create Account
-              </Link>
-              <Link
-                to="/sell"
-                className="btn btn-green btn-sm"
-                style={{ marginLeft: '8px' }}
-              >
-                <i className="fas fa-store me-1"></i> Sell with HERBAL MARKET
-              </Link>
+              {user ? (
+                <div className="d-flex align-items-center">
+                  <div className="dropdown" style={{ position: 'relative' }}>
+                    <button 
+                      className="btn btn-link text-dark text-decoration-none dropdown-toggle" 
+                      onClick={toggleDropdown}
+                      onBlur={() => setTimeout(closeDropdown, 200)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        outline: 'none',
+                        boxShadow: 'none',
+                        padding: '0.25rem 0.5rem'
+                      }}
+                    >
+                      <i className="fas fa-user-circle me-1"></i>
+                      Hi, {user.name || user.email?.split('@')[0]}
+                    </button>
+                    {showDropdown && (
+                      <div 
+                        className="dropdown-menu show" 
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          left: 'auto',
+                          marginTop: '0.5rem',
+                          minWidth: '10rem',
+                          borderRadius: '0.25rem',
+                          boxShadow: '0 0.5rem 1rem rgba(0, 0, 0, 0.15)'
+                        }}
+                      >
+                        <Link 
+                          to="/profile" 
+                          className="dropdown-item" 
+                          onClick={closeDropdown}
+                        >
+                          <i className="fas fa-user me-2"></i> My Profile
+                        </Link>
+                        <div className="dropdown-divider"></div>
+                        <button 
+                          className="dropdown-item text-danger" 
+                          onClick={handleLogout}
+                        >
+                          <i className="fas fa-sign-out-alt me-2"></i> Logout
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <Link to="/help" className="btn btn-sm btn-outline-secondary me-3">
+                    <i className="fas fa-question-circle me-1"></i> Help
+                  </Link>
+                  
+                  {(user.profile?.user_type === 'buyer' || user.user_type === 'buyer') && (
+                    <Link to="/cart" className="cart-icon me-3 text-decoration-none text-dark position-relative">
+                      <i className="fas fa-shopping-cart fa-lg"></i>
+                      {cartCount > 0 && (
+                        <span className="cart-count">{cartCount}</span>
+                      )}
+                    </Link>
+                  )}
+                  
+                  {(user.profile?.user_type === 'seller' || user.user_type === 'seller' || 
+                    user.profile?.user_type === 'herbalist' || user.user_type === 'herbalist') && (
+                    <Link to="/orders" className="btn btn-sm btn-outline-primary me-3">
+                      <i className="fas fa-clipboard-list me-1"></i> Orders
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Link to="/cart" className="cart-icon me-3 text-decoration-none text-dark position-relative">
+                    <i className="fas fa-shopping-cart fa-lg"></i>
+                    {cartCount > 0 && (
+                      <span className="cart-count">{cartCount}</span>
+                    )}
+                  </Link>
+                  <Link to="/login" className="btn btn-green btn-sm me-2">
+                    <i className="fas fa-user me-1"></i> Sign In
+                  </Link>
+                  <Link 
+                    to="/register" 
+                    className="btn btn-sm me-4" 
+                    style={{
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      textDecoration: 'none',
+                      transition: 'background-color 0.3s',
+                      ':hover': {
+                        backgroundColor: '#c82333',
+                        color: 'white'
+                      }
+                    }}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc3545'}
+                  >
+                    <i className="fas fa-user-plus me-1"></i> Create Account
+                  </Link>
+                  <Link
+                    to="/sell" 
+                    className="btn btn-outline-success btn-sm me-2"
+                    style={{ display: user ? 'none' : 'inline-block' }}
+                  >
+                    <i className="fas fa-store me-1"></i> Sell with Herbal Market
+                  </Link>
+                </>
+              )}
+              
+              {user && (user.profile?.user_type === 'seller' || user.user_type === 'seller') && (
+                <Link
+                  to="/seller-dashboard"
+                  className="btn btn-outline-success btn-sm me-2"
+                >
+                  <i className="fas fa-user-circle me-1"></i> Seller Dashboard
+                </Link>
+              )}
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Main Navigation */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-black" style={{ borderBottom: '1px solid #33e407',}}>
+      <nav className="navbar navbar-expand-lg navbar-light bg-black" style={{ borderBottom: '1px solid #33e407' }}>
         <div className="container">
           <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
             <span className="navbar-toggler-icon"></span>
@@ -183,11 +277,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* <p style={{ textAlign: 'center', color: 'white',backgroundColor: 'black',paddingTop: '20px',paddingBottom: '0px', fontWeight: 'bold', borderBottom: '1px solid #33e407' }}>
-        Learn, Treat, Research and Heal with the best HerbalMarket
-      </p> */}
-
-      <style>{`
+      <style jsx>{`
         .navbar-brand {
           color: #2E7D32 !important;
           font-weight: bold;
@@ -237,11 +327,6 @@ const Navbar = () => {
 
         .nav-link.active {
           color: #ffffff !important;
-        }
-
-        .bottom-nav {
-          background-color: yellow;
-          padding: 8px 0;
         }
 
         .dropdown:hover .dropdown-menu {

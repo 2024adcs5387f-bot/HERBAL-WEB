@@ -7,6 +7,10 @@ import { supabase } from "../config/supabase";
  * @returns {Object} session or throws error
  */
 export const signUp = async ({ name, email, password, role }) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   // Create user in Supabase auth
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
@@ -27,6 +31,10 @@ export const signUp = async ({ name, email, password, role }) => {
  * @returns {Object} session or throws error
  */
 export const signIn = async ({ email, password }) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -40,6 +48,10 @@ export const signIn = async ({ email, password }) => {
  * Logout user
  */
 export const signOut = async () => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 };
@@ -48,6 +60,10 @@ export const signOut = async () => {
  * Get current authenticated user (from Supabase + profile)
  */
 export const getCurrentUser = async () => {
+  if (!supabase) {
+    return null;
+  }
+
   // First, check if we have a session; if not, return null (prevents AuthSessionMissingError)
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
@@ -116,6 +132,10 @@ export const getCurrentUser = async () => {
  * @param {string} userId
  */
 export const getUserProfile = async (userId) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { data, error } = await supabase
     .from("users")
     .select("*")
@@ -132,6 +152,10 @@ export const getUserProfile = async (userId) => {
  * @param {Object} updates
  */
 export const updateUserProfile = async (userId, updates) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { data, error } = await supabase
     .from("users")
     .update(updates)
@@ -168,6 +192,10 @@ export const isAdmin = (user) => hasRole(user, "admin");
  * Get all users (for AdminDashboard)
  */
 export const getAllUsers = async () => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { data, error } = await supabase.from("users").select("*");
   if (error) throw error;
   return data;
@@ -177,11 +205,20 @@ export const getAllUsers = async () => {
  * Delete a user (Admin only)
  */
 export const deleteUser = async (userId) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { error } = await supabase.from("users").delete().eq("id", userId);
   if (error) throw error;
   return true;
 };
+
 export const getUser = async () => {
+  if (!supabase) {
+    return null;
+  }
+
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (!sessionData.session) return null;
@@ -206,4 +243,5 @@ export default {
   isAdmin,
   getAllUsers,
   deleteUser,
+  getUser,
 };
