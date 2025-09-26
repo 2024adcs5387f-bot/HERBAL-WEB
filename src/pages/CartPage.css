@@ -1,0 +1,72 @@
+/* Basic styles for CartPage to resolve missing import and provide sensible defaults */
+
+.cart-page {
+  padding-top: 120px;
+  background: #f8faf9;
+  min-height: 100vh;
+}
+
+.section-title {
+  font-weight: 800;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.continue-shopping {
+  color: #2e7d32;
+  text-decoration: none;
+}
+.continue-shopping:hover { text-decoration: underline; }
+
+/* Cart Items */
+.cart-item {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.product-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.discount-badge {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+.product-price { color: #8d6e63; }
+
+/* Quantity */
+.quantity-input-group .btn { min-width: 36px; }
+.quantity-input { border-left: 0; border-right: 0; }
+
+/* Summary */
+.summary-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+/* Recently Viewed */
+.recent-product-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.recent-product-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+.recent-product-description {
+  color: #6b7280;
+  font-size: 0.9rem;
+}

@@ -1,168 +1,160 @@
-import express from 'express';
-import { User } from '../models/index.js';
-import { authenticate, authorize } from '../middleware/auth.js';
-import { validateUserUpdate } from '../utils/validation.js';
+import express from "express";
+import supabase from "../config/supabase.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// @route   GET /api/users/profile
-// @desc    Get user profile
-// @access  Private
-router.get('/profile', authenticate, async (req, res) => {
+// ----------------------
+// Get logged-in user profile
+// ----------------------
+router.get("/profile", authenticate, async (req, res) => {
   try {
+    const { data: user, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", req.user.id)
+      .single();
+
+    if (error) throw error;
+
     res.json({
       success: true,
-      data: {
-        user: req.user
-      }
+      data: { user },
     });
-  } catch (error) {
-    console.error('Get profile error:', error);
+  } catch (err) {
+    console.error("Get profile error:", err);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: "Server error",
     });
   }
 });
 
-// @route   PUT /api/users/profile
-// @desc    Update user profile
-// @access  Private
-router.put('/profile', authenticate, async (req, res) => {
+// ----------------------
+// Update user profile
+// ----------------------
+router.put("/profile", authenticate, async (req, res) => {
   try {
-    const { error } = validateUserUpdate(req.body);
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-      });
-    }
-
     const allowedFields = [
-      'name', 'phone', 'address', 'bio', 'businessName', 
-      'credentials', 'specializations', 'experience'
+      "name",
+      "phone",
+      "address",
+      "bio",
+      "business_name",
+      "credentials",
+      "specializations",
+      "experience",
     ];
-    
+
     const updateData = {};
-    allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
-      }
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) updateData[field] = req.body[field];
     });
 
-    await req.user.update(updateData);
+    const { data: updatedUser, error } = await supabase
+      .from("users")
+      .update(updateData)
+      .eq("id", req.user.id)
+      .select("*")
+      .single();
+
+    if (error) throw error;
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
-      data: {
-        user: req.user
-      }
+      message: "Profile updated successfully",
+      data: { user: updatedUser },
     });
-
-  } catch (error) {
-    console.error('Update profile error:', error);
+  } catch (err) {
+    console.error("Update profile error:", err);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: "Server error",
     });
   }
 });
 
-// @route   GET /api/users/herbalists
-// @desc    Get verified herbalists
-// @access  Public
-router.get('/herbalists', async (req, res) => {
+// ----------------------
+// Get verified herbalists
+// ----------------------
+router.get("/herbalists", async (req, res) => {
   try {
     const { page = 1, limit = 10, specialization } = req.query;
-    const offset = (page - 1) * limit;
+    const from = (page - 1) * limit;
+    const to = from + parseInt(limit) - 1;
 
-    const whereClause = {
-      userType: 'herbalist',
-      herbalistVerificationStatus: 'approved',
-      isActive: true
-    };
+    let query = supabase
+      .from("users")
+      .select("*", { count: "exact" })
+      .eq("user_type", "herbalist")
+      .eq("herbalist_verification_status", "approved")
+      .eq("is_active", true);
 
     if (specialization) {
-      whereClause.specializations = {
-        [Op.contains]: [specialization]
-      };
+      query = query.contains("specializations", [specialization]);
     }
 
-    const herbalists = await User.findAndCountAll({
-      where: whereClause,
-      attributes: [
-        'id', 'name', 'bio', 'specializations', 'credentials',
-        'experience', 'rating', 'totalReviews', 'avatar'
-      ],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['rating', 'DESC'], ['totalReviews', 'DESC']]
-    });
+    const { data: herbalists, count, error } = await query.range(from, to);
+
+    if (error) throw error;
 
     res.json({
       success: true,
       data: {
-        herbalists: herbalists.rows,
+        herbalists,
         pagination: {
           currentPage: parseInt(page),
-          totalPages: Math.ceil(herbalists.count / limit),
-          totalItems: herbalists.count,
-          itemsPerPage: parseInt(limit)
-        }
-      }
+          totalPages: Math.ceil(count / limit),
+          totalItems: count,
+          itemsPerPage: parseInt(limit),
+        },
+      },
     });
-
-  } catch (error) {
-    console.error('Get herbalists error:', error);
+  } catch (err) {
+    console.error("Get herbalists error:", err);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: "Server error",
     });
   }
 });
 
-// @route   GET /api/users/sellers
-// @desc    Get verified sellers
-// @access  Public
-router.get('/sellers', async (req, res) => {
+// ----------------------
+// Get verified sellers
+// ----------------------
+router.get("/sellers", async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    const from = (page - 1) * limit;
+    const to = from + parseInt(limit) - 1;
 
-    const sellers = await User.findAndCountAll({
-      where: {
-        userType: 'seller',
-        sellerVerificationStatus: 'approved',
-        isActive: true
-      },
-      attributes: [
-        'id', 'name', 'businessName', 'bio', 'rating', 
-        'totalReviews', 'avatar'
-      ],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['rating', 'DESC'], ['totalReviews', 'DESC']]
-    });
+    const { data: sellers, count, error } = await supabase
+      .from("users")
+      .select("*", { count: "exact" })
+      .eq("user_type", "seller")
+      .eq("seller_verification_status", "approved")
+      .eq("is_active", true)
+      .range(from, to);
+
+    if (error) throw error;
 
     res.json({
       success: true,
       data: {
-        sellers: sellers.rows,
+        sellers,
         pagination: {
           currentPage: parseInt(page),
-          totalPages: Math.ceil(sellers.count / limit),
-          totalItems: sellers.count,
-          itemsPerPage: parseInt(limit)
-        }
-      }
+          totalPages: Math.ceil(count / limit),
+          totalItems: count,
+          itemsPerPage: parseInt(limit),
+        },
+      },
     });
-
-  } catch (error) {
-    console.error('Get sellers error:', error);
+  } catch (err) {
+    console.error("Get sellers error:", err);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: "Server error",
     });
   }
 });

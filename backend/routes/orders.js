@@ -96,7 +96,7 @@ router.post('/', authenticate, async (req, res) => {
     const completeOrder = await Order.findByPk(order.id, {
       include: [{
         model: OrderItem,
-        as: 'items',
+        as: 'orderItems',
         include: [{
           model: Product,
           as: 'product',
@@ -137,7 +137,7 @@ router.get('/', authenticate, async (req, res) => {
       where: whereClause,
       include: [{
         model: OrderItem,
-        as: 'items',
+        as: 'orderItems',
         include: [{
           model: Product,
           as: 'product',
@@ -180,7 +180,7 @@ router.get('/:id', authenticate, async (req, res) => {
       where: { id: req.params.id },
       include: [{
         model: OrderItem,
-        as: 'items',
+        as: 'orderItems',
         include: [{
           model: Product,
           as: 'product',
@@ -202,7 +202,7 @@ router.get('/:id', authenticate, async (req, res) => {
 
     // Check access (buyer or seller)
     const isOwner = order.buyerId === req.user.id;
-    const isSeller = order.items.some(item => item.sellerId === req.user.id);
+    const isSeller = (order.orderItems || []).some(item => item.sellerId === req.user.id);
 
     if (!isOwner && !isSeller) {
       return res.status(403).json({

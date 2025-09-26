@@ -1,3 +1,4 @@
+// server.js
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,8 +6,8 @@ import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -15,47 +16,69 @@ import productRoutes from './routes/products.js';
 import orderRoutes from './routes/orders.js';
 import aiRoutes from './routes/ai.js';
 import paymentRoutes from './routes/payments.js';
+import researchRoutes from './routes/research.js';
+import uploadRoutes from './routes/uploads.js';
+import knowledgeRoutes from './routes/knowledge.js';
+import proxyRoutes from './routes/proxy.js';
+import sessionRoutes from './routes/session.js';
 
-// Import database
-import { sequelize } from './config/database.js';
+// Import error handler
 import { errorHandler } from './middleware/errorHandler.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(import.meta.url);
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDist = path.resolve(__dirname, '../dist');
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: 'Too many requests from this IP, please try again later.'
 });
 
 // Middleware
 app.use(helmet());
+// Configure CORS origins
+const defaultDevOrigins = ['http://localhost:3000', 'http://localhost:5173'];
+const envOrigins = (process.env.FRONTEND_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const allowedOrigins = envOrigins.length > 0
+  ? envOrigins
+  : (process.env.NODE_ENV === 'production' ? [] : defaultDevOrigins);
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] 
-    : ['http://localhost:3000', 'http://localhost:5173'],
+  origin: allowedOrigins.length ? allowedOrigins : false,
   credentials: true
 }));
 app.use(compression());
 app.use(morgan('combined'));
 app.use(limiter);
 
-// Special handling for Stripe webhook (needs raw body)
+// Disable ETag for API responses and enforce no-cache to avoid 304 with empty body
+// This prevents browsers/proxies from serving 304 Not Modified for JSON APIs
+app.set('etag', false);
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
+// Special handling for Stripe webhook (raw body)
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
-// Regular middleware for other routes
+// Regular middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint
+// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -72,6 +95,35 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/research', researchRoutes);
+app.use('/api/uploads', uploadRoutes);
+app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/proxy', proxyRoutes);
+app.use('/api/session', sessionRoutes);
+
+// Ensure no /api/* path ever falls through to SPA index.html
+// Any unmatched /api/* should return JSON 404 instead of HTML
+app.all('/api/*', (req, res, next) => {
+  // If a previous route wrote headers, skip
+  if (res.headersSent) return next();
+  return res.status(404).json({ success: false, message: 'API endpoint not found' });
+});
+
+// ------------------------------
+// Static frontend (Render single URL / production)
+// ------------------------------
+// Serve React build if it exists (harmless locally if not built)
+app.use(express.static(clientDist));
+
+// SPA fallback: send index.html for non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  try {
+    return res.sendFile(path.join(clientDist, 'index.html'));
+  } catch {
+    return next();
+  }
+});
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -81,45 +133,20 @@ app.use('*', (req, res) => {
   });
 });
 
-// Error handling middleware
+// Error handling
 app.use(errorHandler);
 
-// Database connection and server startup
-const startServer = async () => {
-  try {
-    // Test database connection
-    await sequelize.authenticate();
-    console.log('✅ Database connection established successfully.');
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📱 API Health: http://localhost:${PORT}/api/health`);
+  console.log(`🌿 Environment: ${process.env.NODE_ENV}`);
+});
 
-    // Sync database models
-    if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      console.log('✅ Database models synchronized.');
-    }
-
-    // Start server
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📱 API Health: http://localhost:${PORT}/api/health`);
-      console.log(`🌿 Environment: ${process.env.NODE_ENV}`);
-    });
-
-  } catch (error) {
-    console.error('❌ Unable to start server:', error);
-    process.exit(1);
-  }
-};
-
-// Handle unhandled promise rejections
+// Optional: handle unhandled rejections / exceptions
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Promise Rejection:', err);
-  process.exit(1);
 });
-
-// Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
-  process.exit(1);
 });
-
-startServer();

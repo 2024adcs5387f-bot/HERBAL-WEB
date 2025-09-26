@@ -91,10 +91,10 @@ const SymptomChecker = () => {
           <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
             <Stethoscope className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Symptom Checker
           </h1>
-          <p className="text-xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto">
+          <p className="text-xl text-white max-w-3xl mx-auto">
             Describe your symptoms and get AI-powered health insights with personalized herbal recommendations. 
             Our system analyzes your symptoms and suggests natural remedies from our extensive database.
           </p>
@@ -109,7 +109,7 @@ const SymptomChecker = () => {
           >
             {/* Search & Add Symptoms */}
             <div className="modern-card p-6">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                 <Search className="h-6 w-6 text-blue-400" />
                 Add Your Symptoms
               </h2>
@@ -121,9 +121,9 @@ const SymptomChecker = () => {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search symptoms..."
-                    className="w-full p-4 bg-gray-800/50 border border-gray-600 rounded-lg focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all"
+                    className="w-full p-4 bg-gray-800/50 border border-gray-600 rounded-lg focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all text-white"
                   />
-                  <Search className="absolute right-4 top-4 h-5 w-5 text-gray-400" />
+                  <Search className="absolute right-4 top-4 h-5 w-5 text-primary-200" />
                 </div>
 
                 {/* Body Part Filter */}
@@ -134,8 +134,8 @@ const SymptomChecker = () => {
                       onClick={() => setSelectedBodyPart(selectedBodyPart === part ? '' : part)}
                       className={`px-3 py-1 rounded-full text-sm transition-all ${
                         selectedBodyPart === part
-                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                          ? 'bg-blue-500/20 text-primary-200 border border-blue-500/30'
+                          : 'bg-gray-700/50 text-white hover:bg-gray-600/50'
                       }`}
                     >
                       {part}
@@ -152,10 +152,10 @@ const SymptomChecker = () => {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => addSymptom(symptom)}
-                        className="flex items-center gap-2 p-3 bg-gray-800/30 hover:bg-blue-500/10 border border-gray-600 hover:border-blue-500/30 rounded-lg transition-all text-left"
+                        className="flex items-center gap-2 p-3 bg-gray-800/30 hover:bg-blue-500/10 border border-gray-600 hover:border-blue-500/30 rounded-lg transition-all text-left text-white"
                       >
                         <Plus className="h-4 w-4 text-blue-400" />
-                        <span className="text-sm">{symptom}</span>
+                        <span className="text-sm text-white">{symptom}</span>
                       </motion.button>
                     ))}
                   </div>
@@ -166,7 +166,7 @@ const SymptomChecker = () => {
             {/* Selected Symptoms */}
             {symptoms.length > 0 && (
               <div className="modern-card p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <Target className="h-5 w-5 text-green-400" />
                   Selected Symptoms ({symptoms.length})
                 </h3>
@@ -178,7 +178,7 @@ const SymptomChecker = () => {
                       animate={{ opacity: 1, scale: 1 }}
                       className="flex items-center gap-2 bg-green-500/20 border border-green-500/30 px-3 py-2 rounded-full"
                     >
-                      <span className="text-sm font-medium">{symptom}</span>
+                      <span className="text-sm font-medium text-white">{symptom}</span>
                       <button
                         onClick={() => removeSymptom(symptom)}
                         className="text-red-400 hover:text-red-300 transition-colors"
@@ -232,7 +232,7 @@ const SymptomChecker = () => {
                 >
                   {/* Primary Conditions */}
                   <div className="modern-card p-6">
-                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                       <Brain className="h-5 w-5 text-purple-400" />
                       Possible Conditions
                     </h3>
@@ -256,15 +256,15 @@ const SymptomChecker = () => {
                                   className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
                                 />
                               </div>
-                              <span className="text-sm font-medium">{condition.probability}%</span>
+                              <span className="text-sm font-medium text-primary-200">{condition.probability}%</span>
                             </div>
                           </div>
-                          <p className="text-sm text-gray-300 mb-3">{condition.description}</p>
+                          <p className="text-sm text-white mb-3">{condition.description}</p>
                           
                           <div className="space-y-2">
-                            <h5 className="text-sm font-medium text-green-400">Herbal Remedies:</h5>
+                            <h5 className="text-sm font-medium text-primary-200">Herbal Remedies:</h5>
                             {condition.herbalRemedies.map((remedy, i) => (
-                              <div key={i} className="text-xs text-gray-400 flex items-start gap-2">
+                              <div key={i} className="text-xs text-white flex items-start gap-2">
                                 <span className="text-green-400 mt-1">•</span>
                                 <span>{remedy}</span>
                               </div>
@@ -277,7 +277,7 @@ const SymptomChecker = () => {
 
                   {/* Recommendations */}
                   <div className="modern-card p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-green-400" />
                       Recommendations
                     </h3>
@@ -288,10 +288,10 @@ const SymptomChecker = () => {
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className="flex items-start gap-3 text-sm"
+                          className="flex items-start gap-3 text-sm text-white"
                         >
                           <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
-                          <span className="text-gray-300">{rec}</span>
+                          <span className="text-white">{rec}</span>
                         </motion.div>
                       ))}
                     </div>
@@ -302,8 +302,8 @@ const SymptomChecker = () => {
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 text-yellow-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <h4 className="font-medium text-yellow-400 mb-1">Important Notice</h4>
-                        <p className="text-xs text-gray-300">{analysis.disclaimer}</p>
+                        <h4 className="font-medium text-primary-200 mb-1">Important Notice</h4>
+                        <p className="text-xs text-white">{analysis.disclaimer}</p>
                       </div>
                     </div>
                   </div>
@@ -317,12 +317,12 @@ const SymptomChecker = () => {
                 >
                   <div className="space-y-4">
                     <div className="p-4 bg-gray-800/50 rounded-full w-fit mx-auto">
-                      <Activity className="h-12 w-12 text-gray-600" />
+                      <Activity className="h-12 w-12 text-primary-200" />
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-400">
+                    <h3 className="text-lg font-semibold text-white">
                       Add symptoms to get started
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-primary-200">
                       Select your symptoms and our AI will provide 
                       personalized health insights and herbal recommendations.
                     </p>

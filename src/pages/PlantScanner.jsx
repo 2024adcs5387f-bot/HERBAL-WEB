@@ -126,10 +126,10 @@ const PlantScanner = () => {
           <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
             <Leaf className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Plant Scanner
           </h1>
-          <p className="text-xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto">
+          <p className="text-xl text-white max-w-3xl mx-auto">
             Identify plants instantly with AI-powered image recognition. Upload a photo or capture one with your camera to discover the plant's identity, medicinal properties, and care requirements.
           </p>
         </motion.div>
@@ -144,17 +144,17 @@ const PlantScanner = () => {
           >
             {/* Upload Area */}
             <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg border border-neutral-200 dark:border-neutral-700 p-8">
-              <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-6">Upload Plant Image</h2>
+              <h2 className="text-2xl font-bold text-white mb-6">Upload Plant Image</h2>
               
               {!selectedImage ? (
                 <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-xl p-8 text-center hover:border-primary-400 dark:hover:border-primary-500 transition-colors duration-200">
                   <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Upload className="h-8 w-8 text-neutral-400 dark:text-neutral-500" />
                   </div>
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">
+                  <h3 className="text-lg font-semibold text-white mb-2">
                     Drop your image here
                   </h3>
-                  <p className="text-neutral-600 dark:text-neutral-300 mb-6">
+                  <p className="text-primary-200 mb-6">
                     or click to browse from your device
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -226,11 +226,11 @@ const PlantScanner = () => {
 
               {/* Tips */}
               <div className="mt-6 p-4 bg-neutral-50 dark:bg-neutral-700/50 rounded-xl">
-                <h4 className="font-semibold text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
+                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
                   <Info className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                   Tips for Best Results
                 </h4>
-                <ul className="text-sm text-neutral-600 dark:text-neutral-300 space-y-1">
+                <ul className="text-sm text-white space-y-1">
                   <li>• Ensure good lighting and clear focus</li>
                   <li>• Include leaves, flowers, and stems if possible</li>
                   <li>• Avoid shadows and reflections</li>
@@ -264,10 +264,10 @@ const PlantScanner = () => {
                 <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 dark:border-primary-400"></div>
                 </div>
-                <h3 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2">
+                <h3 className="text-xl font-semibold text-white mb-2">
                   Analyzing Your Plant
                 </h3>
-                <p className="text-neutral-600 dark:text-neutral-300">
+                <p className="text-primary-200">
                   Our AI is examining the image to identify the plant species...
                 </p>
               </div>
@@ -291,28 +291,28 @@ const PlantScanner = () => {
                 <div className="p-6 space-y-6">
                   {/* Basic Info */}
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-3 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
                       <Info className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                       Plant Information
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="font-medium text-neutral-700 dark:text-neutral-300">Family:</span>
-                        <span className="ml-2 text-neutral-600 dark:text-neutral-400">{scanResult.plant.family}</span>
+                        <span className="font-medium text-primary-200">Family:</span>
+                        <span className="ml-2 text-white">{scanResult.plant.family}</span>
                       </div>
                       <div>
-                        <span className="font-medium text-neutral-700 dark:text-neutral-300">Common Names:</span>
-                        <span className="ml-2 text-neutral-600 dark:text-neutral-400">{scanResult.plant.commonNames.join(', ')}</span>
+                        <span className="font-medium text-primary-200">Common Names:</span>
+                        <span className="ml-2 text-white">{scanResult.plant.commonNames.join(', ')}</span>
                       </div>
                     </div>
-                    <p className="text-neutral-600 dark:text-neutral-300 mt-3 leading-relaxed">
+                    <p className="text-white mt-3 leading-relaxed">
                       {scanResult.plant.description}
                     </p>
                   </div>
 
                   {/* Medicinal Uses */}
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-3 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
                       <Leaf className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                       Medicinal Uses
                     </h3>
@@ -320,7 +320,7 @@ const PlantScanner = () => {
                       {scanResult.plant.medicinalUses.map((use, index) => (
                         <li key={index} className="flex items-start gap-2">
                           <div className="w-2 h-2 bg-primary-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <span className="text-neutral-600 dark:text-neutral-300">{use}</span>
+                          <span className="text-white">{use}</span>
                         </li>
                       ))}
                     </ul>
@@ -328,7 +328,7 @@ const PlantScanner = () => {
 
                   {/* Active Compounds */}
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-3 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                       Active Compounds
                     </h3>
@@ -346,10 +346,10 @@ const PlantScanner = () => {
 
                   {/* Growing Conditions */}
                   <div>
-                    <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-3">
+                    <h3 className="text-lg font-semibold text-white mb-3">
                       Growing Conditions
                     </h3>
-                    <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
+                    <p className="text-white leading-relaxed">
                       {scanResult.plant.growingConditions}
                     </p>
                   </div>
@@ -365,12 +365,12 @@ const PlantScanner = () => {
                   {/* Alternative Plants */}
                   {scanResult.alternatives.length > 0 && (
                     <div>
-                      <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-3">
+                      <h3 className="text-lg font-semibold text-white mb-3">
                         Similar Plants
                       </h3>
                       <ul className="space-y-1">
                         {scanResult.alternatives.map((alt, index) => (
-                          <li key={index} className="text-neutral-600 dark:text-neutral-300 text-sm">
+                          <li key={index} className="text-primary-200 text-sm">
                             • {alt}
                           </li>
                         ))}
@@ -405,10 +405,10 @@ const PlantScanner = () => {
                 <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Leaf className="h-8 w-8 text-neutral-400 dark:text-neutral-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold text-white mb-2">
                   Ready to Identify
                 </h3>
-                <p className="text-neutral-600 dark:text-neutral-300">
+                <p className="text-primary-200">
                   Upload a plant image to get started with identification
                 </p>
               </div>

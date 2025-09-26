@@ -1,7 +1,6 @@
-<<<<<<< HEAD
 # HERBAL-WEB
 Check ur signs know the right herb to use
-=======
+
 # 🌿 Herbal Marketplace - Complete Platform
 
 A comprehensive web-based herbal products portal that connects herbal product sellers, buyers, and herbalists. The system features AI-powered plant identification, symptom checking, personalized recommendations, and a full e-commerce marketplace.
@@ -314,4 +313,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Built with ❤️ for the herbal medicine community**
 
 *This platform bridges traditional herbal wisdom with modern AI technology, creating a trusted marketplace for natural health solutions.*
->>>>>>> fddd72d (First commit)
+

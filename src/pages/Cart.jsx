@@ -1,361 +1,330 @@
-import { useState, useEffect } from 'react';
+// CartPage.jsx
+import React, { useState } from "react";
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Trash2, 
-  Heart, 
-  ArrowLeft, 
-  Lock, 
-  Shield, 
-  Truck, 
-  CreditCard,
-  CheckCircle,
-  X,
-  Plus,
-  Minus
-} from 'lucide-react';
+import "./CartPage.css"; // put your <style> content here
 
-const Cart = () => {
-  const [cartItems, setCartItems] = useState([]);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
-  const [couponDiscount, setCouponDiscount] = useState(0);
+const CartPage = () => {
+    // Cart items state (load from localStorage key used by Products page)
+    const [cartItems, setCartItems] = useState(() => {
+        try {
+            const stored = localStorage.getItem('cartPageItems');
+            return stored ? JSON.parse(stored) : [];
+        } catch {
+            return [];
+        }
+    });
 
-  useEffect(() => {
-    const savedCart = localStorage.getItem('herbalCart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-  }, []);
+    const [recentProducts] = useState([
+        {
+            id: 1,
+            title: "Turmeric Capsules",
+            price: 95000,
+            img: "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?auto=format&fit=crop&w=500&h=500&q=80",
+            desc: "Anti-inflammatory turmeric capsules for joint health and overall wellness.",
+        },
+        {
+            id: 2,
+            title: "Herbal Shampoo",
+            price: 59000,
+            img: "https://images.unsplash.com/photo-1571781926291-47774e3ba5c6?auto=format&fit=crop&w=500&h=500&q=80",
+            desc: "Natural shampoo with rosemary and mint for hair growth and scalp health.",
+        },
+        {
+            id: 3,
+            title: "Echinacea Tincture",
+            price: 85000,
+            img: "https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?auto=format&fit=crop&w=500&h=500&q=80",
+            desc: "Immune-boosting echinacea extract in alcohol-free base for daily wellness.",
+        },
+        {
+            id: 4,
+            title: "Peppermint Oil",
+            price: 68000,
+            img: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?auto=format&fit=crop&w=500&h=500&q=80",
+            desc: "Pure peppermint oil for digestion support and mental clarity enhancement.",
+        },
+    ]);
 
-  const updateQuantity = (itemId, newQuantity) => {
-    if (newQuantity < 1) return;
-    
-    const updatedCart = cartItems.map(item => 
-      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    // Functions
+    const increaseQty = (id) => {
+        setCartItems((items) => {
+            const next = items.map((item) =>
+                item.id === id ? { ...item, qty: item.qty + 1 } : item
+            );
+            localStorage.setItem('cartPageItems', JSON.stringify(next));
+            window.dispatchEvent(new Event('cartUpdated'));
+            return next;
+        });
+    };
+
+    const decreaseQty = (id) => {
+        setCartItems((items) => {
+            const next = items.map((item) =>
+                item.id === id && item.qty > 1
+                    ? { ...item, qty: item.qty - 1 }
+                    : item
+            );
+            localStorage.setItem('cartPageItems', JSON.stringify(next));
+            window.dispatchEvent(new Event('cartUpdated'));
+            return next;
+        });
+    };
+
+    const removeItem = (id) => {
+        setCartItems((items) => {
+            const next = items.filter((item) => item.id !== id);
+            localStorage.setItem('cartPageItems', JSON.stringify(next));
+            window.dispatchEvent(new Event('cartUpdated'));
+            return next;
+        });
+    };
+
+    const subtotal = cartItems.reduce(
+        (total, item) => total + item.price * item.qty,
+        0
     );
-    setCartItems(updatedCart);
-    localStorage.setItem('herbalCart', JSON.stringify(updatedCart));
-  };
 
-  const removeItem = (itemId) => {
-    const updatedCart = cartItems.filter(item => item.id !== itemId);
-    setCartItems(updatedCart);
-    localStorage.setItem('herbalCart', JSON.stringify(updatedCart));
-  };
-
-  const moveToWishlist = (item) => {
-    // Implement wishlist functionality
-    console.log('Moving to wishlist:', item.name);
-    removeItem(item.id);
-  };
-
-  const applyCoupon = () => {
-    if (couponCode.toLowerCase() === 'welcome10') {
-      setCouponApplied(true);
-      setCouponDiscount(subtotal * 0.1);
-      // You could add a toast notification here
-    } else {
-      setCouponApplied(false);
-      setCouponDiscount(0);
-      // You could add an error toast here
-    }
-  };
-
-  const removeCoupon = () => {
-    setCouponApplied(false);
-    setCouponDiscount(0);
-    setCouponCode('');
-  };
-
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = subtotal > 50 ? 0 : 5.99;
-  const tax = subtotal * 0.08; // 8% tax
-  const total = subtotal + shipping + tax - couponDiscount;
-
-  if (cartItems.length === 0) {
     return (
-      <div 
-        className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950"
-        style={{ paddingTop: '100px' }}
-      >
-        <div className="container">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-20"
-          >
-            <div className="w-24 h-24 bg-neutral-100 dark:bg-neutral-700 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Heart className="h-12 w-12 text-neutral-400 dark:text-neutral-500" />
-            </div>
-            <h1 className="text-3xl font-bold text-neutral-900 dark:text-white mb-4">Your cart is empty</h1>
-            <p className="text-lg text-neutral-600 dark:text-neutral-300 mb-8 max-w-md mx-auto">
-              Looks like you haven't added any herbal products to your cart yet. 
-              Start exploring our collection of natural wellness solutions.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/products"
-                className="btn btn-primary btn-lg inline-flex items-center"
-              >
-                Browse Products
-                <ArrowLeft className="ml-2 h-5 w-5 rotate-180" />
-              </Link>
-              <Link
-                to="/"
-                className="btn btn-outline btn-lg"
-              >
-                Back to Home
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-neutral-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950"
-      style={{ paddingTop: '100px' }}
-    >
-      <div className="container">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-neutral-900 dark:text-white mb-2">Shopping Cart</h1>
-              <p className="text-neutral-600 dark:text-neutral-300">
-                {cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in your cart
-              </p>
-            </div>
-            <Link
-              to="/products"
-              className="btn btn-outline inline-flex items-center"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Continue Shopping
-            </Link>
-          </div>
-        </motion.div>
-
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
-          <div className="lg:col-span-2">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg border border-neutral-200 dark:border-neutral-700 p-6"
-            >
-              <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-6">Cart Items</h2>
-              
-              <div className="space-y-4">
-                {cartItems.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex gap-4 p-4 bg-neutral-50 dark:bg-neutral-700/50 rounded-xl border border-neutral-200 dark:border-neutral-600"
-                  >
-                    {/* Product Image */}
-                    <div className="w-20 h-20 bg-gradient-to-br from-neutral-100 to-neutral-200 dark:from-neutral-600 dark:to-neutral-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover rounded-lg" />
-                      ) : (
-                        <div className="text-center">
-                          <div className="w-8 h-8 bg-neutral-300 dark:bg-neutral-500 rounded-full mx-auto mb-1"></div>
-                          <div className="text-xs text-neutral-500 dark:text-neutral-400">No Image</div>
-                        </div>
-                      )}
+        <div className="cart-page">
+            <div className="container my-5">
+                {/* Title */}
+                <div className="row">
+                    <div className="col-12">
+                        <h1 className="section-title">Shopping Cart</h1>
+                        <Link to="/products" className="continue-shopping">
+                            <i className="fas fa-arrow-left me-2"></i>Continue Shopping
+                        </Link>
                     </div>
+                </div>
 
-                    {/* Product Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-neutral-900 dark:text-white mb-1 line-clamp-1">
-                            {item.name}
-                          </h3>
-                          <p className="text-sm text-neutral-600 dark:text-neutral-300 line-clamp-2">
-                            {item.description}
-                          </p>
-                        </div>
-                        <div className="text-right ml-4">
-                          <div className="text-lg font-bold text-neutral-900 dark:text-white">
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </div>
-                          {item.compareAtPrice && (
-                            <div className="text-sm text-neutral-400 dark:text-neutral-500 line-through">
-                              ${(item.compareAtPrice * item.quantity).toFixed(2)}
+                <div className="row mt-4">
+                    {/* Cart Items */}
+                    <div className="col-lg-8">
+                        {cartItems.map((item) => (
+                            <div key={item.id} className="cart-item">
+                                <div className="row">
+                                    <div className="col-md-3">
+                                        <img src={item.img} alt={item.name} className="product-img" />
+                                    </div>
+                                    <div className="col-md-9">
+                                        <div className="d-flex justify-content-between">
+                                            <h4>
+                                                {item.name}{" "}
+                                                {item.tag && (
+                                                    <span className="discount-badge">{item.tag}</span>
+                                                )}
+                                            </h4>
+                                            <div>
+                                                {item.oldPrice && (
+                                                    <span className="text-muted text-decoration-line-through me-2">
+                                                        UGX {item.oldPrice.toLocaleString()}
+                                                    </span>
+                                                )}
+                                                <span className="product-price fw-bold">
+                                                    UGX {item.price.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <p className="text-muted">{item.desc}</p>
+                                        <div className="d-flex justify-content-between align-items-center">
+                                            <div className="d-flex align-items-center">
+                                                <label className="me-2">Qty:</label>
+                                                <div className="input-group quantity-input-group" style={{ width: "120px" }}>
+                                                    <button
+                                                        className="btn btn-outline-secondary"
+                                                        type="button"
+                                                        onClick={() => decreaseQty(item.id)}
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <input
+                                                        type="number"
+                                                        className="form-control text-center quantity-input"
+                                                        value={item.qty}
+                                                        readOnly
+                                                    />
+                                                    <button
+                                                        className="btn btn-outline-secondary"
+                                                        type="button"
+                                                        onClick={() => increaseQty(item.id)}
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <button
+                                                className="btn btn-outline-danger"
+                                                onClick={() => removeItem(item.id)}
+                                            >
+                                                <i className="fas fa-trash me-1"></i> Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                          )}
-                        </div>
-                      </div>
+                        ))}
 
-                      {/* Quantity Controls & Actions */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            className="w-8 h-8 bg-white dark:bg-neutral-600 border border-neutral-300 dark:border-neutral-500 rounded-lg flex items-center justify-center text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-500 transition-colors"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="w-12 text-center font-medium text-neutral-900 dark:text-white">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="w-8 h-8 bg-white dark:bg-neutral-600 border border-neutral-300 dark:border-neutral-500 rounded-lg flex items-center justify-center text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-500 transition-colors"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
+                        {/* Promo Code Section */}
+                        <div className="promo-section">
+                            <h5>
+                                <i className="fas fa-tag me-2"></i>Have a promo code?
+                            </h5>
+                            <div className="input-group mb-3">
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Enter promo code"
+                                />
+                                <button className="btn btn-primary" type="button">
+                                    Apply
+                                </button>
+                            </div>
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => moveToWishlist(item)}
-                            className="p-2 text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
-                            title="Move to Wishlist"
-                          >
-                            <Heart className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => removeItem(item.id)}
-                            className="p-2 text-neutral-500 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200"
-                            title="Remove Item"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
 
-          {/* Order Summary */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-1"
-          >
-            <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-lg border border-neutral-200 dark:border-neutral-700 p-6 sticky top-32">
-              <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-6">Order Summary</h2>
-
-              {/* Coupon Section */}
-              <div className="mb-6 p-4 bg-neutral-50 dark:bg-neutral-700/50 rounded-xl border border-neutral-200 dark:border-neutral-600">
-                <h3 className="font-medium text-neutral-900 dark:text-white mb-3">Have a coupon?</h3>
-                {!couponApplied ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Enter code"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="flex-1 form-input text-sm"
-                    />
-                    <button
-                      onClick={applyCoupon}
-                      className="btn btn-primary text-sm px-4 py-2"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-                        Coupon applied: {couponCode}
-                      </span>
+                    {/* Cart Summary */}
+                    <div className="col-lg-4">
+                        <div className="summary-card">
+                            <h3 className="mb-4">Cart Summary</h3>
+                            <div className="d-flex justify-content-between mb-4">
+                                <span className="fw-bold">Subtotal</span>
+                                <span className="fw-bold">UGX {subtotal.toLocaleString()}</span>
+                            </div>
+                            <button className="btn btn-primary btn-lg w-100 mb-3">
+                                Proceed to Checkout
+                            </button>
+                            <div className="text-center">
+                                <p className="text-muted">or</p>
+                                <button className="btn btn-outline-primary w-100">
+                                    <i className="fab fa-paypal me-2"></i> Checkout with PayPal
+                                </button>
+                            </div>
+                            <div className="mt-4">
+                                <h6>We accept:</h6>
+                                <div className="d-flex">
+                                    <i className="fab fa-cc-visa fa-2x me-2 text-primary"></i>
+                                    <i className="fab fa-cc-mastercard fa-2x me-2 text-danger"></i>
+                                    <i className="fab fa-cc-paypal fa-2x me-2 text-primary"></i>
+                                    <i className="fab fa-cc-apple-pay fa-2x me-2 text-dark"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button
-                      onClick={removeCoupon}
-                      className="text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2">
-                  Try "WELCOME10" for 10% off
-                </p>
-              </div>
-
-              {/* Price Breakdown */}
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-neutral-600 dark:text-neutral-300">
-                  <span>Subtotal ({cartItems.length} items)</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                
-                <div className="flex justify-between text-neutral-600 dark:text-neutral-300">
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
-                </div>
-                
-                <div className="flex justify-between text-neutral-600 dark:text-neutral-300">
-                  <span>Tax</span>
-                  <span>${tax.toFixed(2)}</span>
                 </div>
 
-                {couponApplied && (
-                  <div className="flex justify-between text-green-600 dark:text-green-400 font-medium">
-                    <span>Coupon Discount</span>
-                    <span>-${couponDiscount.toFixed(2)}</span>
-                  </div>
-                )}
-
-                <div className="border-t border-neutral-200 dark:border-neutral-600 pt-3">
-                  <div className="flex justify-between text-lg font-bold text-neutral-900 dark:text-white">
-                    <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
-                  </div>
+                {/* Recently Viewed */}
+                <div className="row mt-5">
+                    <div className="col-12">
+                        <h3 className="section-title">Recently Viewed</h3>
+                    </div>
+                    {recentProducts.map((p) => (
+                        <div key={p.id} className="col-md-3 col-sm-6 mb-4">
+                            <div className="card recent-product-card h-100">
+                                <img src={p.img} alt={p.title} className="recent-product-img" />
+                                <div className="card-body">
+                                    <h5 className="card-title">{p.title}</h5>
+                                    <p className="recent-product-description">{p.desc}</p>
+                                    <p className="card-text fw-bold">UGX {p.price.toLocaleString()}</p>
+                                    <button className="btn btn-outline-primary btn-sm w-100">
+                                        Add to Cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-              </div>
-
-              {/* Security & Trust Indicators */}
-              <div className="mb-6 space-y-3">
-                <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                  <Lock className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <span>Secure checkout</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                  <Shield className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <span>30-day money-back guarantee</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                  <Truck className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <span>Free shipping on orders over $50</span>
-                </div>
-              </div>
-
-              {/* Checkout Button */}
-              <button className="w-full btn btn-primary btn-lg">
-                <CreditCard className="mr-2 h-5 w-5" />
-                Proceed to Checkout
-              </button>
-
-              {/* Additional Info */}
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center mt-4">
-                By completing your order, you agree to our Terms of Service and Privacy Policy.
-              </p>
             </div>
-          </motion.div>
+
+            {/* Footer */}
+            <footer className="bg-dark text-white py-5 mt-5">
+                <div className="container">
+                    <div className="row">
+                        {/* About */}
+                        <div className="col-md-4 mb-4">
+                            <h5>Herbal Haven</h5>
+                            <p>
+                                Pure herbal products for natural wellness and sustainable living.
+                            </p>
+                            <div className="d-flex">
+                                <a href="#" className="text-white me-3">
+                                    <i className="fab fa-facebook-f"></i>
+                                </a>
+                                <a href="#" className="text-white me-3">
+                                    <i className="fab fa-instagram"></i>
+                                </a>
+                                <a href="#" className="text-white me-3">
+                                    <i className="fab fa-twitter"></i>
+                                </a>
+                                <a href="#" className="text-white">
+                                    <i className="fab fa-pinterest"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {/* Shop */}
+                        <div className="col-md-2 mb-4">
+                            <h5>Shop</h5>
+                            <ul className="list-unstyled">
+                                <li><a href="#" className="text-white text-decoration-none">Herbal Teas</a></li>
+                                <li><a href="#" className="text-white text-decoration-none">Essential Oils</a></li>
+                                <li><a href="#" className="text-white text-decoration-none">Capsules</a></li>
+                                <li><a href="#" className="text-white text-decoration-none">Skincare</a></li>
+                            </ul>
+                        </div>
+                        {/* Company */}
+                        <div className="col-md-2 mb-4">
+                            <h5>Company</h5>
+                            <ul className="list-unstyled">
+                                <li><a href="#" className="text-white text-decoration-none">About Us</a></li>
+                                <li><a href="#" className="text-white text-decoration-none">Sustainability</a></li>
+                                <li><a href="#" className="text-white text-decoration-none">Blog</a></li>
+                                <li><a href="#" className="text-white text-decoration-none">Careers</a></li>
+                            </ul>
+                        </div>
+                        {/* Newsletter */}
+                        <div className="col-md-4 mb-4">
+                            <h5>Newsletter</h5>
+                            <p>
+                                Subscribe to get special offers, free giveaways, and herbal
+                                wellness tips.
+                            </p>
+                            <div className="input-group">
+                                <input
+                                    type="email"
+                                    className="form-control"
+                                    placeholder="Your email address"
+                                />
+                                <button className="btn btn-primary">Subscribe</button>
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div className="row">
+                        <div className="col-md-6">
+                            <p>&copy; 2023 Herbal Haven. All rights reserved.</p>
+                        </div>
+                        <div className="col-md-6 text-md-end">
+                            <a href="#" className="text-white text-decoration-none me-3">
+                                Privacy Policy
+                            </a>
+                            <a href="#" className="text-white text-decoration-none me-3">
+                                Terms of Service
+                            </a>
+                            <a href="#" className="text-white text-decoration-none">
+                                Shipping & Returns
+                            </a>
+                        </div>
+                    </div>
+                    <div className="row mt-3">
+                        <div className="col-12 text-center">
+                            <p className="mb-0">
+                                <small>Images from Unsplash and Pinterest</small>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </footer>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
-export default Cart;
+export default CartPage;

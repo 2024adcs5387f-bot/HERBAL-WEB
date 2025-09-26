@@ -1,38 +1,122 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
+import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import { initAuthBridge } from './services/authService';
 import Home from './pages/Home';
-import Products from './pages/Products';
+import Products from './pages/product/product';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/user/Dashboard';
 import PlantScanner from './pages/PlantScanner';
 import SymptomChecker from './pages/SymptomChecker';
 import AIRecommendations from './pages/AIRecommendations';
 import PaymentSuccess from './pages/PaymentSuccess';
+import Research from './pages/Research';
+import ResearchPost from './pages/ResearchPost';
+import ResearchNew from './pages/ResearchNew';
+import TopSearchBar from './components/Topbar/TopSearchBar';
+import PrivateRoute from './routes/PrivateRoute';
+import PublicRoute from './routes/PublicRoute';
+import ResearchHub from './pages/ResearchHub';
+import Profile from './pages/user/Profile';
+import AdminDashboard from './pages/user/AdminDashboard';
+import NotFound from './pages/NotFound';
+import SupabaseHealth from './pages/health/SupabaseHealth';
+import Logout from './pages/Logout';
 
 const App = () => {
+  useEffect(() => {
+    initAuthBridge();
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen">
         <Navbar />
-        <main>
+        <TopSearchBar />
+        <main className="pt-20"> {/* Padding-top for sticky navbar */}
           <Routes>
+            {/* Public Pages */}
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/plant-scanner" element={<PlantScanner />} />
+            {/* Diagnostics */}
+            <Route path="/health/supabase" element={<SupabaseHealth />} />
             <Route path="/symptom-checker" element={<SymptomChecker />} />
             <Route path="/ai-recommendations" element={<AIRecommendations />} />
+
+            <Route path="/research" element={<Research />} />
+            <Route path="/research/:id" element={<ResearchPost />} />
+            <Route
+              path="/research/new"
+              element={
+                <PrivateRoute roles={['researcher','herbalist']}>
+                  <ResearchNew />
+                </PrivateRoute>
+              }
+            />
+
             <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/research-hub" element={<ResearchHub />} />
+
+            {/* Authentication */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
+
+            {/* Protected User Pages */}
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute roles={['buyer','seller','herbalist','researcher']}>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/logout" element={<Logout />} />
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute roles={['buyer','seller','herbalist','researcher']}>
+                  <Profile />
+                </PrivateRoute>
+              }
+            />
+
+            {/* Admin Only */}
+            <Route
+              path="/admin-dashboard"
+              element={
+                <PrivateRoute roles={['admin']}>
+                  <AdminDashboard />
+                </PrivateRoute>
+              }
+            />
+
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
+        <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
       </div>
     </Router>
   );

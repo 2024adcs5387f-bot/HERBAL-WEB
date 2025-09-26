@@ -1,0 +1,109 @@
+/* Research post content: constrain inline images for readability */
+.research-post-page .content-body img {
+  max-width: 400px;
+  height: auto;
+}
+
+/* Research post attachments grid: thumbnail images */
+.research-post-page .attachments img,
+.research-post-page .attachments .attachment-image {
+  max-width: 100px;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Global contrast overrides and utility adjustments */
+
+body, p, li, label, input, textarea, select { color: var(--neutral-800); }
+.dark body, .dark p, .dark li, .dark label, .dark input, .dark textarea, .dark select { color: #F3F4F6; }
+
+/* Cards and panels default foreground */
+.card-enhanced { color: var(--neutral-900); }
+
+/* Links: improve contrast and hover */
+a { color: var(--primary-700); }
+a:hover { color: var(--primary-800); }
+.dark a { color: #E5E7EB; }
+.dark a:hover { color: #FFFFFF; }
+
+/* Buttons primary */
+button, .btn-primary { background: var(--primary-600); color: #fff; }
+button:hover, .btn-primary:hover { background: var(--primary-700); }
+
+/* Inputs: ensure readable foreground */
+input::placeholder, textarea::placeholder { color: var(--neutral-400); }
+.dark input::placeholder, .dark textarea::placeholder { color: #9CA3AF; }
+
+/* Navbar link contrast */
+nav .nav-links a { color: var(--neutral-800); }
+nav .nav-links a:hover, nav .nav-links a.active { color: var(--primary-600); }
+.dark nav .nav-links a { color: #F3F4F6; }
+.dark nav .nav-links a:hover, .dark nav .nav-links a.active { color: #FFFFFF; }
+
+/* Navbar textual elements on dark */
+.dark .navbar .logo { color: #FFFFFF; }
+.dark .navbar .auth-dropdown span { color: #E5E7EB; }
+.dark .navbar .dropdown li a { color: #F3F4F6; }
+.dark .navbar .dropdown li a:hover { color: #FFFFFF; }
+
+/* Global dark-mode text brightness override (non-destructive) */
+/* Make most text elements PURE WHITE by default in dark mode */
+.dark body { color: #FFFFFF !important; }
+.dark :is(p, span, li, dd, dt, small, strong, em, code, pre, label) { color: #FFFFFF !important; }
+.dark :is(h1, h2, h3, h4, h5, h6) { color: #FFFFFF !important; }
+
+/* Form elements */
+.dark :is(input, textarea, select) { color: #FFFFFF !important; }
+.dark :is(input, textarea, select)::placeholder { color: #A7F3D0 !important; }
+
+/* Links and accents: light green for visibility */
+.dark a { color: #A7F3D0 !important; }          /* mint green */
+.dark a:hover { color: #34D399 !important; }    /* emerald */
+
+/* Component containers that might set their own foreground */
+.dark .card, .dark .card-enhanced, .dark .panel, .dark .section, .dark .container-system { color: #FFFFFF !important; }
+
+/* Topbar quicklinks text */
+.dark .topbar-quicklinks .qlink { color: #A7F3D0 !important; }
+.dark .topbar-quicklinks .qlink:hover { color: #34D399 !important; }
+
+/* Ultimate safeguard: enforce white text across most elements in dark mode */
+.dark :where(h1,h2,h3,h4,h5,h6,p,span,em,strong,a,li,ul,ol,dl,dt,dd,small,label,legend,
+             input,textarea,select,button,th,td,figcaption,blockquote,code,pre) {
+  color: #FFFFFF !important;
+}
+
+/* Table headers slightly stronger */
+.dark th { color: #FFFFFF !important; }
+
+/* Layout-level brightness: ensure readable text over the dark gradient background */
+.layout-dark { color: #FFFFFF !important; }
+.layout-dark :where(h1,h2,h3,h4,h5,h6) { color: #FFFFFF !important; }
+.layout-dark :where(p,span,li,small,label,em,strong,a,code,pre) { color: #FFFFFF !important; }
+.layout-dark :where(input,textarea,select,button) { color: #FFFFFF !important; }
+.layout-dark a { color: #A7F3D0 !important; }
+.layout-dark a:hover { color: #34D399 !important; }
+
+/* Icon accents in dark mode */
+.dark .icon { color: #A7F3D0 !important; }
+
+/* --- Utility shims (Tailwind-like) so existing classNames work --- */
+.text-white { color: #FFFFFF !important; }
+.text-primary-50 { color: var(--primary-50) !important; }
+.text-primary-100 { color: var(--primary-100) !important; }
+.text-primary-200 { color: var(--primary-200) !important; }
+.text-primary-300 { color: var(--primary-300) !important; }
+.text-primary-400 { color: var(--primary-400) !important; }
+.text-primary-500 { color: var(--primary-500) !important; }
+.text-primary-600 { color: var(--primary-600) !important; }
+.text-primary-700 { color: var(--primary-700) !important; }
+.text-primary-800 { color: var(--primary-800) !important; }
+.text-primary-900 { color: var(--primary-900) !important; }
+
+/* Dark variant shims (match literal class names with escaped colon) */
+.dark .dark\:text-white { color: #FFFFFF !important; }
+.dark .dark\:text-neutral-300 { color: #D4D4D4 !important; }
+.dark .dark\:text-neutral-400 { color: #A3A3A3 !important; }
+.dark .dark\:text-neutral-200 { color: #E5E5E5 !important; }
+.dark .dark\:text-primary-300 { color: var(--primary-300) !important; }
+.dark .dark\:text-primary-400 { color: var(--primary-400) !important; }

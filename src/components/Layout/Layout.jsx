@@ -10,7 +10,7 @@ const Layout = ({ children, className = '', spacing = 'default' }) => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 ${className}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 layout-dark ${className}`}>
       <div className={`container-system container-xl ${spacingClasses[spacing]}`}>
         {children}
       </div>

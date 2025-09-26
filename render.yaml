@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: herbal-app
+    env: node
+    rootDir: backend
+    plan: free
+    buildCommand: |
+      bash -lc "
+      npm ci --prefix .. &&
+      npm run build --prefix .. &&
+      npm ci
+      "
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Do NOT set VITE_API_BASE here. Leave it unset so the frontend calls same-origin /api.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_ORIGINS
+        # Same-origin calls don't need CORS, but keep this if you’ll embed the API cross-origin later.
+        # Set to your final Render URL after first deploy (e.g., https://herbal-app.onrender.com)
+        value: ""

@@ -1,164 +1,193 @@
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import { User } from '../models/index.js';
-import { authenticate } from '../middleware/auth.js';
-import { validateRegistration, validateLogin } from '../utils/validation.js';
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import supabase, { supabaseAdmin } from "../config/supabase.js";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
-// Generate JWT token
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
-  });
-};
-
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
-router.post('/register', async (req, res) => {
+// ----------------------
+// Signup route
+// ----------------------
+router.post("/signup", async (req, res) => {
   try {
-    const { error } = validateRegistration(req.body);
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-      });
-    }
-
-    const { name, email, password, userType } = req.body;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
-    }
-
-    // Create user
-    const user = await User.create({
+    const {
       name,
       email,
       password,
-      userType: userType || 'buyer'
-    });
+      userType,        // maps to user_type
+      phone,
+      address,
+      business_name,
+      business_license,
+      bio,
+      experience
+    } = req.body;
 
-    // Generate token
-    const token = generateToken(user.id);
-
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: {
-        user,
-        token
-      }
-    });
-
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during registration'
-    });
-  }
-});
-
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
-router.post('/login', async (req, res) => {
-  try {
-    const { error } = validateLogin(req.body);
-    if (error) {
+    if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: error.details[0].message
+        message: "Name, email, and password are required"
       });
     }
 
+    // Check if user exists
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
+
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "User already exists" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert user
+    const { data: user, error: insertError } = await supabase
+      .from("users")
+      .insert([{
+        name,
+        email,
+        password: hashedPassword,
+        user_type: userType || "buyer",
+        phone: phone || null,
+        address: address || {},
+        business_name: business_name || null,
+        business_license: business_license || null,
+        bio: bio || null,
+        experience: experience || 0
+      }])
+      .select("*")
+      .single();
+
+    if (insertError) throw insertError;
+
+    // Generate JWT
+    const token = jwt.sign({
+      id: user.id,
+      email: user.email,
+      userType: user.user_type
+    }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    res.status(201).json({ success: true, data: { user, token } });
+
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ----------------------
+// Login route
+// ----------------------
+router.post("/login", async (req, res) => {
+  try {
     const { email, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ where: { email } });
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+
+    // Fetch user
+    const { data: user } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
+
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password'
-      });
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    // Check if user is active
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        message: 'Account is deactivated'
-      });
-    }
+    // Generate JWT
+    const token = jwt.sign({
+      id: user.id,
+      email: user.email,
+      userType: user.user_type
+    }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
     // Update last login
-    await user.update({ lastLoginAt: new Date() });
+    await supabase.from("users").update({ last_login_at: new Date() }).eq("id", user.id);
 
-    // Generate token
-    const token = generateToken(user.id);
+    res.json({ success: true, data: { user, token } });
 
-    res.json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user,
-        token
-      }
-    });
-
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error during login'
-    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
-router.get('/me', authenticate, async (req, res) => {
+// ----------------------
+// Supabase session -> App JWT exchange
+// ----------------------
+router.post("/supabase-exchange", async (req, res) => {
   try {
-    res.json({
-      success: true,
-      data: {
-        user: req.user
-      }
-    });
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
-  }
-});
+    const { access_token } = req.body || {};
+    if (!access_token) {
+      return res.status(400).json({ success: false, message: "Missing access_token" });
+    }
 
-// @route   POST /api/auth/logout
-// @desc    Logout user (client-side token removal)
-// @access  Private
-router.post('/logout', authenticate, (req, res) => {
-  res.json({
-    success: true,
-    message: 'Logout successful'
-  });
+    // Verify Supabase access token and get the user
+    const { data, error } = await supabaseAdmin.auth.getUser(access_token);
+    if (error || !data?.user) {
+      return res.status(401).json({ success: false, message: "Invalid Supabase token" });
+    }
+    const sbUser = data.user;
+
+    // Our users table should have the same id
+    let { data: dbUser, error: dbErr } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", sbUser.id)
+      .maybeSingle();
+
+    // If the user is not present in application DB, auto-provision a minimal row
+    if (!dbUser) {
+      const minimal = {
+        id: sbUser.id,
+        name: sbUser.user_metadata?.name || (sbUser.email ? sbUser.email.split('@')[0] : 'User'),
+        email: sbUser.email,
+        user_type: sbUser.user_metadata?.role || 'buyer',
+      };
+      const { error: insErr } = await supabase.from('users').insert([minimal]);
+      if (!insErr) {
+        const { data: fetched } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', sbUser.id)
+          .maybeSingle();
+        dbUser = fetched || minimal;
+      } else {
+        // If insert failed (e.g., RLS/race), still proceed without 404 to avoid blocking login
+        dbUser = minimal;
+      }
+    }
+
+    // Issue app JWT
+    const token = jwt.sign({
+      id: dbUser.id,
+      email: dbUser.email,
+      userType: dbUser.user_type,
+    }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    return res.json({ success: true, data: { token, user: dbUser } });
+  } catch (err) {
+    console.error("Supabase exchange error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
 
 export default router;

@@ -1,0 +1,111 @@
+.topbar-wrapper {
+  position: sticky;
+  top: 60px; /* below navbar height */
+  z-index: 90;
+  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.6));
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.dark .topbar-wrapper {
+  background: linear-gradient(180deg, rgba(17,24,39,0.85), rgba(17,24,39,0.6));
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 10px 0;
+}
+
+.topbar-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  background: var(--neutral-0, #fff);
+  border: 1px solid var(--neutral-200);
+  padding: 8px 12px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.dark .topbar-search {
+  background: rgba(31,41,55,0.8);
+  border-color: rgba(255,255,255,0.1);
+}
+
+.topbar-search .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--neutral-500);
+}
+
+.dark .topbar-search .icon {
+  color: #A7F3D0; /* mint */
+}
+
+.topbar-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.95rem;
+}
+
+.topbar-search input::placeholder {
+  color: var(--neutral-400);
+}
+
+.dark .topbar-search input::placeholder {
+  color: #A7F3D0; /* mint */
+}
+
+.topbar-btn {
+  background: var(--primary-600);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.topbar-btn:hover {
+  background: var(--primary-700);
+}
+
+.topbar-quicklinks {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-quicklinks .qlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(16,185,129,0.12); /* emerald */
+  color: #10B981; /* emerald */
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.dark .topbar-quicklinks .qlink {
+  background: rgba(52,211,153,0.12); /* emerald */
+  color: #A7F3D0; /* mint */
+}
+
+.topbar-quicklinks .qlink:hover {
+  background: rgba(16,185,129,0.2);
+}
+
+.dark .topbar-quicklinks .qlink:hover {
+  background: rgba(52,211,153,0.18);
+  color: #34D399; /* emerald */
+}
