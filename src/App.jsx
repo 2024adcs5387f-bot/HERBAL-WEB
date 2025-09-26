@@ -13,8 +13,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import DashboardRouter from './pages/user/DashboardRouter';
 import BuyerDashboard from './pages/user/BuyerDashboard';
-import SellerDashboard from './pages/user/SellerDashboard';
 import PlantScanner from './pages/PlantScanner';
+import SellerDashboard from './pages/SellerDashboard';
 import SymptomChecker from './pages/SymptomChecker';
 import AIRecommendations from './pages/AIRecommendations';
 import PaymentSuccess from './pages/PaymentSuccess';
@@ -149,7 +149,7 @@ const App = () => {
               }
             />
 
-            {/* Seller Dashboard - Redirects to sell.html */}
+            {/* Seller Dashboard - Handles sell.html redirection */}
             <Route
               path="/seller-dashboard"
               element={
