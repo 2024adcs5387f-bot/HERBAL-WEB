@@ -8,6 +8,100 @@ import { normalizeStructured } from "../services/structuring.js";
 const router = express.Router();
 
 // ----------------------
+// My posts (author-owned)
+// ----------------------
+router.get("/mine/list", async (req, res) => {
+  try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    const userId = decoded.id;
+
+    const { data, error } = await supabaseAdmin
+      .from('research_posts')
+      .select('*')
+      .eq('author_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    // Aggregate votes and comment counts
+    const ids = (data || []).map(p => p.id);
+    let posts = data || [];
+    if (ids.length) {
+      const [{ data: votes }, { data: comments }] = await Promise.all([
+        supabaseAdmin.from('research_votes').select('post_id, value').in('post_id', ids),
+        supabaseAdmin.from('comments').select('post_id').in('post_id', ids),
+      ]);
+      const voteCountMap = new Map();
+      (votes || []).forEach(v => voteCountMap.set(v.post_id, (voteCountMap.get(v.post_id) || 0) + (v.value || 0)));
+      const commentCountMap = new Map();
+      (comments || []).forEach(c => commentCountMap.set(c.post_id, (commentCountMap.get(c.post_id) || 0) + 1));
+      posts = posts.map(p => ({ ...p, votes_count: voteCountMap.get(p.id) || 0, comments_count: commentCountMap.get(p.id) || 0 }));
+    }
+
+    return res.json({ success: true, data: { posts } });
+  } catch (err) {
+    console.error('List my posts error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ----------------------
+// My saved posts
+// ----------------------
+router.get("/saved/list", async (req, res) => {
+  try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    const userId = decoded.id;
+
+    // Fetch saved post ids
+    const { data: saves, error: saveErr } = await supabaseAdmin
+      .from('research_saves')
+      .select('post_id')
+      .eq('user_id', userId);
+    if (saveErr) throw saveErr;
+    const ids = (saves || []).map(s => s.post_id);
+    if (!ids.length) return res.json({ success: true, data: { posts: [] } });
+
+    const { data: postsData, error } = await supabaseAdmin
+      .from('research_posts')
+      .select('*')
+      .in('id', ids)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    // Aggregate votes and comment counts
+    let posts = postsData || [];
+    const [{ data: votes }, { data: comments }] = await Promise.all([
+      supabaseAdmin.from('research_votes').select('post_id, value').in('post_id', ids),
+      supabaseAdmin.from('comments').select('post_id').in('post_id', ids),
+    ]);
+    const voteCountMap = new Map();
+    (votes || []).forEach(v => voteCountMap.set(v.post_id, (voteCountMap.get(v.post_id) || 0) + (v.value || 0)));
+    const commentCountMap = new Map();
+    (comments || []).forEach(c => commentCountMap.set(c.post_id, (commentCountMap.get(c.post_id) || 0) + 1));
+    posts = posts.map(p => ({ ...p, votes_count: voteCountMap.get(p.id) || 0, comments_count: commentCountMap.get(p.id) || 0 }));
+
+    return res.json({ success: true, data: { posts } });
+  } catch (err) {
+    console.error('List saved posts error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ----------------------
 // Create a research post
 // ----------------------
 // Require authentication (decode app JWT here) and allow only researcher/herbalist/admin to create
@@ -48,7 +142,7 @@ router.get("/:id/comments", optionalAuth, async (req, res) => {
     if (authorIds.length) {
       const { data: users } = await supabaseAdmin
         .from('users')
-        .select('id, name, email, avatar_url')
+        .select('id, name, email, avatar')
         .in('id', authorIds);
       (users || []).forEach(u => userMap.set(u.id, u));
     }
@@ -58,7 +152,7 @@ router.get("/:id/comments", optionalAuth, async (req, res) => {
         ...c,
         author_name: u.name || u.email || null,
         author_full_name: u.name || null,
-        author_avatar_url: u.avatar_url || null,
+        author_avatar_url: u.avatar || null,
       };
     });
 
@@ -272,7 +366,7 @@ router.get("/:id", optionalAuth, async (req, res) => {
     }
     console.log(`[DEBUG] Successfully fetched post: ${post.id}`);
 
-    // Fetch comments and build a tree (threaded)
+    // Fetch comments
     const { data: comments, error: commentError } = await supabase
       .from("comments")
       .select("*")
@@ -280,11 +374,31 @@ router.get("/:id", optionalAuth, async (req, res) => {
       .order("created_at", { ascending: true });
     if (commentError) console.warn("[DEBUG] Comments fetch warning:", commentError.message);
     console.log(`[DEBUG] Comments fetched for post ${req.params.id}: count=${(comments || []).length}`);
+    // Enrich each comment with author details from users table
+    const authorIds = Array.from(new Set((comments || []).map(c => c.author_id).filter(Boolean)));
+    let userMap = new Map();
+    if (authorIds.length) {
+      const { data: users } = await supabaseAdmin
+        .from('users')
+        .select('id, name, email, avatar')
+        .in('id', authorIds);
+      (users || []).forEach(u => userMap.set(u.id, u));
+    }
+    const enriched = (comments || []).map(c => {
+      const u = userMap.get(c.author_id) || {};
+      return {
+        ...c,
+        author_name: u.name || u.email || null,
+        author_full_name: u.name || null,
+        author_avatar_url: u.avatar || null,
+      };
+    });
 
+    // Build a thread
     const byId = new Map();
-    (comments || []).forEach((c) => byId.set(c.id, { ...c, replies: [] }));
+    (enriched || []).forEach((c) => byId.set(c.id, { ...c, replies: [] }));
     const roots = [];
-    (comments || []).forEach((c) => {
+    (enriched || []).forEach((c) => {
       const node = byId.get(c.id);
       if (c.parent_id) {
         const parent = byId.get(c.parent_id);

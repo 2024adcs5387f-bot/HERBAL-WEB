@@ -478,7 +478,7 @@ export default function ResearchPost() {
           <CommentSection
             currentUser={{
               currentUserId: currentUser?.id || null,
-              currentUserImg: (currentUser?.profile?.avatar_url || currentUser?.avatar_url || DEFAULT_AVATAR),
+              currentUserImg: (currentUser?.profile?.avatar || currentUser?.avatar || DEFAULT_AVATAR),
               currentUserFullName: (currentUser?.profile?.name || currentUser?.name || currentUser?.email || "User"),
             }}
             commentData={commentsData}

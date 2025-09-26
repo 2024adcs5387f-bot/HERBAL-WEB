@@ -266,7 +266,7 @@ export const deleteComment = async (postId, commentId) => {
   try {
     await ensureAppJwt().catch(() => {});
     const token = localStorage.getItem("token");
-    const res = await fetch(`/api/research/${postId}/comments/${commentId}`, {
+    const res = await fetch(`${API_BASE}/api/research/${postId}/comments/${commentId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -353,5 +353,40 @@ export const savePost = async (postId, action) => {
   } catch (err) {
     console.error(err);
     return false;
+  }
+};
+
+// Dashboards
+export const getMyResearchPosts = async () => {
+  try {
+    await ensureAppJwt().catch(() => {});
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated");
+    const res = await fetch(`${API_BASE}/api/research/mine/list`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!data?.success) throw new Error(data?.message || "Failed to fetch my posts");
+    return data.data.posts || [];
+  } catch (err) {
+    console.error("getMyResearchPosts error", err);
+    return [];
+  }
+};
+
+export const getSavedResearchPosts = async () => {
+  try {
+    await ensureAppJwt().catch(() => {});
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated");
+    const res = await fetch(`${API_BASE}/api/research/saved/list`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!data?.success) throw new Error(data?.message || "Failed to fetch saved posts");
+    return data.data.posts || [];
+  } catch (err) {
+    console.error("getSavedResearchPosts error", err);
+    return [];
   }
 };
