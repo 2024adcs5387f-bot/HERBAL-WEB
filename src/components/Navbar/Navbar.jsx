@@ -1,12 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { getCurrentUser } from '../../services/userService';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { getCurrentUser, signOut } from '../../services/userService';
 
 const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
   const [hasResearchAccess, setHasResearchAccess] = useState(false);
   const [user, setUser] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const navigate = useNavigate();
 
 
   // Sticky on scroll
@@ -50,6 +52,16 @@ const Navbar = () => {
 
   const researchHubPath = '/research-hub';
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      setUser(null);
+      navigate('/login', { replace: true });
+    } catch (e) {
+      console.error('Logout failed', e);
+    }
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -86,36 +98,71 @@ const Navbar = () => {
                   <span className="cart-count">{cartCount}</span>
                 )}
               </Link>
-              <Link to="/login" className="btn btn-green btn-sm me-2">
-                <i className="fas fa-user me-1"></i> Sign In
-              </Link>
+              {!user ? (
+                <>
+                  <Link to="/login" className="btn btn-green btn-sm me-2">
+                    <i className="fas fa-user me-1"></i> Sign In
+                  </Link>
 
-              <Link 
-                to="/register" 
-                className="btn btn-sm me-4" 
-                style={{
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  textDecoration: 'none',
-                  transition: 'background-color 0.3s',
-                  ':hover': {
-                    backgroundColor: '#c82333',
-                    color: 'white'
-                  }
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgb(221, 17, 10)'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc3545'}
-              >
-                <i className="fas fa-user-plus me-1"></i> Create Account
-              </Link>
-              <Link
-                to="/sell"
-                className="btn btn-green btn-sm"
-                style={{ marginLeft: '8px' }}
-              >
-                <i className="fas fa-store me-1"></i> Sell with HERBAL MARKET
-              </Link>
+                  <Link 
+                    to="/register" 
+                    className="btn btn-sm me-4" 
+                    style={{
+                      backgroundColor: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      textDecoration: 'none',
+                      transition: 'background-color 0.3s',
+                      ':hover': {
+                        backgroundColor: '#c82333',
+                        color: 'white'
+                      }
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgb(221, 17, 10)'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc3545'}
+                  >
+                    <i className="fas fa-user-plus me-1"></i> Create Account
+                  </Link>
+                  <Link
+                    to="/sell"
+                    className="btn btn-green btn-sm"
+                    style={{ marginLeft: '8px' }}
+                  >
+                    <i className="fas fa-store me-1"></i> Sell with HERBAL MARKET
+                  </Link>
+                </>
+              ) : (
+                <div className="position-relative" style={{ marginLeft: '12px', zIndex: 2001 }} onMouseLeave={() => setProfileOpen(false)}>
+                  <button className="btn btn-light d-flex align-items-center" type="button" onClick={() => setProfileOpen((v) => !v)}>
+                    <div className="rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: 32, height: 32, backgroundColor: '#2E7D32', color: 'white', fontWeight: 700 }}>
+                      {(user?.profile?.name || user?.email || 'U')[0]?.toUpperCase()}
+                    </div>
+                    <span style={{ fontWeight: 600 }}>{user?.profile?.name || user?.email}</span>
+                    <i className="fas fa-chevron-down ms-2" style={{ fontSize: 12 }}></i>
+                  </button>
+                  {profileOpen && (
+                    <ul className="dropdown-menu dropdown-menu-end show" style={{ display: 'block', position: 'absolute', right: 0, minWidth: '240px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 2001 }}>
+                      <li>
+                        <div className="px-3 py-2" style={{ borderBottom: '1px solid #eee' }}>
+                          <div style={{ fontSize: 12, color: '#6c757d' }}>Signed in as</div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{user?.profile?.name || user?.email}</div>
+                          <div style={{ fontSize: 12, color: '#6c757d' }}>{user?.email}</div>
+                        </div>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item d-flex align-items-center" to="/dashboard" onClick={() => setProfileOpen(false)}>
+                          <i className="fas fa-gauge-high me-2" style={{ color: '#2E7D32' }}></i> Dashboard
+                        </Link>
+                      </li>
+                      <li>
+                        <button className="dropdown-item d-flex align-items-center" onClick={handleLogout}>
+                          <i className="fas fa-right-from-bracket me-2" style={{ color: '#dc3545' }}></i> Logout
+                        </button>
+                      </li>
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -169,13 +216,7 @@ const Navbar = () => {
                 </NavLink>
               </li>
 
-              {user && (
-                <li className="nav-item">
-                  <NavLink to="/dashboard" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-                    <i className="fas fa-user-circle me-1"></i> Profile
-                  </NavLink>
-                </li>
-              )}
+              {/* When logged in, Profile/Dashboard lives in the top bar dropdown */}
             </ul>
           </div>
         </div>
