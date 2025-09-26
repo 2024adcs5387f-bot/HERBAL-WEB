@@ -28,6 +28,7 @@ import AdminDashboard from './pages/user/AdminDashboard';
 import NotFound from './pages/NotFound';
 import SupabaseHealth from './pages/health/SupabaseHealth';
 import Logout from './pages/Logout';
+import SellerDashboard from './pages/SellerDashboard';
 
 const App = () => {
   useEffect(() => {
@@ -110,6 +111,26 @@ const App = () => {
                   <AdminDashboard />
                 </PrivateRoute>
               }
+            />
+
+            {/* Seller Dashboard - Redirects to sell.html */}
+            <Route
+              path="/seller-dashboard"
+              element={
+                <PrivateRoute roles={['seller']}>
+                  <SellerDashboard />
+                </PrivateRoute>
+              }
+            />
+            
+            {/* Direct access to sell.html - Only for sellers */}
+            <Route 
+              path="/sell.html" 
+              element={
+                <PrivateRoute roles={['seller']}>
+                  <SellerDashboard />
+                </PrivateRoute>
+              } 
             />
 
             {/* Catch-all */}

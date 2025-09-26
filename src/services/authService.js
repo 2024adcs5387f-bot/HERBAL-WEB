@@ -109,5 +109,4 @@ export const initAuthBridge = () => {
       }
     });
   } catch {}
->>>>>>> c042875eb81ef6dea9e87e6a960d48d69c56d376
 };

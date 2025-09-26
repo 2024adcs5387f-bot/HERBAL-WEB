@@ -4,6 +4,7 @@ import { signIn } from "../../../services/userService";
 import { ensureAppJwt } from "../../../services/authService";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { getCurrentUser } from "../../../services/userService";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -22,10 +23,20 @@ const LoginForm = () => {
       // Ensure backend JWT is available for protected API calls
       try { await ensureAppJwt(); } catch {}
       console.log("Logged in user session:", session);
-      navigate("/dashboard"); // Redirect after login
+      
+      // Check if user is a seller
+      const user = await getCurrentUser();
+      const userType = user?.profile?.user_type || user?.user_type;
+      
+      // If user is a seller, redirect to sell.html
+      if (userType === 'seller') {
+        window.location.href = '/sell.html';
+      } else {
+        // For non-sellers, go to dashboard as usual
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };

@@ -1,17 +1,33 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { FaBars, FaTimes, FaShoppingCart, FaUser, FaChevronDown, FaSearch } from 'react-icons/fa';
 import { getCurrentUser } from '../../services/userService';
+import './Navbar.css';
 
 const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
   const [hasResearchAccess, setHasResearchAccess] = useState(false);
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
-
-  // Sticky on scroll
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  
+  // Handle window resize
   useEffect(() => {
-    const updateCartCount = () => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+      if (window.innerWidth >= 1024) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Update cart count from localStorage
+  const updateCartCount = () => {
     try {
       const cartPageItems = localStorage.getItem('cartPageItems');
       const cartPageItemsCount = cartPageItems
@@ -23,26 +39,35 @@ const Navbar = () => {
     }
   };
 
-  // Determine user and research access (herbalist or researcher)
-  (async () => {
-    try {
-      const u = await getCurrentUser();
-      setUser(u || null);
-      const role = u?.profile?.user_type || u?.user_type;
-      setHasResearchAccess(role === 'researcher' || role === 'herbalist');
-    } catch (_) {
-      setUser(null);
-      setHasResearchAccess(false);
-    }
-  })();
+  // Sticky on scroll and user data fetching
+  useEffect(() => {
+    // Initial cart count
+    updateCartCount();
 
-  window.addEventListener('storage', updateCartCount);
-  window.addEventListener('cartUpdated', updateCartCount);
+    // Set up event listeners
+    window.addEventListener('storage', updateCartCount);
+    window.addEventListener('cartUpdated', updateCartCount);
 
-  return () => {
-    window.removeEventListener('storage', updateCartCount);
-    window.removeEventListener('cartUpdated', updateCartCount);
-  };
+    // Fetch user data
+    const fetchUserData = async () => {
+      try {
+        const u = await getCurrentUser();
+        setUser(u || null);
+        const role = u?.profile?.user_type || u?.user_type;
+        setHasResearchAccess(role === 'researcher' || role === 'herbalist');
+      } catch (_) {
+        setUser(null);
+        setHasResearchAccess(false);
+      }
+    };
+
+    fetchUserData();
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
   }, []);
 
   const researchHubPath = '/research-hub';
@@ -134,6 +159,15 @@ const Navbar = () => {
                         >
                           <i className="fas fa-user me-2"></i> My Profile
                         </Link>
+                        {(user.profile?.user_type === 'seller' || user.user_type === 'seller') && (
+                          <a 
+                            href="/sell.html" 
+                            className="dropdown-item" 
+                            onClick={closeDropdown}
+                          >
+                            <i className="fas fa-store me-2"></i> Seller Dashboard
+                          </a>
+                        )}
                         <div className="dropdown-divider"></div>
                         <button 
                           className="dropdown-item text-danger" 
@@ -148,21 +182,12 @@ const Navbar = () => {
                     <i className="fas fa-question-circle me-1"></i> Help
                   </Link>
                   
-                  {(user.profile?.user_type === 'buyer' || user.user_type === 'buyer') && (
-                    <Link to="/cart" className="cart-icon me-3 text-decoration-none text-dark position-relative">
-                      <i className="fas fa-shopping-cart fa-lg"></i>
-                      {cartCount > 0 && (
-                        <span className="cart-count">{cartCount}</span>
-                      )}
-                    </Link>
-                  )}
-                  
-                  {(user.profile?.user_type === 'seller' || user.user_type === 'seller' || 
-                    user.profile?.user_type === 'herbalist' || user.user_type === 'herbalist') && (
-                    <Link to="/orders" className="btn btn-sm btn-outline-primary me-3">
-                      <i className="fas fa-clipboard-list me-1"></i> Orders
-                    </Link>
-                  )}
+                  <Link to="/cart" className="cart-icon me-3 text-decoration-none text-dark position-relative">
+                    <i className="fas fa-shopping-cart fa-lg"></i>
+                    {cartCount > 0 && (
+                      <span className="cart-count">{cartCount}</span>
+                    )}
+                  </Link>
                 </div>
               ) : (
                 <>
@@ -277,7 +302,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      <style jsx>{`
+      <style>{`
         .navbar-brand {
           color: #2E7D32 !important;
           font-weight: bold;
