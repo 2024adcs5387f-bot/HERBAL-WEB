@@ -32,7 +32,6 @@ import HerbalistDashboard from './pages/user/HerbalistDashboard';
 import NotFound from './pages/NotFound';
 import SupabaseHealth from './pages/health/SupabaseHealth';
 import Logout from './pages/Logout';
-import SellerDashboard from './pages/SellerDashboard';
 
 const App = () => {
   useEffect(() => {
