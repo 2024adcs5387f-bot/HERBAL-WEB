@@ -32,7 +32,7 @@ router.get("/:id/comments", optionalAuth, async (req, res) => {
     if (postErr) throw postErr;
     if (!post) return res.status(404).json({ success: false, message: "Post not found" });
 
-    // Fetch comments ordered by created_at and build thread
+    // Fetch comments ordered by created_at
     const { data: comments, error: commentError } = await supabase
       .from("comments")
       .select("*")
@@ -42,10 +42,31 @@ router.get("/:id/comments", optionalAuth, async (req, res) => {
       .order("created_at", { ascending: true });
     if (commentError) throw commentError;
 
+    // Enrich with author profile (name, avatar)
+    const authorIds = Array.from(new Set((comments || []).map(c => c.author_id).filter(Boolean)));
+    let userMap = new Map();
+    if (authorIds.length) {
+      const { data: users } = await supabaseAdmin
+        .from('users')
+        .select('id, name, email, avatar_url')
+        .in('id', authorIds);
+      (users || []).forEach(u => userMap.set(u.id, u));
+    }
+    const enriched = (comments || []).map(c => {
+      const u = userMap.get(c.author_id) || {};
+      return {
+        ...c,
+        author_name: u.name || u.email || null,
+        author_full_name: u.name || null,
+        author_avatar_url: u.avatar_url || null,
+      };
+    });
+
+    // Build thread
     const byId = new Map();
-    (comments || []).forEach((c) => byId.set(c.id, { ...c, replies: [] }));
+    (enriched || []).forEach((c) => byId.set(c.id, { ...c, replies: [] }));
     const roots = [];
-    (comments || []).forEach((c) => {
+    (enriched || []).forEach((c) => {
       const node = byId.get(c.id);
       if (c.parent_id) {
         const parent = byId.get(c.parent_id);
@@ -532,15 +553,25 @@ router.delete("/:postId/comments/:commentId", async (req, res) => {
 // ----------------------
 // Upvote/Downvote a post
 // ----------------------
-router.post("/:id/votes", authenticate, async (req, res) => {
+router.post("/:id/votes", async (req, res) => {
   try {
+    // Decode backend app JWT (issued by /api/auth/supabase-exchange or /api/session/exchange)
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
+
     const { value } = req.body; // expected -1, 0, or 1 (0 to clear)
     if (![ -1, 0, 1 ].includes(value)) {
       return res.status(400).json({ success: false, message: "Invalid vote value" });
     }
 
     if (value === 0) {
-      await supabase
+      await supabaseAdmin
         .from("research_votes")
         .delete()
         .eq("post_id", req.params.id)
@@ -548,8 +579,8 @@ router.post("/:id/votes", authenticate, async (req, res) => {
       return res.json({ success: true, message: "Vote removed" });
     }
 
-    // Upsert user vote
-    const { error } = await supabase
+    // Upsert user vote (admin client bypasses RLS; app-level auth enforced by JWT above)
+    const { error } = await supabaseAdmin
       .from("research_votes")
       .upsert({ post_id: req.params.id, user_id: req.user.id, value }, { onConflict: "post_id,user_id" });
     if (error) throw error;
@@ -564,21 +595,31 @@ router.post("/:id/votes", authenticate, async (req, res) => {
 // ----------------------
 // Save/Unsave a post
 // ----------------------
-router.post("/:id/save", authenticate, async (req, res) => {
+router.post("/:id/save", async (req, res) => {
   try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
+
     const { action } = req.body; // "save" | "unsave"
     if (["save", "unsave"].includes(action) === false) {
       return res.status(400).json({ success: false, message: "Invalid action" });
     }
     if (action === "unsave") {
-      await supabase
+      await supabaseAdmin
         .from("research_saves")
         .delete()
         .eq("post_id", req.params.id)
         .eq("user_id", req.user.id);
       return res.json({ success: true, message: "Post unsaved" });
     }
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("research_saves")
       .upsert({ post_id: req.params.id, user_id: req.user.id }, { onConflict: "post_id,user_id" });
     if (error) throw error;

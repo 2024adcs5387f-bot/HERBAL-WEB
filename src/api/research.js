@@ -204,9 +204,12 @@ export const fetchComments = async (postId) => {
 // Voting and saving
 export const voteOnPost = async (postId, value) => {
   try {
-    const token = localStorage.getItem("token");
+    // Ensure we have a fresh backend JWT (app token)
+    await ensureAppJwt().catch(() => {});
+    let token = localStorage.getItem("token");
     if (!token) throw new Error("User must be logged in to vote");
-    const res = await fetch(`/api/research/${postId}/votes`, {
+
+    let res = await fetch(`${API_BASE}/api/research/${postId}/votes`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -214,8 +217,23 @@ export const voteOnPost = async (postId, value) => {
       },
       body: JSON.stringify({ value }),
     });
-    const data = await res.json();
-    return data.success;
+
+    // Retry once on 401/403 after attempting to refresh app JWT
+    if (res.status === 401 || res.status === 403) {
+      await ensureAppJwt().catch(() => {});
+      token = localStorage.getItem("token");
+      res = await fetch(`${API_BASE}/api/research/${postId}/votes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ value }),
+      });
+    }
+
+    const data = await res.json().catch(() => ({ success: false }));
+    return !!data?.success;
   } catch (err) {
     console.error(err);
     return false;
