@@ -2,12 +2,14 @@
 import { supabase } from "../config/supabase";
 import { ensureAppJwt } from "../services/authService";
 
+const API_BASE = import.meta?.env?.VITE_API_BASE || "";
+
 // Fetch research posts with optional query params (sorting, filtering, pagination)
 export const fetchResearchPosts = async (params = {}) => {
   try {
     const token = localStorage.getItem("token");
     const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`/api/research${qs ? `?${qs}` : ""}`, {
+    const res = await fetch(`${API_BASE}/api/research${qs ? `?${qs}` : ""}`, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -34,20 +36,40 @@ export const fetchResearchPosts = async (params = {}) => {
 
 // Fetch a single research post by ID
 export const fetchResearchPost = async (id) => {
+  console.log(`[DEBUG] Frontend: fetching research post ${id} -> ${API_BASE}/api/research/${id}`);
   try {
     const token = localStorage.getItem("token");
-    const res = await fetch(`/api/research/${id}`, {
+    const res = await fetch(`${API_BASE}/api/research/${id}`, {
+      cache: 'no-store',
       headers: {
+        Accept: 'application/json',
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
 
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || "Failed to fetch post");
+    console.log(`[DEBUG] Frontend: response status for post ${id}:`, res.status);
+    const ct = res.headers.get('content-type');
+    if (ct) console.log(`[DEBUG] Frontend: content-type for post ${id}:`, ct);
+    let data;
+    // Use a clone so we can still read the raw text on JSON parse failure
+    const clone = res.clone();
+    try {
+      data = await res.json();
+    } catch (e) {
+      const text = await clone.text().catch(() => "<no text>");
+      console.error(`[DEBUG] Frontend: non-JSON response for post ${id} (status ${res.status}):`, text?.slice(0, 500));
+      throw new Error(`Non-JSON response: status ${res.status}`);
+    }
+
+    if (!data?.success) {
+      console.error(`[DEBUG] Frontend: API error for post ${id}:`, data?.message);
+      throw new Error(data?.message || "Failed to fetch post");
+    }
+    console.log(`[DEBUG] Frontend: fetched post ${id} OK`);
     return data.data;
   } catch (err) {
-    console.error(err);
+    console.error(`[DEBUG] Frontend: fetchResearchPost error for ${id}:`, err);
     return { post: null, comments: [], myVote: 0 };
   }
 };
@@ -63,15 +85,30 @@ export const createResearchPost = async (newPost) => {
       }
     } catch {}
 
-    const token = localStorage.getItem("token");
-    const headers = token
+    // Ensure app JWT is present
+    await ensureAppJwt().catch(() => {});
+    let token = localStorage.getItem("token");
+    let headers = token
       ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
       : { "Content-Type": "application/json" };
-    const res = await fetch("/api/research", {
+    let res = await fetch(`${API_BASE}/api/research`, {
       method: "POST",
       headers,
       body: JSON.stringify(newPost),
     });
+    // Retry once on 401 after refreshing app JWT
+    if (res.status === 401 || res.status === 403) {
+      await ensureAppJwt().catch(() => {});
+      token = localStorage.getItem("token");
+      headers = token
+        ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+        : { "Content-Type": "application/json" };
+      res = await fetch(`${API_BASE}/api/research`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(newPost),
+      });
+    }
     const data = await res.json();
     if (data?.success && data?.data?.post) return data.data.post;
   } catch {}
@@ -109,10 +146,11 @@ export const createResearchPost = async (newPost) => {
 // Post a comment on a research post
 export const postComment = async (postId, content, parentId = null) => {
   try {
-    const token = localStorage.getItem("token");
+    await ensureAppJwt().catch(() => {});
+    let token = localStorage.getItem("token");
     if (!token) throw new Error("User must be logged in to post a comment");
 
-    const res = await fetch(`/api/research/${postId}/comments`, {
+    let res = await fetch(`${API_BASE}/api/research/${postId}/comments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -120,6 +158,19 @@ export const postComment = async (postId, content, parentId = null) => {
       },
       body: JSON.stringify({ content, parentId }),
     });
+
+    if (res.status === 401 || res.status === 403) {
+      await ensureAppJwt().catch(() => {});
+      token = localStorage.getItem("token");
+      res = await fetch(`${API_BASE}/api/research/${postId}/comments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ content, parentId }),
+      });
+    }
 
     const data = await res.json();
     if (!data.success) throw new Error(data.message || "Failed to post comment");
@@ -134,7 +185,7 @@ export const postComment = async (postId, content, parentId = null) => {
 export const fetchComments = async (postId) => {
   try {
     const token = localStorage.getItem("token");
-    const res = await fetch(`/api/research/${postId}/comments`, {
+    const res = await fetch(`${API_BASE}/api/research/${postId}/comments`, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -153,9 +204,12 @@ export const fetchComments = async (postId) => {
 // Voting and saving
 export const voteOnPost = async (postId, value) => {
   try {
-    const token = localStorage.getItem("token");
+    // Ensure we have a fresh backend JWT (app token)
+    await ensureAppJwt().catch(() => {});
+    let token = localStorage.getItem("token");
     if (!token) throw new Error("User must be logged in to vote");
-    const res = await fetch(`/api/research/${postId}/votes`, {
+
+    let res = await fetch(`${API_BASE}/api/research/${postId}/votes`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -163,8 +217,64 @@ export const voteOnPost = async (postId, value) => {
       },
       body: JSON.stringify({ value }),
     });
+
+    // Retry once on 401/403 after attempting to refresh app JWT
+    if (res.status === 401 || res.status === 403) {
+      await ensureAppJwt().catch(() => {});
+      token = localStorage.getItem("token");
+      res = await fetch(`${API_BASE}/api/research/${postId}/votes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ value }),
+      });
+    }
+
+    const data = await res.json().catch(() => ({ success: false }));
+    return !!data?.success;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+};
+
+// Update a comment (author or admin)
+export const updateComment = async (postId, commentId, content) => {
+  try {
+    await ensureAppJwt().catch(() => {});
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_BASE}/api/research/${postId}/comments/${commentId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify({ content }),
+    });
     const data = await res.json();
-    return data.success;
+    return !!data?.success;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+};
+
+// Delete a comment (author or admin)
+export const deleteComment = async (postId, commentId) => {
+  try {
+    await ensureAppJwt().catch(() => {});
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_BASE}/api/research/${postId}/comments/${commentId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+    const data = await res.json();
+    return !!data?.success;
   } catch (err) {
     console.error(err);
     return false;
@@ -176,7 +286,7 @@ export const deleteResearchPost = async (postId) => {
   try {
     // Attempt backend delete with current token
     let token = localStorage.getItem("token");
-    let res = await fetch(`/api/research/${postId}`, {
+    let res = await fetch(`${API_BASE}/api/research/${postId}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -188,7 +298,7 @@ export const deleteResearchPost = async (postId) => {
     if (res.status === 401 || res.status === 403) {
       await ensureAppJwt().catch(() => {});
       token = localStorage.getItem("token");
-      res = await fetch(`/api/research/${postId}`, {
+      res = await fetch(`${API_BASE}/api/research/${postId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -230,7 +340,7 @@ export const savePost = async (postId, action) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) throw new Error("User must be logged in to save");
-    const res = await fetch(`/api/research/${postId}/save`, {
+    const res = await fetch(`${API_BASE}/api/research/${postId}/save`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -243,5 +353,40 @@ export const savePost = async (postId, action) => {
   } catch (err) {
     console.error(err);
     return false;
+  }
+};
+
+// Dashboards
+export const getMyResearchPosts = async () => {
+  try {
+    await ensureAppJwt().catch(() => {});
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated");
+    const res = await fetch(`${API_BASE}/api/research/mine/list`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!data?.success) throw new Error(data?.message || "Failed to fetch my posts");
+    return data.data.posts || [];
+  } catch (err) {
+    console.error("getMyResearchPosts error", err);
+    return [];
+  }
+};
+
+export const getSavedResearchPosts = async () => {
+  try {
+    await ensureAppJwt().catch(() => {});
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated");
+    const res = await fetch(`${API_BASE}/api/research/saved/list`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!data?.success) throw new Error(data?.message || "Failed to fetch saved posts");
+    return data.data.posts || [];
+  } catch (err) {
+    console.error("getSavedResearchPosts error", err);
+    return [];
   }
 };

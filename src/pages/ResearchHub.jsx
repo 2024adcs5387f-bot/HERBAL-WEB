@@ -7,6 +7,7 @@ import ResearchFilters from "../components/research/filters/ResearchFilters";
 import ResearchPostCard from "../components/research/cards/ResearchPostCard";
 import { Plus } from "lucide-react";
 import { supabase } from "../config/supabase";
+import { getCurrentUser } from "../services/userService";
 
 const ResearchHub = () => {
   const [posts, setPosts] = useState([]);
@@ -18,7 +19,9 @@ const ResearchHub = () => {
   const [diseaseOptions, setDiseaseOptions] = useState([]);
   const [filterValues, setFilterValues] = useState({ herbs: [], diseases: [], status: [] });
   const [sortBy, setSortBy] = useState("newest");
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Fetch posts from API with sorting and simple filters
   const loadPosts = async (page = 1) => {
@@ -32,6 +35,7 @@ const ResearchHub = () => {
       // Map multi-select to first selection for now
       if (filterValues.herbs?.length) params.herbId = filterValues.herbs[0];
       if (filterValues.diseases?.length) params.diseaseId = filterValues.diseases[0];
+      if (searchQuery && searchQuery.trim().length > 0) params.q = searchQuery.trim();
       // "status" is not used on backend filtering; keeping for future
       const { posts: fetched, pagination: p } = await fetchResearchPosts(params);
       setPosts(fetched);
@@ -45,7 +49,19 @@ const ResearchHub = () => {
 
   useEffect(() => {
     loadPosts(1);
-  }, [filterValues, sortBy]);
+  }, [filterValues, sortBy, searchQuery]);
+
+  // Load current user (if any) for role-based UI controls
+  useEffect(() => {
+    (async () => {
+      try {
+        const u = await getCurrentUser();
+        setCurrentUser(u);
+      } catch {
+        setCurrentUser(null);
+      }
+    })();
+  }, []);
 
   // Load herbs/diseases for Filters
   useEffect(() => {
@@ -82,13 +98,13 @@ const ResearchHub = () => {
   return (
     <div className="relative min-h-screen p-4 md:p-8 pt-28">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
         <h1 className="text-3xl md:text-4xl font-bold text-white">Research Hub</h1>
-        <div className="flex gap-3 mt-4 md:mt-0 items-center">
+        <div className="flex items-center gap-3 flex-wrap">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg bg-neutral-800 text-white border border-neutral-700"
+            className="px-3 py-2 rounded-lg bg-white text-neutral-900 border border-neutral-300 dark:bg-neutral-800 dark:text-white dark:border-neutral-700"
           >
             <option value="newest">Newest</option>
             <option value="most_upvoted">Most Upvoted</option>
@@ -100,12 +116,40 @@ const ResearchHub = () => {
           >
             Filters
           </button>
-          <button
-            onClick={() => navigate('/research/new')}
-            className="flex items-center gap-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md"
-          >
-            <Plus className="w-4 h-4" /> Add New Research
-          </button>
+          {(() => {
+            const role = currentUser?.profile?.user_type || currentUser?.user_type;
+            const canPost = role === 'researcher' || role === 'herbalist';
+            return canPost ? (
+              <button
+                onClick={() => navigate('/research/new')}
+                className="flex items-center gap-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-md"
+              >
+                <Plus className="w-4 h-4" /> Add New Research
+              </button>
+            ) : null;
+          })()}
+        </div>
+      </div>
+
+      {/* Search Bar (separate row; not full-width on mobile) */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 w-64 md:w-96">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search research posts..."
+            className="flex-1 px-3 py-2 rounded-lg bg-white text-neutral-900 placeholder-neutral-500 border border-neutral-300 outline-none focus:ring-2 focus:ring-blue-600 dark:bg-neutral-800 dark:text-white dark:placeholder-neutral-400 dark:border-neutral-700"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="px-3 py-2 rounded-lg bg-neutral-800 text-white border border-neutral-700 hover:bg-neutral-700"
+              title="Clear"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 

@@ -19,9 +19,15 @@ if (!supabaseUrl || !supabaseKey) {
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Admin client (bypasses RLS, server-side only)
+if (!supabaseServiceKey) {
+  throw new Error(
+    'Missing SUPABASE_SERVICE_KEY for admin client. The service role key is required server-side to bypass RLS (e.g., for comments/posts mutations).'
+  );
+}
+
 export const supabaseAdmin = createClient(
   supabaseUrl,
-  supabaseServiceKey || supabaseKey,
+  supabaseServiceKey,
   {
     auth: {
       autoRefreshToken: false,

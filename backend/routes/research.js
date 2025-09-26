@@ -1,17 +1,190 @@
 // routes/research.js
 import express from "express";
-import { authenticate, optionalAuth } from "../middleware/auth.js";
 import supabase, { supabaseAdmin } from "../config/supabase.js";
+import { authenticate, optionalAuth } from "../middleware/auth.js";
+import jwt from "jsonwebtoken";
 import { normalizeStructured } from "../services/structuring.js";
 
 const router = express.Router();
 
 // ----------------------
+// My posts (author-owned)
+// ----------------------
+router.get("/mine/list", async (req, res) => {
+  try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    const userId = decoded.id;
+
+    const { data, error } = await supabaseAdmin
+      .from('research_posts')
+      .select('*')
+      .eq('author_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    // Aggregate votes and comment counts
+    const ids = (data || []).map(p => p.id);
+    let posts = data || [];
+    if (ids.length) {
+      const [{ data: votes }, { data: comments }] = await Promise.all([
+        supabaseAdmin.from('research_votes').select('post_id, value').in('post_id', ids),
+        supabaseAdmin.from('comments').select('post_id').in('post_id', ids),
+      ]);
+      const voteCountMap = new Map();
+      (votes || []).forEach(v => voteCountMap.set(v.post_id, (voteCountMap.get(v.post_id) || 0) + (v.value || 0)));
+      const commentCountMap = new Map();
+      (comments || []).forEach(c => commentCountMap.set(c.post_id, (commentCountMap.get(c.post_id) || 0) + 1));
+      posts = posts.map(p => ({ ...p, votes_count: voteCountMap.get(p.id) || 0, comments_count: commentCountMap.get(p.id) || 0 }));
+    }
+
+    return res.json({ success: true, data: { posts } });
+  } catch (err) {
+    console.error('List my posts error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ----------------------
+// My saved posts
+// ----------------------
+router.get("/saved/list", async (req, res) => {
+  try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    const userId = decoded.id;
+
+    // Fetch saved post ids
+    const { data: saves, error: saveErr } = await supabaseAdmin
+      .from('research_saves')
+      .select('post_id')
+      .eq('user_id', userId);
+    if (saveErr) throw saveErr;
+    const ids = (saves || []).map(s => s.post_id);
+    if (!ids.length) return res.json({ success: true, data: { posts: [] } });
+
+    const { data: postsData, error } = await supabaseAdmin
+      .from('research_posts')
+      .select('*')
+      .in('id', ids)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    // Aggregate votes and comment counts
+    let posts = postsData || [];
+    const [{ data: votes }, { data: comments }] = await Promise.all([
+      supabaseAdmin.from('research_votes').select('post_id, value').in('post_id', ids),
+      supabaseAdmin.from('comments').select('post_id').in('post_id', ids),
+    ]);
+    const voteCountMap = new Map();
+    (votes || []).forEach(v => voteCountMap.set(v.post_id, (voteCountMap.get(v.post_id) || 0) + (v.value || 0)));
+    const commentCountMap = new Map();
+    (comments || []).forEach(c => commentCountMap.set(c.post_id, (commentCountMap.get(c.post_id) || 0) + 1));
+    posts = posts.map(p => ({ ...p, votes_count: voteCountMap.get(p.id) || 0, comments_count: commentCountMap.get(p.id) || 0 }));
+
+    return res.json({ success: true, data: { posts } });
+  } catch (err) {
+    console.error('List saved posts error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ----------------------
 // Create a research post
 // ----------------------
-// Use optionalAuth and service role to avoid client-side RLS recursion issues during create
-router.post("/", optionalAuth, async (req, res) => {
+// Require authentication (decode app JWT here) and allow only researcher/herbalist/admin to create
+router.post("/", async (req, res) => {
   try {
+    // Decode backend app JWT (issued by /api/auth/supabase-exchange)
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+
+// ----------------------
+// Get comments only (threaded)
+// ----------------------
+router.get("/:id/comments", optionalAuth, async (req, res) => {
+  try {
+    // Ensure post exists (optional, but nice)
+    const { data: post, error: postErr } = await supabase
+      .from("research_posts")
+      .select("id, status, author_id")
+      .eq("id", req.params.id)
+      .single();
+    if (postErr) throw postErr;
+    if (!post) return res.status(404).json({ success: false, message: "Post not found" });
+
+    // Fetch comments ordered by created_at
+    const { data: comments, error: commentError } = await supabase
+      .from("comments")
+      .select("*")
+      .or(
+        `post_id.eq.${req.params.id},and(post_id.is.null,entity_type.eq.research_post,entity_id.eq.${req.params.id})`
+      )
+      .order("created_at", { ascending: true });
+    if (commentError) throw commentError;
+
+    // Enrich with author profile (name, avatar)
+    const authorIds = Array.from(new Set((comments || []).map(c => c.author_id).filter(Boolean)));
+    let userMap = new Map();
+    if (authorIds.length) {
+      const { data: users } = await supabaseAdmin
+        .from('users')
+        .select('id, name, email, avatar')
+        .in('id', authorIds);
+      (users || []).forEach(u => userMap.set(u.id, u));
+    }
+    const enriched = (comments || []).map(c => {
+      const u = userMap.get(c.author_id) || {};
+      return {
+        ...c,
+        author_name: u.name || u.email || null,
+        author_full_name: u.name || null,
+        author_avatar_url: u.avatar || null,
+      };
+    });
+
+    // Build thread
+    const byId = new Map();
+    (enriched || []).forEach((c) => byId.set(c.id, { ...c, replies: [] }));
+    const roots = [];
+    (enriched || []).forEach((c) => {
+      const node = byId.get(c.id);
+      if (c.parent_id) {
+        const parent = byId.get(c.parent_id);
+        if (parent) parent.replies.push(node);
+        else roots.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return res.json({ success: true, data: { comments: roots } });
+  } catch (err) {
+    console.error("List comments error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
+
     const {
       title,
       abstract,
@@ -20,7 +193,6 @@ router.post("/", optionalAuth, async (req, res) => {
       attachments,
       relatedHerbId,
       relatedDiseaseId,
-      authorId,
     } = req.body;
 
     if (!title || !content) {
@@ -30,9 +202,15 @@ router.post("/", optionalAuth, async (req, res) => {
       });
     }
 
-    // Align with Supabase snake_case columns per 02_extended_research.sql
-    // Prefer authenticated user id; fallback to provided authorId
-    const author_id = req.user?.id || authorId || null;
+    // Role check: only researcher, herbalist, or admin can create
+    const role = req.user?.userType;
+    const allowed = role === 'researcher' || role === 'herbalist' || role === 'admin';
+    if (!allowed) {
+      return res.status(403).json({ success: false, message: "Only researchers, herbalists, or admins can create research posts" });
+    }
+
+    // Always set author to the authenticated user
+    const author_id = req.user.id;
 
     const { data, error } = await supabaseAdmin
       .from("research_posts")
@@ -170,28 +348,57 @@ router.get("/", optionalAuth, async (req, res) => {
 // ----------------------
 router.get("/:id", optionalAuth, async (req, res) => {
   try {
-    const { data: post, error } = await supabase
+    console.log(`[DEBUG] GET /api/research/${req.params.id} - start`);
+    console.log(`[DEBUG] Fetching research post with ID: ${req.params.id}`);
+    const { data: post, error } = await supabaseAdmin
       .from("research_posts")
       .select("*")
       .eq("id", req.params.id)
       .single();
 
-    if (error) throw error;
-    if (!post)
+    if (error) {
+      console.error(`[DEBUG] Supabase error fetching post ${req.params.id}:`, error);
+      throw error;
+    }
+    if (!post) {
+      console.log(`[DEBUG] Post ${req.params.id} not found in database.`);
       return res.status(404).json({ success: false, message: "Post not found" });
+    }
+    console.log(`[DEBUG] Successfully fetched post: ${post.id}`);
 
-    // Fetch comments and build a tree (threaded)
+    // Fetch comments
     const { data: comments, error: commentError } = await supabase
       .from("comments")
       .select("*")
-      .eq("post_id", req.params.id);
+      .or(`post_id.eq.${req.params.id},and(post_id.is.null,entity_type.eq.research_post,entity_id.eq.${req.params.id})`)
+      .order("created_at", { ascending: true });
+    if (commentError) console.warn("[DEBUG] Comments fetch warning:", commentError.message);
+    console.log(`[DEBUG] Comments fetched for post ${req.params.id}: count=${(comments || []).length}`);
+    // Enrich each comment with author details from users table
+    const authorIds = Array.from(new Set((comments || []).map(c => c.author_id).filter(Boolean)));
+    let userMap = new Map();
+    if (authorIds.length) {
+      const { data: users } = await supabaseAdmin
+        .from('users')
+        .select('id, name, email, avatar')
+        .in('id', authorIds);
+      (users || []).forEach(u => userMap.set(u.id, u));
+    }
+    const enriched = (comments || []).map(c => {
+      const u = userMap.get(c.author_id) || {};
+      return {
+        ...c,
+        author_name: u.name || u.email || null,
+        author_full_name: u.name || null,
+        author_avatar_url: u.avatar || null,
+      };
+    });
 
-    if (commentError) console.warn("Comments fetch warning:", commentError.message);
-
+    // Build a thread
     const byId = new Map();
-    (comments || []).forEach((c) => byId.set(c.id, { ...c, replies: [] }));
+    (enriched || []).forEach((c) => byId.set(c.id, { ...c, replies: [] }));
     const roots = [];
-    (comments || []).forEach((c) => {
+    (enriched || []).forEach((c) => {
       const node = byId.get(c.id);
       if (c.parent_id) {
         const parent = byId.get(c.parent_id);
@@ -215,10 +422,11 @@ router.get("/:id", optionalAuth, async (req, res) => {
         : Promise.resolve({ data: null }),
     ]);
     const votes_count = (votes || []).reduce((acc, v) => acc + (v.value || 0), 0);
+    console.log(`[DEBUG] Votes summary for post ${req.params.id}: total=${votes_count}, myVote=${myVote?.value || 0}`);
 
     res.json({ success: true, data: { post: { ...post, votes_count }, comments: roots, myVote: myVote?.value || 0 } });
   } catch (err) {
-    console.error("Get research post error:", err);
+    console.error("[DEBUG] Get research post error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -303,18 +511,50 @@ router.put("/:id", authenticate, async (req, res) => {
 // ----------------------
 // Add comment or reply
 // ----------------------
-router.post("/:id/comments", authenticate, async (req, res) => {
+router.post("/:id/comments", async (req, res) => {
   try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
     const { content, parentId } = req.body;
     if (!content)
       return res.status(400).json({ success: false, message: "Content is required" });
 
-    const { data: comment, error } = await supabase
+    // Normalize parentId: require non-empty UUID string; otherwise treat as null (root)
+    let parentIdNorm = null;
+    if (typeof parentId === 'string' && parentId.trim().length > 0) {
+      parentIdNorm = parentId.trim();
+      // Verify parent exists and is on the same post
+      try {
+        const { data: parent, error: pErr } = await supabaseAdmin
+          .from("comments")
+          .select("id, post_id, entity_type, entity_id")
+          .eq("id", parentIdNorm)
+          .single();
+        const samePost = parent && (
+          String(parent.post_id) === String(req.params.id) ||
+          (parent.post_id === null && parent.entity_type === 'research_post' && String(parent.entity_id) === String(req.params.id))
+        );
+        if (pErr || !parent || !samePost) {
+          parentIdNorm = null; // fallback to root if invalid
+        }
+      } catch {
+        parentIdNorm = null;
+      }
+    }
+
+    const { data: comment, error } = await supabaseAdmin
       .from("comments")
       .insert([
         {
           content,
-          parent_id: parentId || null,
+          parent_id: parentIdNorm,
           post_id: req.params.id,
           author_id: req.user.id,
           entity_type: "research_post",
@@ -334,17 +574,118 @@ router.post("/:id/comments", authenticate, async (req, res) => {
 });
 
 // ----------------------
+// Update a comment (author or admin)
+// ----------------------
+router.put("/:postId/comments/:commentId", async (req, res) => {
+  try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ success: false, message: "Content is required" });
+
+    // Check ownership
+    const { data: existing, error: fetchErr } = await supabaseAdmin
+      .from("comments")
+      .select("author_id, post_id")
+      .eq("id", req.params.commentId)
+      .single();
+    if (fetchErr) throw fetchErr;
+    if (!existing || existing.post_id !== req.params.postId)
+      return res.status(404).json({ success: false, message: "Comment not found" });
+
+    const isOwner = existing.author_id === req.user.id;
+    const isAdmin = req.user.userType === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    const { data: updated, error } = await supabaseAdmin
+      .from("comments")
+      .update({ content })
+      .eq("id", req.params.commentId)
+      .select("*")
+      .single();
+    if (error) throw error;
+
+    res.json({ success: true, data: { comment: updated } });
+  } catch (err) {
+    console.error("Update comment error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ----------------------
+// Delete a comment (author or admin)
+// ----------------------
+router.delete("/:postId/comments/:commentId", async (req, res) => {
+  try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
+    // Check ownership
+    const { data: existing, error: fetchErr } = await supabase
+      .from("comments")
+      .select("author_id, post_id")
+      .eq("id", req.params.commentId)
+      .single();
+    if (fetchErr) throw fetchErr;
+    if (!existing || existing.post_id !== req.params.postId)
+      return res.status(404).json({ success: false, message: "Comment not found" });
+
+    const isOwner = existing.author_id === req.user.id;
+    const isAdmin = req.user.userType === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("comments")
+      .delete()
+      .eq("id", req.params.commentId);
+    if (error) throw error;
+
+    res.json({ success: true, message: "Comment deleted" });
+  } catch (err) {
+    console.error("Delete comment error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ----------------------
 // Upvote/Downvote a post
 // ----------------------
-router.post("/:id/votes", authenticate, async (req, res) => {
+router.post("/:id/votes", async (req, res) => {
   try {
+    // Decode backend app JWT (issued by /api/auth/supabase-exchange or /api/session/exchange)
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
+
     const { value } = req.body; // expected -1, 0, or 1 (0 to clear)
     if (![ -1, 0, 1 ].includes(value)) {
       return res.status(400).json({ success: false, message: "Invalid vote value" });
     }
 
     if (value === 0) {
-      await supabase
+      await supabaseAdmin
         .from("research_votes")
         .delete()
         .eq("post_id", req.params.id)
@@ -352,8 +693,8 @@ router.post("/:id/votes", authenticate, async (req, res) => {
       return res.json({ success: true, message: "Vote removed" });
     }
 
-    // Upsert user vote
-    const { error } = await supabase
+    // Upsert user vote (admin client bypasses RLS; app-level auth enforced by JWT above)
+    const { error } = await supabaseAdmin
       .from("research_votes")
       .upsert({ post_id: req.params.id, user_id: req.user.id, value }, { onConflict: "post_id,user_id" });
     if (error) throw error;
@@ -368,21 +709,31 @@ router.post("/:id/votes", authenticate, async (req, res) => {
 // ----------------------
 // Save/Unsave a post
 // ----------------------
-router.post("/:id/save", authenticate, async (req, res) => {
+router.post("/:id/save", async (req, res) => {
   try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
+
     const { action } = req.body; // "save" | "unsave"
     if (["save", "unsave"].includes(action) === false) {
       return res.status(400).json({ success: false, message: "Invalid action" });
     }
     if (action === "unsave") {
-      await supabase
+      await supabaseAdmin
         .from("research_saves")
         .delete()
         .eq("post_id", req.params.id)
         .eq("user_id", req.user.id);
       return res.json({ success: true, message: "Post unsaved" });
     }
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("research_saves")
       .upsert({ post_id: req.params.id, user_id: req.user.id }, { onConflict: "post_id,user_id" });
     if (error) throw error;
@@ -396,8 +747,18 @@ router.post("/:id/save", authenticate, async (req, res) => {
 // ----------------------
 // Delete a post (author must be a researcher)
 // ----------------------
-router.delete("/:id", authenticate, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
+    // Decode backend app JWT
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); } catch {
+      return res.status(401).json({ success: false, message: 'Invalid token' });
+    }
+    req.user = { id: decoded.id, userType: decoded.userType };
+
     // Fetch post author using admin client (bypass RLS after our app-level auth)
     const { data: post, error } = await supabaseAdmin
       .from("research_posts")

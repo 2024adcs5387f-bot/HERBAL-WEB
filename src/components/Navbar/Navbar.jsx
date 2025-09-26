@@ -1,19 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, NavLink } from 'react-router-dom';
-import { FaBars, FaTimes, FaShoppingCart, FaUser, FaChevronDown, FaSearch } from 'react-icons/fa';
-import { getCurrentUser } from '../../services/userService';
-import './Navbar.css';
+
+import React, { useEffect, useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { getCurrentUser, signOut } from '../../services/userService';
 
 const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
   const [hasResearchAccess, setHasResearchAccess] = useState(false);
   const [user, setUser] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  
-  // Handle window resize
+
+  const [profileOpen, setProfileOpen] = useState(false);
+  const navigate = useNavigate();
+
+
+  // Sticky on scroll
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024);
@@ -74,18 +74,15 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      // Clear user session (you may need to implement this in your auth service)
-      // For example: await authService.logout();
+
+      await signOut();
       setUser(null);
-      // Redirect to home or login page
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Logout failed:', error);
+      navigate('/login', { replace: true });
+    } catch (e) {
+      console.error('Logout failed', e);
     }
   };
 
-  const toggleDropdown = () => setShowDropdown(!showDropdown);
-  const closeDropdown = () => setShowDropdown(false);
 
   return (
     <div className="navbar-container" style={{
@@ -121,85 +118,20 @@ const Navbar = () => {
             </div>
 
             <div className="d-flex align-items-center">
-              {user ? (
-                <div className="d-flex align-items-center">
-                  <div className="dropdown" style={{ position: 'relative' }}>
-                    <button 
-                      className="btn btn-link text-dark text-decoration-none dropdown-toggle" 
-                      onClick={toggleDropdown}
-                      onBlur={() => setTimeout(closeDropdown, 200)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        outline: 'none',
-                        boxShadow: 'none',
-                        padding: '0.25rem 0.5rem'
-                      }}
-                    >
-                      <i className="fas fa-user-circle me-1"></i>
-                      Hi, {user.name || user.email?.split('@')[0]}
-                    </button>
-                    {showDropdown && (
-                      <div 
-                        className="dropdown-menu show" 
-                        style={{
-                          position: 'absolute',
-                          right: 0,
-                          left: 'auto',
-                          marginTop: '0.5rem',
-                          minWidth: '10rem',
-                          borderRadius: '0.25rem',
-                          boxShadow: '0 0.5rem 1rem rgba(0, 0, 0, 0.15)'
-                        }}
-                      >
-                        <Link 
-                          to="/profile" 
-                          className="dropdown-item" 
-                          onClick={closeDropdown}
-                        >
-                          <i className="fas fa-user me-2"></i> My Profile
-                        </Link>
-                        {(user.profile?.user_type === 'seller' || user.user_type === 'seller') && (
-                          <a 
-                            href="/sell.html" 
-                            className="dropdown-item" 
-                            onClick={closeDropdown}
-                          >
-                            <i className="fas fa-store me-2"></i> Seller Dashboard
-                          </a>
-                        )}
-                        <div className="dropdown-divider"></div>
-                        <button 
-                          className="dropdown-item text-danger" 
-                          onClick={handleLogout}
-                        >
-                          <i className="fas fa-sign-out-alt me-2"></i> Logout
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <Link to="/help" className="btn btn-sm btn-outline-secondary me-3">
-                    <i className="fas fa-question-circle me-1"></i> Help
-                  </Link>
-                  
-                  <Link to="/cart" className="cart-icon me-3 text-decoration-none text-dark position-relative">
-                    <i className="fas fa-shopping-cart fa-lg"></i>
-                    {cartCount > 0 && (
-                      <span className="cart-count">{cartCount}</span>
-                    )}
-                  </Link>
-                </div>
-              ) : (
+
+              <Link to="/cart" className="cart-icon me-3 text-decoration-none text-dark">
+                <i className="fas fa-shopping-cart fa-lg"></i>
+                {cartCount > 0 && (
+                  <span className="cart-count">{cartCount}</span>
+                )}
+              </Link>
+              {!user ? (
                 <>
-                  <Link to="/cart" className="cart-icon me-3 text-decoration-none text-dark position-relative">
-                    <i className="fas fa-shopping-cart fa-lg"></i>
-                    {cartCount > 0 && (
-                      <span className="cart-count">{cartCount}</span>
-                    )}
-                  </Link>
                   <Link to="/login" className="btn btn-green btn-sm me-2">
                     <i className="fas fa-user me-1"></i> Sign In
                   </Link>
+
+
                   <Link 
                     to="/register" 
                     className="btn btn-sm me-4" 
@@ -214,27 +146,54 @@ const Navbar = () => {
                         color: 'white'
                       }
                     }}
+
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgb(221, 17, 10)'}
+
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc3545'}
                   >
                     <i className="fas fa-user-plus me-1"></i> Create Account
                   </Link>
                   <Link
-                    to="/sell" 
-                    className="btn btn-outline-success btn-sm me-2"
-                    style={{ display: user ? 'none' : 'inline-block' }}
+
+                    to="/sell"
+                    className="btn btn-green btn-sm"
+                    style={{ marginLeft: '8px' }}
                   >
-                    <i className="fas fa-store me-1"></i> Sell with Herbal Market
+                    <i className="fas fa-store me-1"></i> Sell with HERBAL MARKET
                   </Link>
                 </>
-              )}
-              
-              {user && (user.profile?.user_type === 'seller' || user.user_type === 'seller') && (
-                <Link
-                  to="/seller-dashboard"
-                  className="btn btn-outline-success btn-sm me-2"
-                >
-                  <i className="fas fa-user-circle me-1"></i> Seller Dashboard
-                </Link>
+              ) : (
+                <div className="position-relative" style={{ marginLeft: '12px', zIndex: 2001 }} onMouseLeave={() => setProfileOpen(false)}>
+                  <button className="btn btn-light d-flex align-items-center" type="button" onClick={() => setProfileOpen((v) => !v)}>
+                    <div className="rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: 32, height: 32, backgroundColor: '#2E7D32', color: 'white', fontWeight: 700 }}>
+                      {(user?.profile?.name || user?.email || 'U')[0]?.toUpperCase()}
+                    </div>
+                    <span style={{ fontWeight: 600 }}>{user?.profile?.name || user?.email}</span>
+                    <i className="fas fa-chevron-down ms-2" style={{ fontSize: 12 }}></i>
+                  </button>
+                  {profileOpen && (
+                    <ul className="dropdown-menu dropdown-menu-end show" style={{ display: 'block', position: 'absolute', right: 0, minWidth: '240px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 2001 }}>
+                      <li>
+                        <div className="px-3 py-2" style={{ borderBottom: '1px solid #eee' }}>
+                          <div style={{ fontSize: 12, color: '#6c757d' }}>Signed in as</div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{user?.profile?.name || user?.email}</div>
+                          <div style={{ fontSize: 12, color: '#6c757d' }}>{user?.email}</div>
+                        </div>
+                      </li>
+                      <li>
+                        <Link className="dropdown-item d-flex align-items-center" to="/dashboard" onClick={() => setProfileOpen(false)}>
+                          <i className="fas fa-gauge-high me-2" style={{ color: '#2E7D32' }}></i> Dashboard
+                        </Link>
+                      </li>
+                      <li>
+                        <button className="dropdown-item d-flex align-items-center" onClick={handleLogout}>
+                          <i className="fas fa-right-from-bracket me-2" style={{ color: '#dc3545' }}></i> Logout
+                        </button>
+                      </li>
+                    </ul>
+                  )}
+                </div>
+
               )}
             </div>
           </div>
@@ -282,21 +241,13 @@ const Navbar = () => {
                   <i className="fas fa-robot me-1"></i> AI Recommendations
                 </NavLink>
               </li>
-              {hasResearchAccess && (
-                <li className="nav-item">
-                  <NavLink to={researchHubPath} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-                    <i className="fas fa-flask me-1"></i> Research Hub
-                  </NavLink>
-                </li>
-              )}
+              <li className="nav-item">
+                <NavLink to={researchHubPath} className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+                  <i className="fas fa-flask me-1"></i> Research Hub
+                </NavLink>
+              </li>
 
-              {user && (
-                <li className="nav-item">
-                  <NavLink to="/dashboard" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-                    <i className="fas fa-user-circle me-1"></i> Profile
-                  </NavLink>
-                </li>
-              )}
+              {/* When logged in, Profile/Dashboard lives in the top bar dropdown */}
             </ul>
           </div>
         </div>

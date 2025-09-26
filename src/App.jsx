@@ -11,7 +11,9 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/user/Dashboard';
+import DashboardRouter from './pages/user/DashboardRouter';
+import BuyerDashboard from './pages/user/BuyerDashboard';
+import SellerDashboard from './pages/user/SellerDashboard';
 import PlantScanner from './pages/PlantScanner';
 import SymptomChecker from './pages/SymptomChecker';
 import AIRecommendations from './pages/AIRecommendations';
@@ -25,6 +27,8 @@ import PublicRoute from './routes/PublicRoute';
 import ResearchHub from './pages/ResearchHub';
 import Profile from './pages/user/Profile';
 import AdminDashboard from './pages/user/AdminDashboard';
+import ResearcherDashboard from './pages/user/ResearcherDashboard';
+import HerbalistDashboard from './pages/user/HerbalistDashboard';
 import NotFound from './pages/NotFound';
 import SupabaseHealth from './pages/health/SupabaseHealth';
 import Logout from './pages/Logout';
@@ -57,7 +61,7 @@ const App = () => {
             <Route
               path="/research/new"
               element={
-                <PrivateRoute roles={['researcher']}>
+                <PrivateRoute roles={['researcher','herbalist']}>
                   <ResearchNew />
                 </PrivateRoute>
               }
@@ -88,8 +92,40 @@ const App = () => {
             <Route
               path="/dashboard"
               element={
-                <PrivateRoute roles={['buyer','seller','herbalist','researcher']}>
-                  <Dashboard />
+                <PrivateRoute roles={['buyer','seller','herbalist','researcher','admin']}>
+                  <DashboardRouter />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard/buyer"
+              element={
+                <PrivateRoute roles={['buyer','admin']}>
+                  <BuyerDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard/seller"
+              element={
+                <PrivateRoute roles={['seller','admin']}>
+                  <SellerDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard/researcher"
+              element={
+                <PrivateRoute roles={['researcher','admin','herbalist']}>
+                  <ResearcherDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard/herbalist"
+              element={
+                <PrivateRoute roles={['herbalist','admin','researcher']}>
+                  <HerbalistDashboard />
                 </PrivateRoute>
               }
             />
