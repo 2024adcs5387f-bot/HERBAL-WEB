@@ -716,38 +716,24 @@
             </ul>
         </div>
     </div>
-
     <!-- Main Content -->
     <div class="main-content">
         <div class="header">
             <h1 id="page-title">Dashboard</h1>
             <div class="user-info">
                 <img id="header-profile-img" src="https://i.pravatar.cc/150?img=8" alt="User">
-                <div>
-                    <h3 id="header-user-name">Sarah Green</h3>
-                    <p id="header-store-name">Herbal Haven Store</p>
+                <div class="user-details">
+                    <span class="user-name">Sarah Johnson</span>
+                    <span class="user-role">Seller</span>
                 </div>
-            </div>
-        </div>
-
-        <!-- Dashboard Section -->
-        <div class="content-section active" id="dashboard">
-            <!-- Stats Cards -->
-            <div class="stats-cards">
-                <div class="stat-card">
-                    <div class="stat-icon orders">
-                        <i class="fas fa-shopping-cart"></i>
-                    </div>
-                    <div class="stat-info">
-                        <h3>42</h3>
-                        <p>New Orders</p>
-                    </div>
+                <i class="fas fa-chevron-down dropdown-toggle"></i>
+                <div class="dropdown-menu">
+                    <a href="#" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
+                    <a href="#" class="dropdown-item"><i class="fas fa-cog"></i> Settings</a>
                 </div>
-                <div class="stat-card">
                     <div class="stat-icon revenue">
                         <i class="fas fa-dollar-sign"></i>
                     </div>
-                    <div class="stat-info">
                         <h3>UGX 10,452,000</h3>
                         <p>Total Revenue</p>
                     </div>
@@ -1590,14 +1576,12 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function () {
-            // Render initial products
+            
+            // Initialize core functionality
             renderProducts();
-
-            // Update user info displays
             updateUserInfo();
-
-            // Initialize image upload functionality
             setupImageUpload();
+            initializeSalesChart();
 
             // Navigation functionality
             const navItems = document.querySelectorAll('.sidebar-menu li');
@@ -1605,60 +1589,32 @@
             const pageTitle = document.getElementById('page-title');
 
             navItems.forEach(item => {
-                item.addEventListener('click', function () {
+                item.addEventListener('click', function() {
                     const target = this.getAttribute('data-target');
+                    if (!target) return;
 
                     // Update active nav item
                     navItems.forEach(nav => nav.classList.remove('active'));
                     this.classList.add('active');
 
-                    // Hide all main content sections
+                    // Hide all content sections
                     contentSections.forEach(section => {
                         section.classList.remove('active');
                     });
 
-                    // Show the target main section
+                    // Show the target section
                     const targetSection = document.getElementById(target);
                     if (targetSection) {
                         targetSection.classList.add('active');
-
-                        // Update page title
-                        pageTitle.textContent = this.querySelector('span').textContent;
-
-                        // Special handling for dashboard
-                        if (target === 'dashboard') {
-                            // Ensure all dashboard sub-sections are visible
-                            const dashboardStats = document.querySelector('#dashboard .stats-cards');
-                            const dashboardSections = document.querySelectorAll('#dashboard > .content-section');
-
-                            // Make sure stats cards are visible
-                            if (dashboardStats) {
-                                dashboardStats.style.display = 'grid';
-                            }
-
-                            // Show all content sections inside dashboard
-                            dashboardSections.forEach(section => {
-                                section.style.display = 'block';
-                            });
-                        } else {
-                            // For other sections, hide dashboard sub-sections
-                            const dashboardSections = document.querySelectorAll('#dashboard > .content-section');
-                            dashboardSections.forEach(section => {
-                                section.style.display = 'none';
-                            });
-                        }
-
-                        // Section-specific initializations
-                        if (target === 'products') {
-                            renderAllProducts();
-                        } else if (target === 'analytics') {
-                            setTimeout(initializeSalesChart, 100);
+                        const spanText = this.querySelector('span');
+                        if (spanText) {
+                            pageTitle.textContent = spanText.textContent;
                         }
                     }
                 });
             });
 
-            // Initially show dashboard content
+            // Show dashboard by default
             showDashboardContent();
 
             // Settings navigation
@@ -1668,6 +1624,7 @@
             settingsNavItems.forEach(item => {
                 item.addEventListener('click', function () {
                     const target = this.getAttribute('data-target');
+                    if (!target) return;
 
                     // Update active nav item
                     settingsNavItems.forEach(nav => nav.classList.remove('active'));
@@ -1712,25 +1669,6 @@
 
             profileForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-
-                // Update user state
-                state.user.firstName = document.getElementById('first-name').value;
-                state.user.lastName = document.getElementById('last-name').value;
-                state.user.username = document.getElementById('username').value;
-                state.user.phone = document.getElementById('phone').value;
-                state.user.email = document.getElementById('email').value;
-                state.user.storeName = document.getElementById('store-name').value;
-
-                // Update UI
-                updateUserInfo();
-
-                alert('Profile updated successfully!');
-            });
-
-            // Security form submission
-            const securityForm = document.getElementById('security-form');
-
-            securityForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 alert('Password updated successfully!');
                 securityForm.reset();
