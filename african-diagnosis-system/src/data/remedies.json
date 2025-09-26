@@ -1,0 +1,94 @@
+{
+  "remedies": [
+    {
+      "name": "Moringa",
+      "description": "Moringa leaves are rich in vitamins and minerals, often used to boost the immune system.",
+      "preparation": "Boil fresh or dried moringa leaves in water for 5-10 minutes.",
+      "usage": "Drink as tea 1-2 times daily.",
+      "warnings": "Excessive consumption may cause stomach upset.",
+      "origin": "West Africa",
+      "forDiseases": ["Common Cold", "Malaria", "Fatigue"]
+    },
+    {
+      "name": "Neem",
+      "description": "Neem leaves have antibacterial and antiviral properties.",
+      "preparation": "Boil neem leaves in water for 10 minutes, then strain.",
+      "usage": "Drink the tea or use it as a skin wash.",
+      "warnings": "Not recommended for pregnant women.",
+      "origin": "East Africa",
+      "forDiseases": ["Malaria", "Skin Infections", "Diabetes"]
+    },
+    {
+      "name": "Garlic and Honey",
+      "description": "A powerful combination for fighting infections and boosting immunity.",
+      "preparation": "Crush garlic cloves and mix with raw honey. Let it sit for 24 hours.",
+      "usage": "Take 1 teaspoon daily for prevention, 3 times daily when sick.",
+      "warnings": "May cause bad breath and interact with blood thinners.",
+      "origin": "Various African regions",
+      "forDiseases": ["Common Cold", "Flu", "Respiratory Infections"]
+    },
+    {
+      "name": "Ginger Tea",
+      "description": "Ginger has anti-inflammatory and digestive properties.",
+      "preparation": "Slice fresh ginger root and steep in hot water for 10 minutes.",
+      "usage": "Drink warm, 2-3 times daily.",
+      "warnings": "May interact with blood thinners.",
+      "origin": "Various African regions",
+      "forDiseases": ["Nausea", "Digestive Issues", "Sore Throat"]
+    },
+    {
+      "name": "Aloe Vera",
+      "description": "Soothes burns, heals wounds, and aids digestion.",
+      "preparation": "Extract gel from aloe vera leaves.",
+      "usage": "Apply topically for burns or mix with juice for internal use.",
+      "warnings": "Do not consume aloe latex (yellow sap near the skin).",
+      "origin": "North Africa",
+      "forDiseases": ["Burns", "Digestive Issues", "Skin Irritations"]
+    },
+    {
+      "name": "Soursop Leaves",
+      "description": "Traditionally used for various ailments including infections and inflammation.",
+      "preparation": "Boil 3-5 leaves in water for 10 minutes.",
+      "usage": "Drink as tea once daily.",
+      "warnings": "Excessive consumption may be toxic.",
+      "origin": "West Africa",
+      "forDiseases": ["Infections", "Inflammation", "Parasites"]
+    },
+    {
+      "name": "African Potato",
+      "description": "Boosts immune system and has anti-inflammatory properties.",
+      "preparation": "Peel and boil the tubers.",
+      "usage": "Eat as a vegetable or make into a tea.",
+      "warnings": "May interact with certain medications.",
+      "origin": "Southern Africa",
+      "forDiseases": ["Infections", "Inflammation", "Immune Support"]
+    },
+    {
+      "name": "Bitter Leaf",
+      "description": "Traditional remedy for fever, malaria, and digestive issues.",
+      "preparation": "Wash leaves thoroughly and squeeze out the bitter juice.",
+      "usage": "Drink small amounts or use in soups.",
+      "warnings": "Extremely bitter taste.",
+      "origin": "West Africa",
+      "forDiseases": ["Malaria", "Fever", "Digestive Issues"]
+    },
+    {
+      "name": "Rooibos Tea",
+      "description": "Antioxidant-rich tea that supports the immune system.",
+      "preparation": "Steep rooibos leaves in hot water for 5-7 minutes.",
+      "usage": "Drink 2-3 times daily.",
+      "warnings": "Generally safe with no known side effects.",
+      "origin": "South Africa",
+      "forDiseases": ["Allergies", "Digestive Issues", "Anxiety"]
+    },
+    {
+      "name": "Baobab Fruit",
+      "description": "Rich in vitamin C and antioxidants, supports immune health.",
+      "preparation": "Mix baobab powder with water or juice.",
+      "usage": "1-2 teaspoons daily.",
+      "warnings": "May interact with certain medications.",
+      "origin": "Sub-Saharan Africa",
+      "forDiseases": ["Common Cold", "Fatigue", "Digestive Issues"]
+    }
+  ]
+}

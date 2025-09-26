@@ -31,5 +31,18 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.10",
     "vite": "^6.3.5"
-  }
+  },
+  "description": "<<<<<<< HEAD\r # HERBAL-WEB\r Check ur signs know the right herb to use\r =======\r # 🌿 Herbal Marketplace - Complete Platform",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2024adcs5387f-bot/HERBAL-WEB.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/2024adcs5387f-bot/HERBAL-WEB/issues"
+  },
+  "homepage": "https://github.com/2024adcs5387f-bot/HERBAL-WEB#readme"
 }
