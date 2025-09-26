@@ -26,6 +26,10 @@ const LoginForm = () => {
       
       // Check if user is a seller
       const user = await getCurrentUser();
+      // Notify the app immediately so Navbar updates without a reload
+      try {
+        window.dispatchEvent(new CustomEvent('auth:login', { detail: { user } }));
+      } catch {}
       const userType = user?.profile?.user_type || user?.user_type;
       
       // If user is a seller, redirect to sell.html
