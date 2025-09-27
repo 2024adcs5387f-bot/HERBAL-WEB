@@ -21,6 +21,7 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import Research from './pages/Research';
 import ResearchPost from './pages/ResearchPost';
 import ResearchNew from './pages/ResearchNew';
+import ResearchEdit from './pages/ResearchEdit';
 import TopSearchBar from './components/Topbar/TopSearchBar';
 import PrivateRoute from './routes/PrivateRoute';
 import PublicRoute from './routes/PublicRoute';
@@ -54,9 +55,9 @@ const App = () => {
             <Route path="/health/supabase" element={<SupabaseHealth />} />
             <Route path="/symptom-checker" element={<SymptomChecker />} />
             <Route path="/ai-recommendations" element={<AIRecommendations />} />
-
             <Route path="/research" element={<Research />} />
             <Route path="/research/:id" element={<ResearchPost />} />
+            <Route path="/research-hub" element={<ResearchHub />} />
             <Route
               path="/research/new"
               element={
@@ -65,9 +66,15 @@ const App = () => {
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/research/:id/edit"
+              element={
+                <PrivateRoute roles={['researcher','herbalist']}>
+                  <ResearchEdit />
+                </PrivateRoute>
+              }
+            />
 
-            <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/research-hub" element={<ResearchHub />} />
 
             {/* Authentication */}
             <Route

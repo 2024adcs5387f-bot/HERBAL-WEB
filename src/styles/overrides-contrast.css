@@ -14,7 +14,8 @@
 
 /* Global contrast overrides and utility adjustments */
 
-body, p, li, label, input, textarea, select { color: var(--neutral-800); }
+/* Strengthen default foreground color in light mode for better readability */
+body, p, li, label, input, textarea, select { color: #0f172a !important; }
 .dark body, .dark p, .dark li, .dark label, .dark input, .dark textarea, .dark select { color: #F3F4F6; }
 
 /* Cards and panels default foreground */

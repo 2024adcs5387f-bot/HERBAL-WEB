@@ -29,7 +29,7 @@ const ResearchHub = () => {
       setLoading(true);
       const params = {
         page,
-        limit: 12,
+        limit: 9,
         sortBy,
       };
       // Map multi-select to first selection for now
@@ -185,24 +185,53 @@ const ResearchHub = () => {
         )}
       </div>
       {/* Pagination */}
-      <div className="flex justify-center items-center gap-3 mt-8">
-        <button
-          disabled={pagination.currentPage <= 1}
-          onClick={() => loadPosts(pagination.currentPage - 1)}
-          className="px-4 py-2 rounded-lg bg-neutral-800 text-white disabled:opacity-50"
-        >
-          Prev
-        </button>
-        <span className="text-white text-sm">
-          Page {pagination.currentPage} of {pagination.totalPages}
-        </span>
-        <button
-          disabled={pagination.currentPage >= pagination.totalPages}
-          onClick={() => loadPosts(pagination.currentPage + 1)}
-          className="px-4 py-2 rounded-lg bg-neutral-800 text-white disabled:opacity-50"
-        >
-          Next
-        </button>
+      <div className="flex flex-col items-center gap-3 mt-8">
+        <div className="flex items-center gap-2">
+          <button
+            disabled={pagination.currentPage <= 1}
+            onClick={() => loadPosts(pagination.currentPage - 1)}
+            className="px-3 py-2 rounded-md bg-neutral-800 text-white disabled:opacity-50"
+          >
+            Prev
+          </button>
+          {
+            (() => {
+              const pages = [];
+              const total = pagination.totalPages || 1;
+              const current = pagination.currentPage || 1;
+              const pushBtn = (p) => pages.push(
+                <button
+                  key={p}
+                  onClick={() => loadPosts(p)}
+                  className={`px-3 py-2 rounded-md border ${p === current ? 'bg-blue-600 text-white border-blue-600' : 'border-neutral-700 text-white hover:bg-neutral-800'}`}
+                >
+                  {p}
+                </button>
+              );
+              if (total <= 7) {
+                for (let p = 1; p <= total; p++) pushBtn(p);
+              } else {
+                // Always show 1 and last, window around current
+                pushBtn(1);
+                if (current > 3) pages.push(<span key="l-ell" className="px-1 text-neutral-400">…</span>);
+                const start = Math.max(2, current - 1);
+                const end = Math.min(total - 1, current + 1);
+                for (let p = start; p <= end; p++) pushBtn(p);
+                if (current < total - 2) pages.push(<span key="r-ell" className="px-1 text-neutral-400">…</span>);
+                pushBtn(total);
+              }
+              return pages;
+            })()
+          }
+          <button
+            disabled={pagination.currentPage >= pagination.totalPages}
+            onClick={() => loadPosts(pagination.currentPage + 1)}
+            className="px-3 py-2 rounded-md bg-neutral-800 text-white disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+        <span className="text-white/80 text-xs">Page {pagination.currentPage} of {pagination.totalPages || 1}</span>
       </div>
     </div>
   );
