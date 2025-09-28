@@ -190,9 +190,9 @@ const CartPage = () => {
                                 <span className="fw-bold">Subtotal</span>
                                 <span className="fw-bold">UGX {subtotal.toLocaleString()}</span>
                             </div>
-                            <button className="btn btn-primary btn-lg w-100 mb-3">
+                            <a href="/Checkout.html" className="btn btn-primary btn-lg w-100 mb-3">
                                 Proceed to Checkout
-                            </button>
+                            </a>
                             <div className="text-center">
                                 <p className="text-muted">or</p>
                                 <button className="btn btn-outline-primary w-100">

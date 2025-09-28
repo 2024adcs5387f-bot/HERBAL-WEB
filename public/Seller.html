@@ -33,7 +33,135 @@
             display: flex;
             min-height: 100vh;
         }
+        
+      /* Nav Bar Styles */
+        .nav-bar {
+            width: 100%;
+            background: linear-gradient(135deg, #2d5a27 0%, #4a7c45 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
 
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-logo {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .herbal-text {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .tagline {
+            font-size: 14px;
+            opacity: 0.8;
+            font-weight: 500;
+            letter-spacing: 1px;
+            padding-bottom: 4px;
+        }
+        
+        .nav-title {
+            flex: 1;
+            text-align: center;
+        }
+
+        .nav-title h1 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 15px;
+            border-radius: 30px;
+            transition: all 0.3s;
+        }
+
+        .nav-user:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .nav-user img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-user .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-user .user-info h3 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .nav-user .user-info p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+                /* Add margin-top to sidebar and main-content to account for navbar */
+        .sidebar {
+            margin-top: 70px; /* Add this */
+        }
+
+        .main-content {
+            margin-top: 70px; /* Add this */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .nav-bar {
+                padding: 10px 15px;
+            }
+            
+            .herbal-text {
+                font-size: 18px;
+            }
+            
+            .tagline {
+                display: none;
+            }
+                    .nav-title h1 {
+                font-size: 16px;
+                letter-spacing: 1px;
+            }
+            .nav-user .user-info {
+                display: none;
+            }
+        }
+        
         /* Sidebar Styles */
         .sidebar {
             width: 250px;
@@ -594,59 +722,81 @@
             height: 300px;
             margin-bottom: 30px;
         }
+
         .image-preview {
-    width: 150px;
-    height: 150px;
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 10px;
-    overflow: hidden;
-    background: #f9f9f9;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
+            width: 150px;
+            height: 150px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            overflow: hidden;
+            background: #f9f9f9;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
 
-.image-preview:hover {
-    border-color: #2d5a27;
-    background: #f0f7f0;
-}
+        .image-preview:hover {
+            border-color: #2d5a27;
+            background: #f0f7f0;
+        }
 
-.image-preview img {
-    max-width: 100%;
-    max-height: 100%;
-    display: none;
-    object-fit: cover;
-}
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            display: none;
+            object-fit: cover;
+        }
 
-.image-preview span {
-    color: #999;
-    text-align: center;
-    padding: 10px;
-    display: block;
-}
+        .image-preview span {
+            color: #999;
+            text-align: center;
+            padding: 10px;
+            display: block;
+        }
 
-.image-preview.has-image img {
-    display: block;
-}
+        .image-preview.has-image img {
+            display: block;
+        }
 
-.image-preview.has-image span {
-    display: none;
-}
+        .image-preview.has-image span {
+            display: none;
+        }
 
-.upload-hint {
-    font-size: 12px;
-    color: #666;
-    margin-top: 5px;
-}
+        .upload-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
 
-/* Style for the file input */
-#product-image {
-    margin-bottom: 10px;
-}
+                /* Logout button specific styles */
+        #logout-btn {
+            margin-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding-top: 20px;
+        }
+
+        #logout-btn a {
+            color: #ff6b6b !important;
+            font-weight: 600;
+        }
+
+        #logout-btn:hover {
+            background: rgba(255, 107, 107, 0.1) !important;
+        }
+
+        #logout-btn.active {
+            background: rgba(255, 107, 107, 0.2) !important;
+            border-left: 4px solid #ff6b6b !important;
+        }
+
+        /* Style for the file input */
+        #product-image {
+            margin-bottom: 10px;
+        }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -694,6 +844,27 @@
 </head>
 
 <body>
+    <!-- Navigation Bar -->
+    <div class="nav-bar">
+        <div class="nav-brand">
+            <div class="nav-logo">
+                <span class="herbal-text">HerbalMarket</span>
+                <span class="tagline">Mange your sales?</span>
+            </div>
+        </div>
+        <div class="nav-title">
+            <h1>DASHBOARD</h1>
+        </div>
+        <div class="nav-actions">
+            <div class="nav-user">
+                <img id="nav-profile-img" src="https://i.pravatar.cc/150?img=8" alt="User">
+                <div class="user-info">
+                    <h3 id="nav-user-name">Sarah Green</h3>
+                    <p id="nav-store-name">Herbal Haven Store</p>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
@@ -712,28 +883,44 @@
                 <li data-target="promotions"><a href="#"><i class="fas fa-comment-dollar"></i>
                         <span>Promotions</span></a></li>
                 <li data-target="settings"><a href="#"><i class="fas fa-cog"></i> <span>Settings</span></a></li>
-                <li><a href="#"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a></li>
+                <li id="logout-btn">
+                    <a href="#"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></a>
+                </li>
             </ul>
         </div>
     </div>
+
     <!-- Main Content -->
     <div class="main-content">
         <div class="header">
             <h1 id="page-title">Dashboard</h1>
             <div class="user-info">
                 <img id="header-profile-img" src="https://i.pravatar.cc/150?img=8" alt="User">
-                <div class="user-details">
-                    <span class="user-name">Sarah Johnson</span>
-                    <span class="user-role">Seller</span>
+                <div>
+                    <h3 id="header-user-name">Sarah Green</h3>
+                    <p id="header-store-name">Herbal Haven Store</p>
                 </div>
-                <i class="fas fa-chevron-down dropdown-toggle"></i>
-                <div class="dropdown-menu">
-                    <a href="#" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
-                    <a href="#" class="dropdown-item"><i class="fas fa-cog"></i> Settings</a>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="content-section active" id="dashboard">
+            <!-- Stats Cards -->
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon orders">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>42</h3>
+                        <p>New Orders</p>
+                    </div>
                 </div>
+                <div class="stat-card">
                     <div class="stat-icon revenue">
                         <i class="fas fa-dollar-sign"></i>
                     </div>
+                    <div class="stat-info">
                         <h3>UGX 10,452,000</h3>
                         <p>Total Revenue</p>
                     </div>
@@ -1484,6 +1671,33 @@
             document.getElementById('profile-img').src = state.user.profileImage;
         }
 
+        // ========== LOGOUT FUNCTION ==========
+            function handleLogout() {
+                // Show confirmation dialog
+                const confirmLogout = confirm('Are you sure you want to log out?');
+
+                if (confirmLogout) {
+                    // Show loading state
+                    const logoutBtn = document.getElementById('logout-btn');
+                    const originalContent = logoutBtn.innerHTML;
+                    logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Logging out...</span>';
+
+                    // Simulate logout process (in a real app, this would call your backend API)
+                    setTimeout(() => {
+                        // Clear any stored data
+                        localStorage.removeItem('sellerToken');
+                        sessionStorage.removeItem('sellerSession');
+
+                        // Redirect to login page (replace with your actual login page URL)
+                        alert('You have been successfully logged out!');
+                        window.location.href = 'login.html'; // Change this to your login page URL
+
+                        // Reset button content (though redirect will happen quickly)
+                        logoutBtn.innerHTML = originalContent;
+                    }, 1500);
+                }
+            }
+
         // Function to show dashboard content
         function showDashboardContent() {
             const dashboardSections = document.querySelectorAll('#dashboard > .content-section');
@@ -1576,12 +1790,23 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function () {
-            
-            // Initialize core functionality
+            // Render initial products
             renderProducts();
+
+            // Update user info displays
             updateUserInfo();
+
+            // Initialize image upload functionality
             setupImageUpload();
-            initializeSalesChart();
+
+            // Logout functionality
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    handleLogout();
+                });
+            }
 
             // Navigation functionality
             const navItems = document.querySelectorAll('.sidebar-menu li');
@@ -1589,32 +1814,60 @@
             const pageTitle = document.getElementById('page-title');
 
             navItems.forEach(item => {
-                item.addEventListener('click', function() {
+                item.addEventListener('click', function () {
                     const target = this.getAttribute('data-target');
-                    if (!target) return;
 
                     // Update active nav item
                     navItems.forEach(nav => nav.classList.remove('active'));
                     this.classList.add('active');
 
-                    // Hide all content sections
+                    // Hide all main content sections
                     contentSections.forEach(section => {
                         section.classList.remove('active');
                     });
 
-                    // Show the target section
+                    // Show the target main section
                     const targetSection = document.getElementById(target);
                     if (targetSection) {
                         targetSection.classList.add('active');
-                        const spanText = this.querySelector('span');
-                        if (spanText) {
-                            pageTitle.textContent = spanText.textContent;
+
+                        // Update page title
+                        pageTitle.textContent = this.querySelector('span').textContent;
+
+                        // Special handling for dashboard
+                        if (target === 'dashboard') {
+                            // Ensure all dashboard sub-sections are visible
+                            const dashboardStats = document.querySelector('#dashboard .stats-cards');
+                            const dashboardSections = document.querySelectorAll('#dashboard > .content-section');
+
+                            // Make sure stats cards are visible
+                            if (dashboardStats) {
+                                dashboardStats.style.display = 'grid';
+                            }
+
+                            // Show all content sections inside dashboard
+                            dashboardSections.forEach(section => {
+                                section.style.display = 'block';
+                            });
+                        } else {
+                            // For other sections, hide dashboard sub-sections
+                            const dashboardSections = document.querySelectorAll('#dashboard > .content-section');
+                            dashboardSections.forEach(section => {
+                                section.style.display = 'none';
+                            });
+                        }
+
+                        // Section-specific initializations
+                        if (target === 'products') {
+                            renderAllProducts();
+                        } else if (target === 'analytics') {
+                            setTimeout(initializeSalesChart, 100);
                         }
                     }
                 });
             });
 
-            // Show dashboard by default
+            // Initially show dashboard content
             showDashboardContent();
 
             // Settings navigation
@@ -1624,7 +1877,6 @@
             settingsNavItems.forEach(item => {
                 item.addEventListener('click', function () {
                     const target = this.getAttribute('data-target');
-                    if (!target) return;
 
                     // Update active nav item
                     settingsNavItems.forEach(nav => nav.classList.remove('active'));
@@ -1669,6 +1921,25 @@
 
             profileForm.addEventListener('submit', function (e) {
                 e.preventDefault();
+
+                // Update user state
+                state.user.firstName = document.getElementById('first-name').value;
+                state.user.lastName = document.getElementById('last-name').value;
+                state.user.username = document.getElementById('username').value;
+                state.user.phone = document.getElementById('phone').value;
+                state.user.email = document.getElementById('email').value;
+                state.user.storeName = document.getElementById('store-name').value;
+
+                // Update UI
+                updateUserInfo();
+
+                alert('Profile updated successfully!');
+            });
+
+            // Security form submission
+            const securityForm = document.getElementById('security-form');
+
+            securityForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 alert('Password updated successfully!');
                 securityForm.reset();

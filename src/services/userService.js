@@ -6,42 +6,51 @@ import { supabase } from "../config/supabase";
  * @param {Object} userData - { name, email, password, role }
  * @returns {Object} session or throws error
  */
-export const signUp = async ({ name, email, password, role }) => {
+export const signUp = async ({ name, email, password, role = 'buyer' }) => {
   if (!supabase) {
     throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
   }
 
-  // Create user in Supabase auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name, role },
-    },
-  });
+  try {
+    // First create the user in Supabase auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { 
+          name,
+          user_type: role // Store role in user_metadata
+        },
+      },
+    });
 
-  if (authError) throw authError;
+    if (authError) throw authError;
 
-  return authData;
-};
+    // Then create/update the user's profile in the public.users table
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from('users')
+        .upsert({
+          id: authData.user.id,
+          email: email,
+          name: name,
+          user_type: role, // Ensure role is set in the users table
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
 
-/**
- * Login user
- * @param {Object} credentials - { email, password }
- * @returns {Object} session or throws error
- */
-export const signIn = async ({ email, password }) => {
-  if (!supabase) {
-    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+      if (profileError) {
+        console.error('Error creating/updating user profile:', profileError);
+        // Even if this fails, we still want to return the auth data
+        // The getCurrentUser function will handle creating the user record on first login if needed
+      }
+    }
+
+    return authData;
+  } catch (error) {
+    console.error('Error in signUp:', error);
+    throw error;
   }
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) throw error;
-  return data;
 };
 
 /**
@@ -233,7 +242,6 @@ export const getUser = async () => {
  */
 export default {
   signUp,
-  signIn,
   signOut,
   getCurrentUser,
   getUserProfile,
