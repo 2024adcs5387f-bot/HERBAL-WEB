@@ -290,6 +290,14 @@ export default function ResearchPost() {
     return isOwner || isAdmin;
   }, [currentUser, post]);
 
+  const canEdit = useMemo(() => {
+    if (!currentUser || !post) return false;
+    const role = currentUser.profile?.user_type || currentUser.user_type;
+    const isOwner = post.author_id === currentUser.id;
+    const isAdmin = role === 'admin';
+    return isOwner || isAdmin;
+  }, [currentUser, post]);
+
   const handleDelete = async () => {
     if (!currentUser || !hasJwt) {
       toast.error("Please log in to delete posts");
@@ -330,13 +338,69 @@ export default function ResearchPost() {
     <div className="research-post-page pt-28 pb-16">
       {/* Responsive image rules for research content and attachments */}
       <style>{`
+        /* Base font and typography normalization for the research post page */
+        .research-post-page, .research-post-page * {
+          font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif !important;
+        }
+        .research-post-page .content-body {
+          font-size: 16px;
+          line-height: 1.75;
+          color: #111827; /* neutral-900 on light */
+        }
+        .dark .research-post-page .content-body {
+          color: #e5e7eb; /* neutral-200 on dark */
+        }
+        /* Prevent author-provided inline fonts/styles from overriding */
+        .research-post-page .content-body * {
+          font-family: inherit !important;
+        }
+        /* Headings consistency */
+        .research-post-page .content-body h1,
+        .research-post-page .content-body h2,
+        .research-post-page .content-body h3,
+        .research-post-page .content-body h4,
+        .research-post-page .content-body h5,
+        .research-post-page .content-body h6 {
+          font-weight: 800;
+          line-height: 1.2;
+          margin-top: 1.25em;
+          margin-bottom: 0.5em;
+        }
+        .research-post-page .content-body h1 { font-size: 1.875rem; } /* 30px */
+        .research-post-page .content-body h2 { font-size: 1.5rem; }   /* 24px */
+        .research-post-page .content-body h3 { font-size: 1.25rem; }  /* 20px */
+        .research-post-page .content-body h4 { font-size: 1.125rem; } /* 18px */
+        .research-post-page .content-body h5 { font-size: 1rem; }     /* 16px */
+        .research-post-page .content-body h6 { font-size: 0.875rem; } /* 14px */
+        @media (min-width: 640px) {
+          .research-post-page .content-body h1 { font-size: 2.25rem; } /* 36px */
+          .research-post-page .content-body h2 { font-size: 1.875rem; } /* 30px */
+          .research-post-page .content-body h3 { font-size: 1.5rem; }   /* 24px */
+        }
+        /* Paragraphs and lists */
+        .research-post-page .content-body p { margin: 0.75em 0; }
+        .research-post-page .content-body ul,
+        .research-post-page .content-body ol { padding-left: 1.25rem; margin: 0.75em 0; }
+        .research-post-page .content-body li { margin: 0.25em 0; }
+        /* Blockquotes */
+        .research-post-page .content-body blockquote {
+          border-left: 4px solid #e5e7eb;
+          padding-left: 1rem;
+          color: #6b7280;
+          margin: 1em 0;
+        }
+        .dark .research-post-page .content-body blockquote { border-color: #374151; color: #9ca3af; }
+        /* Code */
+        .research-post-page .content-body pre, .research-post-page .content-body code {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+        }
         /* Rich content images */
         .content-body img {
           display: block;
           height: auto;
           width: min(100%, 500px);
           max-width: 100%;
-          margin: 0 auto; /* center images */
+          margin: 0; /* left-aligned images */
           border-radius: 0.25rem;
         }
         /* Desktop: enforce 500px width for consistency */
@@ -398,6 +462,11 @@ export default function ResearchPost() {
               <button className="px-3 py-2 rounded-lg bg-neutral-800 text-neutral-200 border border-neutral-700 flex items-center gap-2" onClick={handleShare}>
                 <Share2 className="w-4 h-4" /> Share
               </button>
+              {canEdit && (
+                <button onClick={() => navigate(`/research/${id}/edit`)} className="px-3 py-2 rounded-lg bg-blue-600 text-white border border-blue-700 flex items-center gap-2">
+                  Edit Post
+                </button>
+              )}
               {canDelete && (
                 <button onClick={handleDelete} className="px-3 py-2 rounded-lg bg-red-600 text-white border border-red-700 flex items-center gap-2">
                   Delete Post
@@ -417,7 +486,7 @@ export default function ResearchPost() {
             <div
               ref={contentRef}
               className="content-body prose prose-neutral dark:prose-invert max-w-none mt-6"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post?.content || "", { USE_PROFILES: { html: true } }) }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post?.content || "", { USE_PROFILES: { html: true }, FORBID_ATTR: ['style'], FORBID_TAGS: ['font'] }) }}
             />
 
             {showRaw && (

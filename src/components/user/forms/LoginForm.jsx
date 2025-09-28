@@ -21,25 +21,23 @@ const LoginForm = () => {
     try {
       const session = await signIn({ email, password });
       // Ensure backend JWT is available for protected API calls
-      try { 
-        await ensureAppJwt(); 
-        
-        // Get the full user data including role
-        const { getCurrentUser } = await import('../../../services/userService');
-        const user = await getCurrentUser();
-        
-        // Check if user is a seller
-        if (user?.user_metadata?.role === 'seller' || user?.user_type === 'seller' || user?.profile?.user_type === 'seller') {
-          // Redirect sellers to the dedicated static Seller page in public/
-          window.location.href = '/Seller.html';
-        } else {
-          // Redirect to regular dashboard for non-sellers
-          navigate('/dashboard');
-        }
-      } catch (error) {
-        console.error("Error getting user data:", error);
-        // Default to dashboard if there's an error getting user data
-        navigate('/dashboard');
+      try { await ensureAppJwt(); } catch {}
+      console.log("Logged in user session:", session);
+      
+      // Check if user is a seller
+      const user = await getCurrentUser();
+      // Notify the app immediately so Navbar updates without a reload
+      try {
+        window.dispatchEvent(new CustomEvent('auth:login', { detail: { user } }));
+      } catch {}
+      const userType = user?.profile?.user_type || user?.user_type;
+      
+      // If user is a seller, redirect to sell.html
+      if (userType === 'seller') {
+        window.location.href = '/sell.html';
+      } else {
+        // For non-sellers, go to dashboard as usual
+        navigate("/dashboard");
       }
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");

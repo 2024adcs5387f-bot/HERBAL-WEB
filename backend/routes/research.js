@@ -268,8 +268,11 @@ router.get("/", optionalAuth, async (req, res) => {
     if (verified === "true") query = query.eq("is_verified", true);
 
     if (q) {
-      // Use ilike on title for now; can be upgraded to full-text search via search_tsv
-      query = query.ilike("title", `%${q}%`);
+      // Full-text search across title, abstract, and content using search_tsv
+      // Uses websearch syntax (supports quotes, AND/OR) and english config
+      // Requires GIN index on search_tsv and trigger to keep it updated (see 02_extended_research.sql)
+      query = query.textSearch('search_tsv', q, { type: 'websearch', config: 'english' });
+      // Keep default ordering; rank ordering requires computed column in select which breaks PostgREST parsing in this context
     }
     if (herbId) query = query.eq("related_herb_id", herbId);
     if (diseaseId) query = query.eq("related_disease_id", diseaseId);

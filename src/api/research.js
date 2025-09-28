@@ -34,6 +34,67 @@ export const fetchResearchPosts = async (params = {}) => {
   }
 };
 
+// Update an existing research post (author must be researcher/herbalist)
+export const updateResearchPost = async (postId, updates) => {
+  try {
+    // Try backend first
+    await ensureAppJwt().catch(() => {});
+    let token = localStorage.getItem("token");
+    let headers = token
+      ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+      : { "Content-Type": "application/json" };
+    let res = await fetch(`${API_BASE}/api/research/${postId}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(updates),
+    });
+    if (res.status === 401 || res.status === 403) {
+      await ensureAppJwt().catch(() => {});
+      token = localStorage.getItem("token");
+      headers = token
+        ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+        : { "Content-Type": "application/json" };
+      res = await fetch(`${API_BASE}/api/research/${postId}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(updates),
+      });
+    }
+    const data = await res.json().catch(() => ({ success: false }));
+    if (data?.success && data?.data?.post) return data.data.post;
+  } catch {}
+
+  // Fallback: Supabase direct update with RLS
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth?.user) throw new Error("User must be logged in to update a post");
+
+    const updateBody = {
+      title: updates.title,
+      abstract: updates.abstract ?? null,
+      content: updates.content,
+      references_list: Array.isArray(updates.references) ? updates.references : [],
+      attachments: Array.isArray(updates.attachments) ? updates.attachments : [],
+      related_herb_id: updates.relatedHerbId ?? null,
+      related_disease_id: updates.relatedDiseaseId ?? null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('research_posts')
+      .update(updateBody)
+      .eq('id', postId)
+      .eq('author_id', auth.user.id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error('updateResearchPost fallback error:', err);
+    return null;
+  }
+};
+
 // Fetch a single research post by ID
 export const fetchResearchPost = async (id) => {
   console.log(`[DEBUG] Frontend: fetching research post ${id} -> ${API_BASE}/api/research/${id}`);

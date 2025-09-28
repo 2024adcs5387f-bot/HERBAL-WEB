@@ -12,20 +12,7 @@ const Navbar = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate();
 
-
-  // Sticky on scroll
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
-      if (window.innerWidth >= 1024) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
+  
   // Update cart count from localStorage
   const updateCartCount = () => {
     try {
@@ -63,10 +50,28 @@ const Navbar = () => {
 
     fetchUserData();
 
+    // Listen for immediate auth changes (e.g., after Login)
+    const onAuthLogin = async (e) => {
+      // Use payload if provided for snappy UX; still re-fetch to be safe
+      const payloadUser = e?.detail?.user;
+      if (payloadUser) setUser(payloadUser);
+      try {
+        const fresh = await getCurrentUser();
+        setUser(fresh || null);
+        const role = fresh?.profile?.user_type || fresh?.user_type;
+        setHasResearchAccess(role === 'researcher' || role === 'herbalist');
+      } catch (_) {
+        setUser(null);
+        setHasResearchAccess(false);
+      }
+    };
+    window.addEventListener('auth:login', onAuthLogin);
+
     // Cleanup
     return () => {
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
+      window.removeEventListener('auth:login', onAuthLogin);
     };
   }, []);
 
