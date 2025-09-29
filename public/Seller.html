@@ -1599,55 +1599,82 @@
 
         // ========== PRODUCT FUNCTIONS ==========
 
-        // Function to render products on dashboard
-        function renderProducts() {
-            const productsGrid = document.getElementById('products-grid');
-            if (productsGrid) {
-                productsGrid.innerHTML = '';
+        async function getCurrentSellerId() {
+            try {
+                if (window.sb) {
+                    const { data } = await window.sb.auth.getUser();
+                    return data?.user?.id || null;
+                }
+            } catch {}
+            return null;
+        }
 
-                // Show only first 4 products on dashboard
-                const productsToShow = state.products.slice(0, 4);
-
-                productsToShow.forEach(product => {
-                    const productCard = document.createElement('div');
-                    productCard.className = 'product-card';
-                    productCard.innerHTML = `
-                        <div class="product-img">
-                            <img src="${product.image}" alt="${product.name}">
-                        </div>
-                        <div class="product-info">
-                            <h3>${product.name}</h3>
-                            <p>${product.description}</p>
-                            <div class="product-price">UGX ${product.price.toLocaleString()}</div>
-                        </div>
-                    `;
-                    productsGrid.appendChild(productCard);
-                });
+        async function fetchSellerProducts() {
+            const sellerId = await getCurrentSellerId();
+            if (!sellerId) return [];
+            try {
+                const res = await fetch(`/api/products/seller/${sellerId}?limit=100`, { headers: { ...authHeader() } });
+                const json = await res.json().catch(() => ({}));
+                const list = json?.data?.products || [];
+                return list.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    description: p.description || '',
+                    price: Number(p.price || 0),
+                    image: Array.isArray(p.images) && p.images.length ? p.images[0] : (typeof p.images === 'string' ? p.images : ''),
+                }));
+            } catch {
+                return [];
             }
         }
 
-        // Function to render all products in products section
-        function renderAllProducts() {
-            const allProductsGrid = document.getElementById('all-products-grid');
-            if (allProductsGrid) {
-                allProductsGrid.innerHTML = '';
+        // Render products on dashboard (first 4)
+        async function renderProducts() {
+            const productsGrid = document.getElementById('products-grid');
+            if (!productsGrid) return;
+            productsGrid.innerHTML = '';
+            const products = await fetchSellerProducts();
+            const productsToShow = products.slice(0, 4);
+            productsToShow.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card';
+                productCard.innerHTML = `
+                    <div class="product-img">
+                        <img src="${product.image || '/placeholder.png'}" alt="${product.name}">
+                    </div>
+                    <div class="product-info">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <div class="product-price">UGX ${Number(product.price||0).toLocaleString()}</div>
+                    </div>
+                `;
+                productsGrid.appendChild(productCard);
+            });
+        }
 
-                state.products.forEach(product => {
-                    const productCard = document.createElement('div');
-                    productCard.className = 'product-card';
-                    productCard.innerHTML = `
-                        <div class="product-img">
-                            <img src="${product.image}" alt="${product.name}">
-                        </div>
-                        <div class="product-info">
-                            <h3>${product.name}</h3>
-                            <p>${product.description}</p>
-                            <div class="product-price">UGX ${product.price.toLocaleString()}</div>
-                        </div>
-                    `;
-                    allProductsGrid.appendChild(productCard);
-                });
-            }
+        // Render all products in products section
+        async function renderAllProducts() {
+            const allProductsGrid = document.getElementById('all-products-grid');
+            if (!allProductsGrid) return;
+            allProductsGrid.innerHTML = '';
+            const products = await fetchSellerProducts();
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card';
+                productCard.innerHTML = `
+                    <div class="product-img">
+                        <img src="${product.image || '/placeholder.png'}" alt="${product.name}">
+                    </div>
+                    <div class="product-info">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <div class="product-price">UGX ${Number(product.price||0).toLocaleString()}</div>
+                    </div>
+                `;
+                allProductsGrid.appendChild(productCard);
+            });
+            const totalEl = document.getElementById('total-products');
+            if (totalEl) totalEl.textContent = String(products.length);
         }
 
         // ========== IMAGE UPLOAD FUNCTIONS ==========
