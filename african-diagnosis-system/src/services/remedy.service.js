@@ -1,4 +1,19 @@
-import remediesData from '../data/remedies.json' assert { type: 'json' };
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Resolve path to remedies.json in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const remediesPath = path.resolve(__dirname, '../data/remedies.json');
+
+let remediesData = { remedies: [] };
+try {
+  const raw = fs.readFileSync(remediesPath, 'utf-8');
+  remediesData = JSON.parse(raw);
+} catch (e) {
+  console.error('Failed to load remedies.json:', e.message);
+}
 
 /**
  * Matches a disease with traditional African remedies

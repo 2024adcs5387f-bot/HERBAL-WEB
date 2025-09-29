@@ -2,14 +2,23 @@ import OpenAI from 'openai';
 
 export class AIService {
   constructor() {
-    this.openai = new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: process.env.OPENROUTER_API_KEY,
-      defaultHeaders: {
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'African Diagnosis System',
-      },
-    });
+    this.apiKey = process.env.OPENROUTER_API_KEY;
+    this.enabled = typeof this.apiKey === 'string' && this.apiKey.trim().length > 0;
+    this.openai = null;
+
+    if (this.enabled) {
+      this.openai = new OpenAI({
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: this.apiKey,
+        defaultHeaders: {
+          'HTTP-Referer': 'http://localhost:3000',
+          'X-Title': 'African Diagnosis System',
+        },
+      });
+    } else {
+      // Fail gracefully to mock predictions when no key
+      console.warn('[AIService] OPENROUTER_API_KEY not set. Using mock predictions.');
+    }
   }
 
   /**
@@ -19,6 +28,9 @@ export class AIService {
    */
   async predictDisease(symptoms) {
     try {
+      if (!this.enabled || !this.openai) {
+        return this.getMockPredictions(symptoms);
+      }
       const symptomText = symptoms.join(', ');
       
       const response = await this.openai.chat.completions.create({
@@ -36,18 +48,25 @@ export class AIService {
             content: `Based on these symptoms: ${symptomText}, what are the possible diseases? ` +
                     `Respond with only a JSON array of objects, each with 'disease' and 'confidence' properties.`
           }
-        ],
-        response_format: { type: 'json_object' }
+        ]
       });
 
       // Extract the JSON response
-      const content = response.choices[0]?.message?.content;
+      const content = response.choices?.[0]?.message?.content;
       if (!content) {
         throw new Error('No response from AI service');
       }
 
       // Parse the JSON response
-      const result = JSON.parse(content);
+      let result;
+      try {
+        result = JSON.parse(content);
+      } catch (e) {
+        // Try to extract JSON array/object from text
+        const match = content.match(/(\[.*\]|\{.*\})/s);
+        if (!match) throw e;
+        result = JSON.parse(match[1]);
+      }
       
       // If the response is in the expected format, return it
       if (Array.isArray(result)) {
