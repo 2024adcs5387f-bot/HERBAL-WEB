@@ -1601,12 +1601,14 @@
 
         async function getCurrentSellerId() {
             try {
-                if (window.sb) {
-                    const { data } = await window.sb.auth.getUser();
-                    return data?.user?.id || null;
-                }
-            } catch {}
-            return null;
+                // Use backend session (not Supabase client) to identify current user
+                const res = await fetch('/api/session/public', { credentials: 'include' });
+                const json = await res.json().catch(() => ({}));
+                const userId = json?.data?.user?.id || json?.user?.id || null;
+                return userId;
+            } catch {
+                return null;
+            }
         }
 
         async function fetchSellerProducts() {
@@ -1925,17 +1927,24 @@
                         if (_session?.access_token) {
                             localStorage.setItem('sellerToken', _session.access_token);
                             await ensureAppJwt(_session.access_token);
+                            // Re-render products now that session is ready
+                            await renderProducts();
+                            await renderAllProducts();
                         } else {
                             try { localStorage.removeItem('sellerToken'); } catch {}
                             try { localStorage.removeItem('token'); } catch {}
+                            // Clear UI
+                            await renderProducts();
+                            await renderAllProducts();
                         }
                     });
                 }
             } catch (e) {
                 console.warn('Supabase init skipped:', e?.message || e);
             }
-            // Render initial products
-            renderProducts();
+            // Render initial products (both sections)
+            await renderProducts();
+            await renderAllProducts();
 
             // Update user info displays
             updateUserInfo();
@@ -2286,21 +2295,9 @@
                         throw new Error(createJson.message || 'Failed to create product');
                     }
 
-                    const created = createJson.data.product;
-
-                    // Update local UI state (optional)
-                    state.products.unshift({
-                        id: created.id || Date.now(),
-                        name: created.name,
-                        description: created.description,
-                        price: created.price || Number(priceVal),
-                        image: imageUrl,
-                        category: created.category,
-                        stock: created.stock || Number(stockVal || 0)
-                    });
-                    renderProducts();
-                    renderAllProducts();
-                    document.getElementById('total-products').textContent = state.products.length;
+                    // Refresh UI from backend (no local state mutation)
+                    await renderProducts();
+                    await renderAllProducts();
 
                     // Reset form and close modal
                     productForm.reset();

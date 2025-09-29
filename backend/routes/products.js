@@ -21,55 +21,45 @@ router.get('/', optionalAuth, async (req, res) => {
       minPrice,
       maxPrice,
       isOrganic,
-      sortBy = 'createdAt',
+      sortBy = 'created_at',
       sortOrder = 'DESC'
     } = req.query;
 
-    const offset = (page - 1) * limit;
-    const whereClause = { isActive: true };
+    const from = (parseInt(page) - 1) * parseInt(limit);
+    const to = from + parseInt(limit) - 1;
 
-    // Apply filters
-    if (category) {
-      whereClause.category = category;
-    }
+    let query = supabaseAdmin
+      .from('products')
+      .select('*', { count: 'exact' })
+      .eq('is_active', true)
+      .range(from, to);
 
+    if (category) query = query.eq('category', category);
+    if (isOrganic === 'true') query = query.eq('is_organic', true);
+    if (minPrice) query = query.gte('price', Number(minPrice));
+    if (maxPrice) query = query.lte('price', Number(maxPrice));
     if (search) {
-      whereClause[Op.or] = [
-        { name: { [Op.iLike]: `%${search}%` } },
-        { description: { [Op.iLike]: `%${search}%` } },
-        { botanicalName: { [Op.iLike]: `%${search}%` } }
-      ];
+      // Basic ilike search across name and description
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
-    if (minPrice || maxPrice) {
-      whereClause.price = {};
-      if (minPrice) whereClause.price[Op.gte] = parseFloat(minPrice);
-      if (maxPrice) whereClause.price[Op.lte] = parseFloat(maxPrice);
-    }
+    // Sorting
+    const supaOrderColumn = ['created_at', 'price', 'rating', 'purchase_count', 'view_count'].includes(String(sortBy))
+      ? sortBy
+      : 'created_at';
+    query = query.order(supaOrderColumn, { ascending: String(sortOrder).toUpperCase() === 'ASC' });
 
-    if (isOrganic === 'true') {
-      whereClause.isOrganic = true;
-    }
+    const { data, error, count } = await query;
+    if (error) throw error;
 
-    const products = await Product.findAndCountAll({
-      where: whereClause,
-      include: [{
-        model: User,
-        as: 'seller',
-        attributes: ['id', 'name', 'businessName', 'rating']
-      }],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [[sortBy, sortOrder.toUpperCase()]]
-    });
     res.json({
       success: true,
       data: {
-        products: products.rows,
+        products: data || [],
         pagination: {
           currentPage: parseInt(page),
-          totalPages: Math.ceil(products.count / limit),
-          totalItems: products.count,
+          totalPages: Math.ceil((count || 0) / parseInt(limit)),
+          totalItems: count || 0,
           itemsPerPage: parseInt(limit)
         }
       }
@@ -77,10 +67,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
   } catch (error) {
     console.error('Get products error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -420,31 +407,28 @@ router.delete('/:id', authenticate, async (req, res) => {
 router.get('/seller/:sellerId', async (req, res) => {
   try {
     const { page = 1, limit = 12 } = req.query;
-    const offset = (page - 1) * limit;
+    const from = (parseInt(page) - 1) * parseInt(limit);
+    const to = from + parseInt(limit) - 1;
 
-    const products = await Product.findAndCountAll({
-      where: {
-        sellerId: req.params.sellerId,
-        isActive: true
-      },
-      include: [{
-        model: User,
-        as: 'seller',
-        attributes: ['id', 'name', 'businessName', 'rating']
-      }],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['createdAt', 'DESC']]
-    });
+    let query = supabaseAdmin
+      .from('products')
+      .select('*', { count: 'exact' })
+      .eq('seller_id', req.params.sellerId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
 
     res.json({
       success: true,
       data: {
-        products: products.rows,
+        products: data || [],
         pagination: {
           currentPage: parseInt(page),
-          totalPages: Math.ceil(products.count / limit),
-          totalItems: products.count,
+          totalPages: Math.ceil((count || 0) / parseInt(limit)),
+          totalItems: count || 0,
           itemsPerPage: parseInt(limit)
         }
       }
@@ -452,10 +436,7 @@ router.get('/seller/:sellerId', async (req, res) => {
 
   } catch (error) {
     console.error('Get seller products error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error'
-    });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
