@@ -36,12 +36,63 @@ const upload = multer({
   }
 });
 
+// Upload single product image (to R2 products bucket)
+router.post('/products/single', optionalAuth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Only allow images for product uploads
+    const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!imageTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ success: false, message: 'Only image uploads are allowed for products' });
+    }
+
+    const key = buildProductKey(req.user?.id, req.file.originalname);
+    await putObject(BUCKETS.products, key, req.file.buffer, req.file.mimetype);
+    const publicUrl = getPublicUrl(BUCKETS.products, key);
+
+    res.json({
+      success: true,
+      data: {
+        url: publicUrl,
+        key,
+        bucket: BUCKETS.products,
+        filename: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        uploadedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Product image upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Product image upload failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Helper to build a consistent R2 key path
 function buildKey(userId, originalname) {
   const safeName = (originalname || 'file').replace(/[^a-zA-Z0-9_.-]/g, '_');
   const ts = Date.now();
   const uid = userId || 'public';
   return `research/attachments/${uid}/${ts}_${safeName}`;
+}
+
+// Helper to build product image key in the products bucket
+function buildProductKey(userId, originalname) {
+  const safeName = (originalname || 'image').replace(/[^a-zA-Z0-9_.-]/g, '_');
+  const ts = Date.now();
+  const uid = userId || 'public';
+  return `products/images/${uid}/${ts}_${safeName}`;
 }
 
 // Upload single file (to R2)

@@ -1981,62 +1981,122 @@
                 }
             });
 
+            // Image preview on file select
+            (function () {
+                const input = document.getElementById('product-image');
+                const preview = document.getElementById('image-preview');
+                const placeholder = document.getElementById('image-placeholder');
+                if (input && preview && placeholder) {
+                    input.addEventListener('change', () => {
+                        const file = input.files && input.files[0];
+                        if (file) {
+                            const url = URL.createObjectURL(file);
+                            preview.src = url;
+                            preview.style.display = 'block';
+                            placeholder.style.display = 'none';
+                        } else {
+                            preview.style.display = 'none';
+                            placeholder.style.display = 'block';
+                        }
+                    });
+                }
+            })();
+
+            function authHeader() {
+                const token = localStorage.getItem('sellerToken');
+                return token ? { 'Authorization': 'Bearer ' + token } : {};
+            }
+
             // Product form submission
-            productForm.addEventListener('submit', function (e) {
+            productForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
+                const name = document.getElementById('product-name').value.trim();
+                const description = document.getElementById('product-description').value.trim();
+                const priceVal = document.getElementById('product-price').value;
+                const category = document.getElementById('product-category').value;
+                const stockVal = document.getElementById('product-stock').value;
                 const imageInput = document.getElementById('product-image');
                 const imageFile = imageInput.files[0];
 
+                if (!name || !description || !priceVal || !category) {
+                    alert('Please fill in all required fields');
+                    return;
+                }
                 if (!imageFile) {
                     alert('Please select a product image');
                     return;
                 }
 
-                // Create new product with image data
-                const reader = new FileReader();
+                try {
+                    // 1) Upload image to R2
+                    const fd = new FormData();
+                    fd.append('file', imageFile);
+                    const uploadRes = await fetch('http://localhost:5000/api/uploads/products/single', {
+                        method: 'POST',
+                        headers: { ...authHeader() },
+                        body: fd
+                    });
+                    const uploadJson = await uploadRes.json();
+                    if (!uploadRes.ok || !uploadJson.success) {
+                        throw new Error(uploadJson.message || 'Image upload failed');
+                    }
+                    const imageUrl = uploadJson.data.url;
 
-                reader.onload = function (e) {
-                    const newProduct = {
-                        id: state.products.length + 1,
-                        name: document.getElementById('product-name').value,
-                        description: document.getElementById('product-description').value,
-                        price: parseInt(document.getElementById('product-price').value),
-                        image: e.target.result, // Use the data URL
-                        category: document.getElementById('product-category').value,
-                        stock: parseInt(document.getElementById('product-stock').value)
+                    // 2) Create product in Supabase
+                    const body = {
+                        name,
+                        description,
+                        short_description: description.slice(0, 140),
+                        price: Number(priceVal),
+                        category,
+                        images: [imageUrl],
+                        stock: Number(stockVal || 0)
                     };
 
-                    // Add to state
-                    state.products.push(newProduct);
+                    const createRes = await fetch('http://localhost:5000/api/products/supabase', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...authHeader()
+                        },
+                        body: JSON.stringify(body)
+                    });
+                    const createJson = await createRes.json();
+                    if (!createRes.ok || !createJson.success) {
+                        throw new Error(createJson.message || 'Failed to create product');
+                    }
 
-                    // Update BOTH displays
-                    renderProducts(); // Updates dashboard
-                    renderAllProducts(); // Updates products tab
+                    const created = createJson.data.product;
 
-                    // Update product count
+                    // Update local UI state (optional)
+                    state.products.unshift({
+                        id: created.id || Date.now(),
+                        name: created.name,
+                        description: created.description,
+                        price: created.price || Number(priceVal),
+                        image: imageUrl,
+                        category: created.category,
+                        stock: created.stock || Number(stockVal || 0)
+                    });
+                    renderProducts();
+                    renderAllProducts();
                     document.getElementById('total-products').textContent = state.products.length;
 
                     // Reset form and close modal
                     productForm.reset();
-                    resetImagePreview();
+                    const previewEl = document.getElementById('image-preview');
+                    const placeholderEl = document.getElementById('image-placeholder');
+                    if (previewEl && placeholderEl) {
+                        previewEl.style.display = 'none';
+                        placeholderEl.style.display = 'block';
+                    }
                     modal.style.display = 'none';
-
-                    alert('Product added successfully!');
-                };
-
-                reader.readAsDataURL(imageFile);
-            });
-
-            // Cancel profile changes
-            document.getElementById('cancel-profile').addEventListener('click', function () {
-                // Reset form to current state
-                document.getElementById('first-name').value = state.user.firstName;
-                document.getElementById('last-name').value = state.user.lastName;
-                document.getElementById('username').value = state.user.username;
-                document.getElementById('phone').value = state.user.phone;
-                document.getElementById('email').value = state.user.email;
-                document.getElementById('store-name').value = state.user.storeName;
+                    alert('Product added successfully');
+                } catch (err) {
+                    console.error(err);
+                    alert(err.message || 'Something went wrong');
+                }
             });
 
             // Time range change event for analytics
