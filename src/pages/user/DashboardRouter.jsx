@@ -17,10 +17,13 @@ export default function DashboardRouter() {
           navigate("/login", { replace: true });
           return;
         }
-        // Map roles to dashboards
+        // Route by role. Sellers go to static Seller.html in public
+        if (role === 'seller') {
+          window.location.href = '/Seller.html';
+          return;
+        }
         const routeByRole = {
           buyer: "/dashboard/buyer",
-          seller: "/dashboard/seller",
           herbalist: "/dashboard/herbalist",
           researcher: "/dashboard/researcher",
           admin: "/admin-dashboard",

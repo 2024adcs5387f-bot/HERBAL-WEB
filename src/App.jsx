@@ -14,7 +14,6 @@ import Register from './pages/Register';
 import DashboardRouter from './pages/user/DashboardRouter';
 import BuyerDashboard from './pages/user/BuyerDashboard';
 import PlantScanner from './pages/PlantScanner';
-import SellerDashboard from './pages/SellerDashboard';
 import SymptomChecker from './pages/SymptomChecker';
 import AIRecommendations from './pages/AIRecommendations';
 import PaymentSuccess from './pages/PaymentSuccess';
@@ -112,14 +111,6 @@ const App = () => {
               }
             />
             <Route
-              path="/dashboard/seller"
-              element={
-                <PrivateRoute roles={['seller','admin']}>
-                  <SellerDashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
               path="/dashboard/researcher"
               element={
                 <PrivateRoute roles={['researcher','admin','herbalist']}>
@@ -155,25 +146,7 @@ const App = () => {
               }
             />
 
-            {/* Seller Dashboard - Handles sell.html redirection */}
-            <Route
-              path="/seller-dashboard"
-              element={
-                <PrivateRoute roles={['seller']}>
-                  <SellerDashboard />
-                </PrivateRoute>
-              }
-            />
-            
-            {/* Direct access to sell.html - Only for sellers */}
-            <Route 
-              path="/sell.html" 
-              element={
-                <PrivateRoute roles={['seller']}>
-                  <SellerDashboard />
-                </PrivateRoute>
-              } 
-            />
+            {/* Seller dashboard is now a static page at /Seller.html. No React route here. */}
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
