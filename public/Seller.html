@@ -7,6 +7,7 @@
     <title>Herbal Market - Seller Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.55.0/dist/umd/supabase.js"></script>
     <style>
         * {
             margin: 0;
@@ -1385,10 +1386,13 @@
                             <select id="product-category" class="form-control" required>
                                 <option value="">Select category</option>
                                 <option value="herbs">Herbs</option>
-                                <option value="spices">Spices</option>
-                                <option value="oils">Essential Oils</option>
-                                <option value="teas">Herbal Teas</option>
+                                <option value="oils">Oils</option>
+                                <option value="teas">Teas</option>
                                 <option value="supplements">Supplements</option>
+                                <option value="powders">Powders</option>
+                                <option value="capsules">Capsules</option>
+                                <option value="tinctures">Tinctures</option>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                     </div>
@@ -1406,6 +1410,91 @@
                         <label for="product-stock">Stock Quantity</label>
                         <input type="number" id="product-stock" class="form-control" placeholder="Enter stock quantity"
                             min="0" required>
+                    </div>
+
+                    <!-- Optional extended fields to align with Supabase schema -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-compare">Compare at Price</label>
+                            <input type="number" id="product-compare" class="form-control" min="0" placeholder="e.g., 12000">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-subcategory">Subcategory</label>
+                            <input type="text" id="product-subcategory" class="form-control" placeholder="e.g., roots">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-tags">Tags (comma-separated)</label>
+                            <input type="text" id="product-tags" class="form-control" placeholder="immune, detox">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-sku">SKU</label>
+                            <input type="text" id="product-sku" class="form-control" placeholder="SKU-12345">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-weight">Weight (grams)</label>
+                            <input type="number" id="product-weight" class="form-control" min="0" step="0.01" placeholder="e.g., 100">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-dimensions">Dimensions (JSON or LxWxH)</label>
+                            <input type="text" id="product-dimensions" class="form-control" placeholder='e.g., {"length":10,"width":5,"height":3}'>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><input type="checkbox" id="product-organic"> Organic</label>
+                        </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="product-featured"> Featured</label>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-botanical">Botanical Name</label>
+                            <input type="text" id="product-botanical" class="form-control" placeholder="Curcuma longa">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-origin">Origin</label>
+                            <input type="text" id="product-origin" class="form-control" placeholder="Uganda">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-harvest">Harvest Date</label>
+                            <input type="date" id="product-harvest" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-expiry">Expiry Date</label>
+                            <input type="date" id="product-expiry" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-medicinal">Medicinal Uses (comma-separated)</label>
+                        <input type="text" id="product-medicinal" class="form-control" placeholder="anti-inflammatory, antioxidant">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-contra">Contraindications (comma-separated)</label>
+                        <input type="text" id="product-contra" class="form-control" placeholder="pregnancy, gallstones">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-dosage">Dosage</label>
+                        <textarea id="product-dosage" class="form-control" placeholder="e.g., 1-2 tsp daily"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-prep">Preparation</label>
+                        <textarea id="product-prep" class="form-control" placeholder="e.g., brew for 10 minutes"></textarea>
                     </div>
 
                     <div class="form-group">
@@ -1672,30 +1761,31 @@
         }
 
         // ========== LOGOUT FUNCTION ==========
-            function handleLogout() {
-                // Show confirmation dialog
+            async function handleLogout() {
                 const confirmLogout = confirm('Are you sure you want to log out?');
+                if (!confirmLogout) return;
 
-                if (confirmLogout) {
-                    // Show loading state
-                    const logoutBtn = document.getElementById('logout-btn');
-                    const originalContent = logoutBtn.innerHTML;
-                    logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Logging out...</span>';
+                const logoutBtn = document.getElementById('logout-btn');
+                const originalContent = logoutBtn.innerHTML;
+                logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Logging out...</span>';
 
-                    // Simulate logout process (in a real app, this would call your backend API)
-                    setTimeout(() => {
-                        // Clear any stored data
-                        localStorage.removeItem('sellerToken');
-                        sessionStorage.removeItem('sellerSession');
+                try {
+                    if (window.sb) {
+                        await window.sb.auth.signOut();
+                    }
+                } catch {}
+                try { localStorage.removeItem('sellerToken'); } catch {}
+                try { localStorage.removeItem('token'); } catch {}
+                try { sessionStorage.removeItem('sellerSession'); } catch {}
 
-                        // Redirect to login page (replace with your actual login page URL)
-                        alert('You have been successfully logged out!');
-                        window.location.href = 'login.html'; // Change this to your login page URL
+                // Optional: notify backend if you maintain server sessions (not used here)
+                // await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
 
-                        // Reset button content (though redirect will happen quickly)
-                        logoutBtn.innerHTML = originalContent;
-                    }, 1500);
-                }
+                // Redirect to the main app login so state is unified
+                window.location.href = '/login';
+
+                // Reset button if redirect is blocked
+                setTimeout(() => { logoutBtn.innerHTML = originalContent; }, 1000);
             }
 
         // Function to show dashboard content
@@ -1789,7 +1879,34 @@
         // ========== INITIALIZE APPLICATION ==========
 
         // Initialize the application
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
+            // Initialize Supabase and store access token for backend Authorization
+            try {
+                const pubRes = await fetch('/api/session/public');
+                const pubJson = await pubRes.json();
+                const url = pubJson?.data?.SUPABASE_URL;
+                const anon = pubJson?.data?.SUPABASE_ANON_KEY;
+                if (url && anon && window.supabase) {
+                    window.sb = window.supabase.createClient(url, anon);
+                    const { data: { session } } = await window.sb.auth.getSession();
+                    if (session?.access_token) {
+                        localStorage.setItem('sellerToken', session.access_token);
+                        await ensureAppJwt(session.access_token);
+                    }
+                    // keep app JWT in sync with Supabase session
+                    window.sb.auth.onAuthStateChange(async (_event, _session) => {
+                        if (_session?.access_token) {
+                            localStorage.setItem('sellerToken', _session.access_token);
+                            await ensureAppJwt(_session.access_token);
+                        } else {
+                            try { localStorage.removeItem('sellerToken'); } catch {}
+                            try { localStorage.removeItem('token'); } catch {}
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Supabase init skipped:', e?.message || e);
+            }
             // Render initial products
             renderProducts();
 
@@ -2002,9 +2119,47 @@
                 }
             })();
 
+            async function ensureAppJwt(access_token) {
+                try {
+                    const existing = localStorage.getItem('token');
+                    if (existing && existing.length > 0) return existing;
+                } catch {}
+                let token = access_token;
+                if (!token && window.sb) {
+                    const { data: { session } } = await window.sb.auth.getSession();
+                    token = session?.access_token;
+                }
+                if (!token) return null;
+                const res = await fetch('/api/auth/supabase-exchange', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_token: token })
+                });
+                const json = await res.json().catch(() => ({}));
+                if (res.ok && json?.success && json?.data?.token) {
+                    try { localStorage.setItem('token', json.data.token); } catch {}
+                    return json.data.token;
+                }
+                // Fallback alias
+                const res2 = await fetch('/api/session/exchange', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_token: token })
+                });
+                const json2 = await res2.json().catch(() => ({}));
+                if (res2.ok && json2?.success && json2?.data?.token) {
+                    try { localStorage.setItem('token', json2.data.token); } catch {}
+                    return json2.data.token;
+                }
+                return null;
+            }
+
             function authHeader() {
-                const token = localStorage.getItem('sellerToken');
-                return token ? { 'Authorization': 'Bearer ' + token } : {};
+                // Prefer app JWT ('token') to match main app; fallback to Supabase access token ('sellerToken')
+                const appJwt = localStorage.getItem('token');
+                const sbToken = localStorage.getItem('sellerToken');
+                const use = appJwt || sbToken;
+                return use ? { 'Authorization': 'Bearer ' + use } : {};
             }
 
             // Product form submission
@@ -2029,6 +2184,20 @@
                 }
 
                 try {
+                    // Ensure we have Supabase access token and app JWT before proceeding
+                    if (!localStorage.getItem('sellerToken') && window.sb) {
+                        const { data: { session } } = await window.sb.auth.getSession();
+                        if (session?.access_token) {
+                            localStorage.setItem('sellerToken', session.access_token);
+                        }
+                    }
+                    await ensureAppJwt();
+                    const appJwt = localStorage.getItem('token');
+                    const sbToken = localStorage.getItem('sellerToken');
+                    if (!appJwt && !sbToken) {
+                        alert('Please sign in to continue.');
+                        return;
+                    }
                     // 1) Upload image to R2
                     const fd = new FormData();
                     fd.append('file', imageFile);
@@ -2044,6 +2213,13 @@
                     const imageUrl = uploadJson.data.url;
 
                     // 2) Create product in Supabase
+                    const toArray = (str) => (str || '').split(',').map(s => s.trim()).filter(Boolean);
+                    const dimsRaw = document.getElementById('product-dimensions').value.trim();
+                    let dimensions = undefined;
+                    if (dimsRaw) {
+                        try { dimensions = JSON.parse(dimsRaw); } catch { dimensions = dimsRaw; }
+                    }
+
                     const body = {
                         name,
                         description,
@@ -2051,7 +2227,23 @@
                         price: Number(priceVal),
                         category,
                         images: [imageUrl],
-                        stock: Number(stockVal || 0)
+                        stock: Number(stockVal || 0),
+                        compare_at_price: Number(document.getElementById('product-compare').value || ''),
+                        subcategory: document.getElementById('product-subcategory').value.trim() || undefined,
+                        tags: toArray(document.getElementById('product-tags').value),
+                        sku: document.getElementById('product-sku').value.trim() || undefined,
+                        weight: Number(document.getElementById('product-weight').value || ''),
+                        dimensions,
+                        is_organic: document.getElementById('product-organic').checked,
+                        is_featured: document.getElementById('product-featured').checked,
+                        botanical_name: document.getElementById('product-botanical').value.trim() || undefined,
+                        origin: document.getElementById('product-origin').value.trim() || undefined,
+                        harvest_date: document.getElementById('product-harvest').value || undefined,
+                        expiry_date: document.getElementById('product-expiry').value || undefined,
+                        medicinal_uses: toArray(document.getElementById('product-medicinal').value),
+                        contraindications: toArray(document.getElementById('product-contra').value),
+                        dosage: document.getElementById('product-dosage').value.trim() || undefined,
+                        preparation: document.getElementById('product-prep').value.trim() || undefined
                     };
 
                     const createRes = await fetch('http://localhost:5000/api/products/supabase', {

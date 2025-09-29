@@ -9,6 +9,17 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
+// GET /api/session/public - expose safe, public config values
+router.get("/public", (req, res) => {
+  return res.json({
+    success: true,
+    data: {
+      SUPABASE_URL: process.env.SUPABASE_URL || null,
+      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || null,
+    },
+  });
+});
+
 // Alias for frontend fallback to avoid blockers on "/api/auth/*"
 // POST /api/session/exchange
 router.post("/exchange", async (req, res) => {

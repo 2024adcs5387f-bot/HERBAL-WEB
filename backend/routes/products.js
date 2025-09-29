@@ -1,9 +1,9 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { Product, User } from '../models/index.js';
 import { supabaseAdmin, supabase } from '../config/supabase.js';
-import jwt from 'jsonwebtoken';
-import { authenticate, authorize, optionalAuth } from '../middleware/auth.js';
+import { authenticate, authorize, optionalAuth, resolveUserAnyToken, requireSeller } from '../middleware/auth.js';
 import { validateProduct } from '../utils/validation.js';
 
 const router = express.Router();
@@ -162,53 +162,35 @@ router.post('/', authenticate, authorize('seller'), async (req, res) => {
 // @access  Private (Sellers only)
 router.post('/supabase', async (req, res) => {
   try {
-    // Resolve user from either app JWT or Supabase access token
-    const authHeader = req.header('Authorization') || '';
-    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-    let userId = null;
-    let userType = null;
+    // Decode backend app JWT (same as research routes)
+    const raw = req.header('Authorization');
+    const token = raw?.startsWith('Bearer ') ? raw.slice(7) : null;
+    if (!token) return res.status(401).json({ success: false, message: 'Missing token' });
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); }
+    catch { return res.status(401).json({ success: false, message: 'Invalid token' }); }
 
-    if (bearer) {
-      // Try app JWT first
-      try {
-        const decoded = jwt.verify(bearer, process.env.JWT_SECRET);
-        userId = decoded.id;
-        userType = decoded.userType;
-      } catch (_) {
-        // Fallback: treat as Supabase access token
-        const { data, error } = await supabaseAdmin.auth.getUser(bearer);
-        if (error || !data?.user) {
-          return res.status(401).json({ success: false, message: 'Unauthorized' });
-        }
-        userId = data.user.id;
-        // Find user in our users table
-        let { data: dbUser, error: dbErr } = await supabase
+    let userId = decoded.id;
+    let role = decoded.userType;
+
+    // Require seller/admin; optionally auto-promote to seller
+    const autoPromote = String(process.env.AUTO_PROMOTE_TO_SELLER || 'false').toLowerCase() === 'true';
+    const isAllowed = role === 'seller' || role === 'admin';
+    if (!isAllowed) {
+      if (autoPromote) {
+        const { data: updated, error: upErr } = await supabaseAdmin
           .from('users')
-          .select('id, user_type')
+          .update({ user_type: 'seller' })
           .eq('id', userId)
+          .select('id, user_type')
           .single();
-        if (dbErr && dbErr.code !== 'PGRST116') {
-          // Unexpected error code
-          return res.status(500).json({ success: false, message: 'User lookup failed' });
+        if (upErr || !updated) {
+          return res.status(403).json({ success: false, message: 'Access denied. Seller role required.' });
         }
-        if (!dbUser) {
-          // Auto-provision minimal user as seller (server-side trusted path)
-          const { data: inserted, error: insErr } = await supabaseAdmin
-            .from('users')
-            .insert({ id: userId, user_type: 'seller' })
-            .select('id, user_type')
-            .single();
-          if (insErr || !inserted) {
-            return res.status(500).json({ success: false, message: 'Failed to auto-provision user' });
-          }
-          dbUser = inserted;
-        }
-        userType = dbUser.user_type;
+        role = updated.user_type;
+      } else {
+        return res.status(403).json({ success: false, message: 'Access denied. Seller role required.' });
       }
-    }
-
-    if (!userId || userType !== 'seller') {
-      return res.status(403).json({ success: false, message: 'Access denied. Seller role required.' });
     }
     const {
       name,
@@ -254,7 +236,13 @@ router.post('/supabase', async (req, res) => {
       if (Array.isArray(v)) return v;
       try { const p = JSON.parse(v); return Array.isArray(p) || typeof p==='object' ? p : []; } catch { return []; }
     };
-    const toDate = (v) => (v ? new Date(v).toISOString() : null);
+    const toDate = (v) => {
+      if (!v) return null;
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return null;
+      // Return YYYY-MM-DD for Postgres DATE columns
+      return d.toISOString().slice(0, 10);
+    };
 
     const priceNum = toNum(price);
     const compareNum = toNum(compare_at_price);
@@ -270,9 +258,28 @@ router.post('/supabase', async (req, res) => {
     const harvestIso = toDate(harvest_date);
     const expiryIso = toDate(expiry_date);
 
-    const slug = (name || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+    const baseSlug = (name || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
     const metaTitleVal = meta_title || name?.slice(0, 60) || null;
     const metaDescVal = meta_description || (description?.slice(0, 150) || null);
+
+    // Ensure unique slug by checking existing records
+    let slug = baseSlug || null;
+    if (slug) {
+      let candidate = slug;
+      let suffix = 1;
+      // Use head count query to check existence without returning rows
+      // Limit attempts to a reasonable number
+      for (let i = 0; i < 50; i++) {
+        const { count, error: countErr } = await supabaseAdmin
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('slug', candidate);
+        if (countErr) break; // On error, proceed with current candidate
+        if (!count || count === 0) { slug = candidate; break; }
+        suffix += 1;
+        candidate = `${baseSlug}-${suffix}`;
+      }
+    }
 
     const row = {
       name,
@@ -318,7 +325,7 @@ router.post('/supabase', async (req, res) => {
 
   } catch (error) {
     console.error('Create product (Supabase) error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: process.env.NODE_ENV === 'development' ? (error?.message || String(error)) : undefined });
   }
 });
 
