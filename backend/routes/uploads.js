@@ -1,16 +1,9 @@
 import express from 'express';
 import multer from 'multer';
-import cloudinary from 'cloudinary';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { BUCKETS, putObject, deleteObject, getPublicUrl } from '../services/r2.js';
 
 const router = express.Router();
-
-// Configure Cloudinary
-cloudinary.v2.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
 
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
@@ -43,8 +36,8 @@ const upload = multer({
   }
 });
 
-// Upload single file
-router.post('/single', authenticate, upload.single('file'), async (req, res) => {
+// Upload single product image (to R2 products bucket)
+router.post('/products/single', optionalAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -53,29 +46,76 @@ router.post('/single', authenticate, upload.single('file'), async (req, res) => 
       });
     }
 
-    // Upload to Cloudinary
-    const result = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.v2.uploader.upload_stream(
-        {
-          resource_type: 'auto',
-          folder: 'herbal-research/attachments',
-          public_id: `${req.user.id}_${Date.now()}`,
-          tags: ['research', 'attachment']
-        },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
+    // Only allow images for product uploads
+    const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!imageTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ success: false, message: 'Only image uploads are allowed for products' });
+    }
 
-      uploadStream.end(req.file.buffer);
-    });
+    const key = buildProductKey(req.user?.id, req.file.originalname);
+    await putObject(BUCKETS.products, key, req.file.buffer, req.file.mimetype);
+    const publicUrl = getPublicUrl(BUCKETS.products, key);
 
     res.json({
       success: true,
       data: {
-        url: result.secure_url,
-        publicId: result.public_id,
+        url: publicUrl,
+        key,
+        bucket: BUCKETS.products,
+        filename: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        uploadedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Product image upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Product image upload failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Helper to build a consistent R2 key path
+function buildKey(userId, originalname) {
+  const safeName = (originalname || 'file').replace(/[^a-zA-Z0-9_.-]/g, '_');
+  const ts = Date.now();
+  const uid = userId || 'public';
+  return `research/attachments/${uid}/${ts}_${safeName}`;
+}
+
+// Helper to build product image key in the products bucket
+function buildProductKey(userId, originalname) {
+  const safeName = (originalname || 'image').replace(/[^a-zA-Z0-9_.-]/g, '_');
+  const ts = Date.now();
+  const uid = userId || 'public';
+  return `products/images/${uid}/${ts}_${safeName}`;
+}
+
+// Upload single file (to R2)
+router.post('/single', optionalAuth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Upload to R2
+    const key = buildKey(req.user?.id, req.file.originalname);
+    await putObject(BUCKETS.research, key, req.file.buffer, req.file.mimetype);
+    const publicUrl = getPublicUrl(BUCKETS.research, key);
+
+    res.json({
+      success: true,
+      data: {
+        url: publicUrl,
+        key,
+        bucket: BUCKETS.research,
         filename: req.file.originalname,
         size: req.file.size,
         mimetype: req.file.mimetype,
@@ -93,8 +133,8 @@ router.post('/single', authenticate, upload.single('file'), async (req, res) => 
   }
 });
 
-// Upload multiple files
-router.post('/multiple', authenticate, upload.array('files', 5), async (req, res) => {
+// Upload multiple files (to R2)
+router.post('/multiple', optionalAuth, upload.array('files', 5), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -103,33 +143,20 @@ router.post('/multiple', authenticate, upload.array('files', 5), async (req, res
       });
     }
 
-    const uploadPromises = req.files.map(file => {
-      return new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.v2.uploader.upload_stream(
-          {
-            resource_type: 'auto',
-            folder: 'herbal-research/attachments',
-            public_id: `${req.user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            tags: ['research', 'attachment']
-          },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve({
-              url: result.secure_url,
-              publicId: result.public_id,
-              filename: file.originalname,
-              size: file.size,
-              mimetype: file.mimetype,
-              uploadedAt: new Date().toISOString()
-            });
-          }
-        );
-
-        uploadStream.end(file.buffer);
-      });
-    });
-
-    const results = await Promise.all(uploadPromises);
+    const results = await Promise.all(req.files.map(async (file) => {
+      const key = buildKey(req.user?.id, file.originalname);
+      await putObject(BUCKETS.research, key, file.buffer, file.mimetype);
+      const publicUrl = getPublicUrl(BUCKETS.research, key);
+      return {
+        url: publicUrl,
+        key,
+        bucket: BUCKETS.research,
+        filename: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype,
+        uploadedAt: new Date().toISOString()
+      };
+    }));
 
     res.json({
       success: true,
@@ -149,25 +176,13 @@ router.post('/multiple', authenticate, upload.array('files', 5), async (req, res
   }
 });
 
-// Delete file
-router.delete('/:publicId', authenticate, async (req, res) => {
+// Delete file from R2 by key
+router.delete('/', optionalAuth, async (req, res) => {
   try {
-    const { publicId } = req.params;
-
-    // Delete from Cloudinary
-    const result = await cloudinary.v2.uploader.destroy(publicId);
-
-    if (result.result === 'ok') {
-      res.json({
-        success: true,
-        message: 'File deleted successfully'
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: 'File not found'
-      });
-    }
+    const { key } = req.query;
+    if (!key) return res.status(400).json({ success: false, message: 'Missing key' });
+    await deleteObject(BUCKETS.research, key);
+    res.json({ success: true, message: 'File deleted successfully' });
 
   } catch (error) {
     console.error('File deletion error:', error);

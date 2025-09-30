@@ -2,27 +2,55 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
+<<<<<<< HEAD
 import TopSearchBar from './components/Topbar/TopSearchBar';
 import PrivateRoute from './components/PrivateRoute';
 import PublicRoute from './components/PublicRoute';
+=======
+import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import { initAuthBridge } from './services/authService';
+>>>>>>> 74fb3ef21c2af94a908f92f39ead7686e3ff0a6e
 import Home from './pages/Home';
 import Products from './pages/product/product';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import DashboardRouter from './pages/user/DashboardRouter';
+import BuyerDashboard from './pages/user/BuyerDashboard';
 import PlantScanner from './pages/PlantScanner';
 import SymptomChecker from './pages/SymptomChecker';
 import AIRecommendations from './pages/AIRecommendations';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Research from './pages/Research';
+<<<<<<< HEAD
 import ResearchHub from './pages/ResearchHub';
 import Profile from './pages/user/Profile';
 import AdminDashboard from './pages/user/AdminDashboard';
 import NotFound from './pages/NotFound';
+=======
+import ResearchPost from './pages/ResearchPost';
+import ResearchNew from './pages/ResearchNew';
+import ResearchEdit from './pages/ResearchEdit';
+import TopSearchBar from './components/Topbar/TopSearchBar';
+import PrivateRoute from './routes/PrivateRoute';
+import PublicRoute from './routes/PublicRoute';
+import ResearchHub from './pages/ResearchHub';
+import Profile from './pages/user/Profile';
+import AdminDashboard from './pages/user/AdminDashboard';
+import ResearcherDashboard from './pages/user/ResearcherDashboard';
+import HerbalistDashboard from './pages/user/HerbalistDashboard';
+import NotFound from './pages/NotFound';
+import SupabaseHealth from './pages/health/SupabaseHealth';
+import Logout from './pages/Logout';
+>>>>>>> 74fb3ef21c2af94a908f92f39ead7686e3ff0a6e
 
 const App = () => {
+  useEffect(() => {
+    initAuthBridge();
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen">
@@ -35,20 +63,30 @@ const App = () => {
             <Route path="/products" element={<Products />} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route path="/cart" element={<Cart />} />
+            {/* Diagnostics */}
+            <Route path="/health/supabase" element={<SupabaseHealth />} />
             <Route path="/symptom-checker" element={<SymptomChecker />} />
             <Route path="/ai-recommendations" element={<AIRecommendations />} />
-
             <Route path="/research" element={<Research />} />
-
-            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/research/:id" element={<ResearchPost />} />
+            <Route path="/research-hub" element={<ResearchHub />} />
             <Route
-              path="/research"
+              path="/research/new"
               element={
-                <PrivateRoute roles={['researcher','admin','herbalist']}>
-                  <ResearchHub />
+                <PrivateRoute roles={['researcher','herbalist']}>
+                  <ResearchNew />
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/research/:id/edit"
+              element={
+                <PrivateRoute roles={['researcher','herbalist']}>
+                  <ResearchEdit />
+                </PrivateRoute>
+              }
+            />
+
 
             {/* Authentication */}
             <Route
@@ -72,11 +110,36 @@ const App = () => {
             <Route
               path="/dashboard"
               element={
-                <PrivateRoute roles={['buyer','seller','herbalist','researcher']}>
-                  <Dashboard />
+                <PrivateRoute roles={['buyer','seller','herbalist','researcher','admin']}>
+                  <DashboardRouter />
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/dashboard/buyer"
+              element={
+                <PrivateRoute roles={['buyer','admin']}>
+                  <BuyerDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard/researcher"
+              element={
+                <PrivateRoute roles={['researcher','admin','herbalist']}>
+                  <ResearcherDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/dashboard/herbalist"
+              element={
+                <PrivateRoute roles={['herbalist','admin','researcher']}>
+                  <HerbalistDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/logout" element={<Logout />} />
             <Route
               path="/profile"
               element={
@@ -96,10 +159,13 @@ const App = () => {
               }
             />
 
+            {/* Seller dashboard is now a static page at /Seller.html. No React route here. */}
+
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
+        <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
       </div>
     </Router>
   );

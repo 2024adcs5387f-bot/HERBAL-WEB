@@ -134,6 +134,36 @@ CREATE TABLE IF NOT EXISTS research_references (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Structured AI/ML-friendly storage alongside raw text
+CREATE TABLE IF NOT EXISTS research_structured (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id UUID NOT NULL REFERENCES research_posts(id) ON DELETE CASCADE,
+  schema_version TEXT NOT NULL DEFAULT '1.0',
+  entities JSONB NOT NULL DEFAULT '{}'::jsonb,        -- normalized entities: herbs, diseases, compounds, mechanisms, dosages, outcomes
+  keyphrases TEXT[] NOT NULL DEFAULT '{}',            -- keyword extraction
+  annotations JSONB NOT NULL DEFAULT '{}'::jsonb,     -- any additional annotations
+  embedding JSONB,                                    -- optional vector or embedding representation
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Voting (Reddit-style up/down votes)
+CREATE TABLE IF NOT EXISTS research_votes (
+  post_id UUID NOT NULL REFERENCES research_posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  value INT NOT NULL CHECK (value IN (-1, 1)),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (post_id, user_id)
+);
+
+-- Saves / bookmarks
+CREATE TABLE IF NOT EXISTS research_saves (
+  post_id UUID NOT NULL REFERENCES research_posts(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (post_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS comments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   content TEXT NOT NULL,
@@ -196,6 +226,14 @@ CREATE INDEX IF NOT EXISTS idx_research_posts_tsv ON research_posts USING GIN (s
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_author_id ON comments(author_id);
 
+CREATE INDEX IF NOT EXISTS idx_research_votes_post ON research_votes(post_id);
+CREATE INDEX IF NOT EXISTS idx_research_votes_user ON research_votes(user_id);
+CREATE INDEX IF NOT EXISTS idx_research_saves_post ON research_saves(post_id);
+CREATE INDEX IF NOT EXISTS idx_research_saves_user ON research_saves(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_research_structured_post ON research_structured(post_id);
+CREATE INDEX IF NOT EXISTS idx_research_structured_entities_gin ON research_structured USING GIN (entities);
+
 CREATE INDEX IF NOT EXISTS idx_product_ratings_product ON product_ratings(product_id);
 CREATE INDEX IF NOT EXISTS idx_product_ratings_user ON product_ratings(user_id);
 
@@ -220,6 +258,9 @@ ALTER TABLE research_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE research_ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE research_references ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE research_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE research_saves ENABLE ROW LEVEL SECURITY;
+ALTER TABLE research_structured ENABLE ROW LEVEL SECURITY;
 
 -- Helper note: We rely on users table to hold roles and auth.uid() to match users.id
 
@@ -320,6 +361,100 @@ CREATE POLICY rr_create_auth ON research_ratings
 -- research_references policies (read-only public; manage by admin or author via FK)
 DROP POLICY IF EXISTS rref_public_read ON research_references;
 CREATE POLICY rref_public_read ON research_references FOR SELECT USING (true);
+
+-- research_votes policies
+DROP POLICY IF EXISTS rv_public_read ON research_votes;
+CREATE POLICY rv_public_read ON research_votes FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS rv_upsert_self ON research_votes;
+CREATE POLICY rv_upsert_self ON research_votes
+  FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL AND user_id::text = auth.uid()::text);
+
+DROP POLICY IF EXISTS rv_update_self ON research_votes;
+CREATE POLICY rv_update_self ON research_votes
+  FOR UPDATE
+  USING (user_id::text = auth.uid()::text)
+  WITH CHECK (user_id::text = auth.uid()::text);
+
+DROP POLICY IF EXISTS rv_delete_self ON research_votes;
+CREATE POLICY rv_delete_self ON research_votes
+  FOR DELETE
+  USING (user_id::text = auth.uid()::text);
+
+-- research_saves policies
+DROP POLICY IF EXISTS rs_public_read ON research_saves;
+CREATE POLICY rs_public_read ON research_saves FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS rs_insert_self ON research_saves;
+CREATE POLICY rs_insert_self ON research_saves
+  FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL AND user_id::text = auth.uid()::text);
+
+DROP POLICY IF EXISTS rs_delete_self ON research_saves;
+CREATE POLICY rs_delete_self ON research_saves
+  FOR DELETE
+  USING (user_id::text = auth.uid()::text);
+
+-- research_structured policies
+DROP POLICY IF EXISTS rstr_public_read ON research_structured;
+CREATE POLICY rstr_public_read ON research_structured FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS rstr_insert_author_or_admin ON research_structured;
+CREATE POLICY rstr_insert_author_or_admin ON research_structured
+  FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM research_posts rp
+      WHERE rp.id = research_structured.post_id
+        AND (
+          rp.author_id::text = auth.uid()::text OR EXISTS (
+            SELECT 1 FROM users u WHERE u.id::text = auth.uid()::text AND u.user_type = 'admin'
+          )
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS rstr_update_author_or_admin ON research_structured;
+CREATE POLICY rstr_update_author_or_admin ON research_structured
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM research_posts rp
+      WHERE rp.id = research_structured.post_id
+        AND (
+          rp.author_id::text = auth.uid()::text OR EXISTS (
+            SELECT 1 FROM users u WHERE u.id::text = auth.uid()::text AND u.user_type = 'admin'
+          )
+        )
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM research_posts rp
+      WHERE rp.id = research_structured.post_id
+        AND (
+          rp.author_id::text = auth.uid()::text OR EXISTS (
+            SELECT 1 FROM users u WHERE u.id::text = auth.uid()::text AND u.user_type = 'admin'
+          )
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS rstr_delete_author_or_admin ON research_structured;
+CREATE POLICY rstr_delete_author_or_admin ON research_structured
+  FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM research_posts rp
+      WHERE rp.id = research_structured.post_id
+        AND (
+          rp.author_id::text = auth.uid()::text OR EXISTS (
+            SELECT 1 FROM users u WHERE u.id::text = auth.uid()::text AND u.user_type = 'admin'
+          )
+        )
+    )
+  );
 
 -- 10) Users table RLS for self-registration and profile management
 -- Enable RLS if not already

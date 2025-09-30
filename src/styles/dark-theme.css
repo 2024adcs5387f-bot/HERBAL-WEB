@@ -83,10 +83,14 @@ h4 { font-size: 1.5rem; }
 h5 { font-size: 1.25rem; }
 h6 { font-size: 1rem; }
 
+/* Elevate paragraph/body text brightness for better readability in dark theme */
 p {
   margin-bottom: 1rem;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
+
+/* Ensure common inline text elements inherit the bright foreground */
+span, li, small, label { color: var(--text-primary); }
 
 /* Links */
 a {

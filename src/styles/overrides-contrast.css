@@ -1,16 +1,25 @@
-/* Contrast and readability overrides without changing functionality */
+/* Research post content: constrain inline images for readability */
+.research-post-page .content-body img {
+  max-width: 400px;
+  height: auto;
+}
 
-/* Headings stronger contrast */
-h1, h2, h3 { color: var(--neutral-900); }
-.dark h1, .dark h2, .dark h3 { color: #F8FAFC; }
+/* Research post attachments grid: thumbnail images */
+.research-post-page .attachments img,
+.research-post-page .attachments .attachment-image {
+  max-width: 100px;
+  height: auto;
+  object-fit: cover;
+}
 
-/* Body text slightly brighter on dark, darker on light */
-body, p, li, label, input, textarea, select { color: var(--neutral-800); }
+/* Global contrast overrides and utility adjustments */
+
+/* Strengthen default foreground color in light mode for better readability */
+body, p, li, label, input, textarea, select { color: #0f172a !important; }
 .dark body, .dark p, .dark li, .dark label, .dark input, .dark textarea, .dark select { color: #F3F4F6; }
 
 /* Cards and panels default foreground */
 .card-enhanced { color: var(--neutral-900); }
-.dark .card-enhanced { color: #F3F4F6; }
 
 /* Links: improve contrast and hover */
 a { color: var(--primary-700); }

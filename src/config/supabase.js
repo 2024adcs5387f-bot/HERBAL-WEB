@@ -26,7 +26,10 @@ if (supabaseUrl && supabaseAnonKey && isValidHttpUrl(supabaseUrl)) {
     },
   });
 } else {
+<<<<<<< HEAD
   // Do not crash the app during development if envs are missing/placeholder
+=======
+>>>>>>> 74fb3ef21c2af94a908f92f39ead7686e3ff0a6e
   console.warn(
     "Supabase is not initialized. Please set valid VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local"
   );

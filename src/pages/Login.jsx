@@ -1,69 +1,20 @@
-import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
+import React from "react";
+import LoginForm from "../components/user/forms/LoginForm";
 
 const Login = () => {
-  const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const { user, error } = await login(email, password);
-      if (error) {
-        setError(error.message);
-      } else {
-        navigate("/dashboard");
-      }
-    } catch (err) {
-      setError("Unexpected error occurred.");
-      console.error(err);
-    }
-
-    setLoading(false);
-  };
-
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 border rounded shadow">
-      <h1 className="text-2xl font-bold mb-4">Login</h1>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full border p-2 rounded"
-          />
+    <div className="container" style={{ paddingTop: 100 }}>
+      <div className="row justify-content-center">
+        <div className="col-12 col-sm-10 col-md-8 col-lg-6">
+          <div className="card shadow-sm">
+            <div className="card-body p-4">
+              <h1 className="h4 mb-4 text-center">Login</h1>
+              {/* New logic lives inside the form component */}
+              <LoginForm />
+            </div>
+          </div>
         </div>
-        <div className="mb-4">
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full border p-2 rounded"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-green-500 text-white p-2 rounded"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
+      </div>
     </div>
   );
 };

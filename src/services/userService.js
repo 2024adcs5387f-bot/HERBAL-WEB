@@ -6,40 +6,61 @@ import { supabase } from "../config/supabase";
  * @param {Object} userData - { name, email, password, role }
  * @returns {Object} session or throws error
  */
-export const signUp = async ({ name, email, password, role }) => {
-  // Create user in Supabase auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name, role },
-    },
-  });
+export const signUp = async ({ name, email, password, role = 'buyer' }) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
 
-  if (authError) throw authError;
+  try {
+    // First create the user in Supabase auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { 
+          name,
+          user_type: role // Store role in user_metadata
+        },
+      },
+    });
 
-  return authData;
-};
+    if (authError) throw authError;
 
-/**
- * Login user
- * @param {Object} credentials - { email, password }
- * @returns {Object} session or throws error
- */
-export const signIn = async ({ email, password }) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    // Then create/update the user's profile in the public.users table
+    if (authData.user) {
+      const { error: profileError } = await supabase
+        .from('users')
+        .upsert({
+          id: authData.user.id,
+          email: email,
+          name: name,
+          user_type: role, // Ensure role is set in the users table
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
 
-  if (error) throw error;
-  return data;
+      if (profileError) {
+        console.error('Error creating/updating user profile:', profileError);
+        // Even if this fails, we still want to return the auth data
+        // The getCurrentUser function will handle creating the user record on first login if needed
+      }
+    }
+
+    return authData;
+  } catch (error) {
+    console.error('Error in signUp:', error);
+    throw error;
+  }
 };
 
 /**
  * Logout user
  */
 export const signOut = async () => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 };
@@ -48,6 +69,10 @@ export const signOut = async () => {
  * Get current authenticated user (from Supabase + profile)
  */
 export const getCurrentUser = async () => {
+  if (!supabase) {
+    return null;
+  }
+
   // First, check if we have a session; if not, return null (prevents AuthSessionMissingError)
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
@@ -116,6 +141,10 @@ export const getCurrentUser = async () => {
  * @param {string} userId
  */
 export const getUserProfile = async (userId) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { data, error } = await supabase
     .from("users")
     .select("*")
@@ -132,6 +161,10 @@ export const getUserProfile = async (userId) => {
  * @param {Object} updates
  */
 export const updateUserProfile = async (userId, updates) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { data, error } = await supabase
     .from("users")
     .update(updates)
@@ -168,6 +201,10 @@ export const isAdmin = (user) => hasRole(user, "admin");
  * Get all users (for AdminDashboard)
  */
 export const getAllUsers = async () => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { data, error } = await supabase.from("users").select("*");
   if (error) throw error;
   return data;
@@ -177,11 +214,20 @@ export const getAllUsers = async () => {
  * Delete a user (Admin only)
  */
 export const deleteUser = async (userId) => {
+  if (!supabase) {
+    throw new Error("Supabase is not initialized. Please set up Supabase credentials.");
+  }
+
   const { error } = await supabase.from("users").delete().eq("id", userId);
   if (error) throw error;
   return true;
 };
+
 export const getUser = async () => {
+  if (!supabase) {
+    return null;
+  }
+
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (!sessionData.session) return null;
@@ -196,7 +242,6 @@ export const getUser = async () => {
  */
 export default {
   signUp,
-  signIn,
   signOut,
   getCurrentUser,
   getUserProfile,
@@ -206,4 +251,5 @@ export default {
   isAdmin,
   getAllUsers,
   deleteUser,
+  getUser,
 };

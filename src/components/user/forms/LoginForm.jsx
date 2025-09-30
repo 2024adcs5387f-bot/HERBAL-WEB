@@ -1,8 +1,10 @@
 // File: src/components/user/forms/LoginForm.jsx
 import React, { useState } from "react";
-import { signIn } from "../../../services/userService";
+import { signIn } from "../../../services/authService";
+import { ensureAppJwt } from "../../../services/authService";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { getCurrentUser } from "../../../services/userService";
 
 const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -18,11 +20,26 @@ const LoginForm = () => {
 
     try {
       const session = await signIn({ email, password });
+      // Ensure backend JWT is available for protected API calls
+      try { await ensureAppJwt(); } catch {}
       console.log("Logged in user session:", session);
-      navigate("/dashboard"); // Redirect after login
+      
+      // Check if user is a seller
+      const user = await getCurrentUser();
+      try {
+        window.dispatchEvent(new CustomEvent('auth:login', { detail: { user } }));
+      } catch {}
+      const userType = user?.profile?.user_type || user?.user_type;
+      
+      // If user is a seller, redirect to Seller.html (static page in /public)
+      if (userType === 'seller') {
+        window.location.href = '/Seller.html';
+      } else {
+        // For non-sellers, go to dashboard as usual
+        navigate("/dashboard");
+      }
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
-    } finally {
       setLoading(false);
     }
   };

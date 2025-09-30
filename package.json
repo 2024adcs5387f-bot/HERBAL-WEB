@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "herbal-marketplace",
   "private": true,
   "version": "0.0.0",
@@ -6,8 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview --host 0.0.0.0 --port $PORT",
+    "start": "serve -s dist -l $PORT"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.0.1",
@@ -16,14 +17,28 @@
     "@fortawesome/react-fontawesome": "^3.0.2",
     "@popperjs/core": "^2.11.8",
     "@supabase/supabase-js": "^2.57.4",
+<<<<<<< HEAD
+=======
+    "@tiptap/extension-image": "^2.7.4",
+    "@tiptap/extension-link": "^2.7.4",
+    "@tiptap/extension-placeholder": "^2.7.4",
+    "@tiptap/react": "^2.7.4",
+    "@tiptap/starter-kit": "^2.7.4",
+>>>>>>> 74fb3ef21c2af94a908f92f39ead7686e3ff0a6e
     "bootstrap": "^5.3.8",
+    "dompurify": "^3.1.7",
     "framer-motion": "^12.19.2",
     "lucide-react": "^0.517.0",
     "react": "^19.1.0",
+    "react-comments-section": "^3.2.0",
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
+    "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.2",
-    "react-select": "^5.10.2"
+    "react-select": "^5.10.2",
+    "serve": "^14.2.5",
+    "uuid": "^13.0.0",
+    "react-scripts": "5.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

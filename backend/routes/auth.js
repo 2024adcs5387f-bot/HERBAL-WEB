@@ -1,7 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import supabase from "../config/supabase.js";
+import supabase, { supabaseAdmin } from "../config/supabase.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -126,6 +126,66 @@ router.post("/login", async (req, res) => {
 
   } catch (err) {
     console.error("Login error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ----------------------
+// Supabase session -> App JWT exchange
+// ----------------------
+router.post("/supabase-exchange", async (req, res) => {
+  try {
+    const { access_token } = req.body || {};
+    if (!access_token) {
+      return res.status(400).json({ success: false, message: "Missing access_token" });
+    }
+
+    // Verify Supabase access token and get the user
+    const { data, error } = await supabaseAdmin.auth.getUser(access_token);
+    if (error || !data?.user) {
+      return res.status(401).json({ success: false, message: "Invalid Supabase token" });
+    }
+    const sbUser = data.user;
+
+    // Our users table should have the same id
+    let { data: dbUser, error: dbErr } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", sbUser.id)
+      .maybeSingle();
+
+    // If the user is not present in application DB, auto-provision a minimal row
+    if (!dbUser) {
+      const minimal = {
+        id: sbUser.id,
+        name: sbUser.user_metadata?.name || (sbUser.email ? sbUser.email.split('@')[0] : 'User'),
+        email: sbUser.email,
+        user_type: sbUser.user_metadata?.role || 'buyer',
+      };
+      const { error: insErr } = await supabase.from('users').insert([minimal]);
+      if (!insErr) {
+        const { data: fetched } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', sbUser.id)
+          .maybeSingle();
+        dbUser = fetched || minimal;
+      } else {
+        // If insert failed (e.g., RLS/race), still proceed without 404 to avoid blocking login
+        dbUser = minimal;
+      }
+    }
+
+    // Issue app JWT
+    const token = jwt.sign({
+      id: dbUser.id,
+      email: dbUser.email,
+      userType: dbUser.user_type,
+    }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    return res.json({ success: true, data: { token, user: dbUser } });
+  } catch (err) {
+    console.error("Supabase exchange error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
