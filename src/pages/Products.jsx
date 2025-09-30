@@ -19,6 +19,7 @@ import {
 import ProductCard from '../components/ProductCard';
 
 const Products = () => {
+  const R2_BASE = import.meta.env.VITE_R2_PUBLIC_URL || '';
   const [filters, setFilters] = useState({
     category: '',
     priceRange: '',
@@ -28,126 +29,128 @@ const Products = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [error, setError] = useState(null);
 
-  // Enhanced mock products data
-  const products = [
-    {
-      id: 1,
-      name: 'Organic Turmeric Powder',
-      description: 'Premium quality turmeric powder with powerful anti-inflammatory properties. Sourced from organic farms in India.',
-      price: 24.99,
-      compareAtPrice: 29.99,
-      rating: 4.8,
-      totalReviews: 156,
-      image: null,
-      isOrganic: true,
-      category: 'Spices & Herbs',
-      subcategory: 'Roots & Rhizomes',
-      stock: 50,
-      isFeatured: true,
-      tags: ['anti-inflammatory', 'antioxidant', 'digestive'],
-      seller: 'Organic Farms Co.',
-      origin: 'India'
-    },
-    {
-      id: 2,
-      name: 'Ashwagandha Root Extract',
-      description: 'Natural adaptogen for stress relief, energy boost, and improved mental clarity. Third-party tested for purity.',
-      price: 34.99,
-      compareAtPrice: 39.99,
-      rating: 4.6,
-      totalReviews: 89,
-      image: null,
-      isOrganic: false,
-      category: 'Supplements',
-      subcategory: 'Adaptogens',
-      stock: 30,
-      isFeatured: true,
-      tags: ['stress-relief', 'energy', 'cognitive'],
-      seller: 'Wellness Labs',
-      origin: 'India'
-    },
-    {
-      id: 3,
-      name: 'Chamomile Tea Blend',
-      description: 'Soothing herbal tea blend for relaxation and better sleep. Hand-picked flowers from certified organic gardens.',
-      price: 18.99,
-      compareAtPrice: 22.99,
-      rating: 4.9,
-      totalReviews: 234,
-      image: null,
-      isOrganic: true,
-      category: 'Teas',
-      subcategory: 'Herbal Blends',
-      stock: 75,
-      isFeatured: false,
-      tags: ['relaxation', 'sleep', 'calming'],
-      seller: 'Tea Garden Co.',
-      origin: 'Germany'
-    },
-    {
-      id: 4,
-      name: 'Ginkgo Biloba Extract',
-      description: 'Premium cognitive support supplement for memory and mental focus. Standardized extract with 24% flavonoids.',
-      price: 29.99,
-      compareAtPrice: 34.99,
-      rating: 4.5,
-      totalReviews: 67,
-      image: null,
-      isOrganic: false,
-      category: 'Supplements',
-      subcategory: 'Cognitive Support',
-      stock: 45,
-      isFeatured: false,
-      tags: ['memory', 'focus', 'cognitive'],
-      seller: 'Brain Health Inc.',
-      origin: 'China'
-    },
-    {
-      id: 5,
-      name: 'Lavender Essential Oil',
-      description: 'Pure therapeutic grade lavender oil for aromatherapy and relaxation. Steam distilled from French lavender.',
-      price: 22.99,
-      compareAtPrice: 26.99,
-      rating: 4.7,
-      totalReviews: 189,
-      image: null,
-      isOrganic: true,
-      category: 'Essential Oils',
-      subcategory: 'Floral Oils',
-      stock: 60,
-      isFeatured: true,
-      tags: ['relaxation', 'aromatherapy', 'sleep'],
-      seller: 'Pure Essence',
-      origin: 'France'
-    },
-    {
-      id: 6,
-      name: 'Echinacea Immune Support',
-      description: 'Natural immune system booster made from purple coneflower. Supports overall wellness and vitality.',
-      price: 26.99,
-      compareAtPrice: 31.99,
-      rating: 4.4,
-      totalReviews: 112,
-      image: null,
-      isOrganic: true,
-      category: 'Supplements',
-      subcategory: 'Immune Support',
-      stock: 40,
-      isFeatured: false,
-      tags: ['immune', 'wellness', 'vitality'],
-      seller: 'Nature\'s Best',
-      origin: 'USA'
+  // Core fetcher
+  const loadProducts = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/products/supabase-list', { cache: 'no-store' });
+      const data = await response.json();
+
+      console.log('API Response:', data);
+      console.log('Products count:', data.data?.products?.length);
+
+      if (data.success && Array.isArray(data.data?.products)) {
+        // Transform Supabase data to match component expectations
+        const transformedProducts = data.data.products.map((raw) => {
+            // Normalize field names (snake_case -> camelCase)
+            const p = {
+              id: raw.id,
+              name: raw.name || raw.title || 'Unnamed Product',
+              description: raw.description || '',
+              price: Number(raw.price ?? raw.unit_price ?? 0),
+              compareAtPrice: raw.compare_at_price ?? raw.compareAtPrice ?? null,
+              rating: Number(raw.rating ?? 0),
+              totalReviews: Number(raw.total_reviews ?? raw.totalReviews ?? 0),
+              isOrganic: Boolean(raw.is_organic ?? raw.isOrganic ?? false),
+              category: raw.category || 'Other',
+              subcategory: raw.subcategory || '',
+              stock: Number(raw.stock ?? 0),
+              isFeatured: Boolean(raw.is_featured ?? raw.isFeatured ?? false),
+              tags: Array.isArray(raw.tags) ? raw.tags : [],
+              seller: raw.users?.name || raw.users?.business_name || 'Unknown Seller',
+              origin: raw.origin || 'Unknown',
+              botanicalName: raw.botanical_name || raw.botanicalName || '',
+              medicinalUses: Array.isArray(raw.medicinal_uses) ? raw.medicinal_uses : [],
+              contraindications: Array.isArray(raw.contraindications) ? raw.contraindications : [],
+              dosage: raw.dosage || '',
+              preparation: raw.preparation || ''
+            };
+
+            // Image extraction: supports array, single string, or JSON string
+            let image = null;
+            if (Array.isArray(raw.images) && raw.images.length > 0) {
+              image = raw.images[0];
+            } else if (typeof raw.images === 'string') {
+              // Try parse JSON array string; if not JSON, treat as direct URL
+              try {
+                const parsed = JSON.parse(raw.images);
+                if (Array.isArray(parsed) && parsed.length > 0) image = parsed[0];
+                else image = raw.images; // likely direct URL
+              } catch {
+                image = raw.images; // direct URL string
+              }
+            } else if (raw.image_url || raw.imageUrl) {
+              image = raw.image_url || raw.imageUrl;
+            }
+            // If image is an R2 key (no protocol), prefix with public base URL when available
+            if (image && !/^https?:\/\//i.test(image) && R2_BASE) {
+              image = `${R2_BASE.replace(/\/$/, '')}/${String(image).replace(/^\//, '')}`;
+            }
+            p.image = image || null;
+
+            return p;
+          });
+
+        // Fallback: if transform yielded 0 but API has items, use minimal mapping
+        if (transformedProducts.length === 0 && data.data.products.length > 0) {
+          const minimal = data.data.products.map((r) => ({
+            id: r.id,
+            name: r.name || 'Product',
+            description: r.description || '',
+            price: Number(r.price ?? 0),
+            image: Array.isArray(r.images) ? r.images[0] : (r.image_url || r.imageUrl || null),
+            category: r.category || 'Other',
+            rating: Number(r.rating ?? 0),
+            totalReviews: Number(r.total_reviews ?? 0)
+          }));
+          setProducts(minimal);
+        } else {
+          setProducts(transformedProducts);
+        }
+      } else {
+        setError('Failed to load products');
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  // Initial load + polling and focus refresh
+  useEffect(() => {
+    let timer;
+    loadProducts();
+    // Poll every 15 seconds
+    timer = setInterval(loadProducts, 15000);
+
+    // Refresh on tab focus / visibility change
+    const onFocus = () => loadProducts();
+    const onVisibility = () => { if (document.visibilityState === 'visible') loadProducts(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
 
   const categories = [
-    { value: 'spices-herbs', label: 'Spices & Herbs', icon: Leaf },
+    { value: 'herbs', label: 'Herbs', icon: Leaf },
     { value: 'supplements', label: 'Supplements', icon: Package },
-    { value: 'teas', label: 'Herbal Teas', icon: Package },
-    { value: 'essential-oils', label: 'Essential Oils', icon: Package },
-    { value: 'powders', label: 'Powders & Extracts', icon: Package },
-    { value: 'capsules', label: 'Capsules & Tablets', icon: Package }
+    { value: 'teas', label: 'Teas', icon: Package },
+    { value: 'oils', label: 'Oils', icon: Package },
+    { value: 'powders', label: 'Powders', icon: Package },
+    { value: 'capsules', label: 'Capsules', icon: Package },
+    { value: 'tinctures', label: 'Tinctures', icon: Package },
+    { value: 'other', label: 'Other', icon: Package }
   ];
 
   const priceRanges = [
@@ -169,8 +172,24 @@ const Products = () => {
   const filteredProducts = products.filter(product => {
     if (filters.organicOnly && !product.isOrganic) return false;
     if (filters.category && product.category.toLowerCase() !== filters.category.toLowerCase()) return false;
-    if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !product.description.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filters.priceRange) {
+      const [min, max] = filters.priceRange.includes('+') 
+        ? [parseFloat(filters.priceRange.replace('+', '')), Infinity]
+        : filters.priceRange.split('-').map(p => parseFloat(p));
+      const priceInCents = product.price * 100;
+      if (priceInCents < min || priceInCents > max) return false;
+    }
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const searchableText = [
+        product.name,
+        product.description,
+        product.botanicalName,
+        ...(product.tags || []),
+        ...(product.medicinalUses || [])
+      ].join(' ').toLowerCase();
+      if (!searchableText.includes(query)) return false;
+    }
     return true;
   });
 
@@ -203,16 +222,13 @@ const Products = () => {
 
     localStorage.setItem('herbalCart', JSON.stringify(existingCart));
     window.dispatchEvent(new Event('cartUpdated'));
-    // You could add a toast notification here
   };
 
   const handleQuickView = (product) => {
-    // Implement quick view modal
     console.log('Quick view:', product.name);
   };
 
   const handleWishlist = (product) => {
-    // Implement wishlist functionality
     console.log('Added to wishlist:', product.name);
   };
 
@@ -238,14 +254,12 @@ const Products = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-
           <div className="text-center mb-8" style={{paddingTop:'40px',}}>
             <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
               Herbal Products
             </h1>
             <p className="text-xl text-neutral-600 dark:text-neutral-300 max-w-3xl mx-auto">
               Discover our curated collection of premium herbal remedies and natural wellness products.
-
               Each item is carefully selected and verified for quality and authenticity.
             </p>
           </div>
@@ -275,16 +289,12 @@ const Products = () => {
             <div className="bg-[#1B5E20] text-white rounded-2xl shadow-lg p-6 sticky top-32">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold flex items-center gap-2 text-white">
-
                   <SlidersHorizontal className="h-5 w-5 text-white" />
-
                   Filters
                 </h2>
                 <button
                   onClick={clearFilters}
-
                   className="text-sm text-white/80 hover:text-white font-medium transition-colors"
-
                 >
                   Clear All
                 </button>
@@ -294,9 +304,7 @@ const Products = () => {
                 {/* Category Filter */}
                 <div>
                   <label className="form-label text-white">Categories</label>
-
                   <select
-
                     className="form-input"
                     value={filters.category}
                     onChange={(e) => setFilters({ ...filters, category: e.target.value })}
@@ -313,9 +321,7 @@ const Products = () => {
                 {/* Price Range Filter */}
                 <div>
                   <label className="form-label text-white">Price Range</label>
-
                   <select
-
                     className="form-input"
                     value={filters.priceRange}
                     onChange={(e) => setFilters({ ...filters, priceRange: e.target.value })}
@@ -338,13 +344,11 @@ const Products = () => {
                     onChange={(e) => setFilters({ ...filters, organicOnly: e.target.checked })}
                     className="form-checkbox h-5 w-5 rounded border-white/50 bg-white/10 text-white focus:ring-white/50"
                   />
-
                   <label
                     htmlFor="organicOnly"
                     className="text-sm font-medium flex items-center gap-2 text-white/90"
                   >
                     <Leaf className="h-4 w-4 text-white" />
-
                     Organic Only
                   </label>
                 </div>
@@ -352,9 +356,7 @@ const Products = () => {
                 {/* Sort Filter */}
                 <div>
                   <label className="form-label text-white">Sort By</label>
-
                   <select
-
                     className="form-input"
                     value={filters.sortBy}
                     onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
@@ -368,11 +370,10 @@ const Products = () => {
                 </div>
 
                 {/* Results Count */}
-
                 <div className="pt-4 border-t border-white/20">
                   <p className="text-sm text-white/80">
                     Showing <span className="font-semibold text-white">{filteredProducts.length}</span> of{' '}
-        <span className="font-semibold text-white">{products.length}</span> products
+                    <span className="font-semibold text-white">{products.length}</span> products
                   </p>
                 </div>
               </div>
@@ -388,22 +389,19 @@ const Products = () => {
                 <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-700 p-1 rounded-lg">
                   <button
                     onClick={() => setViewMode('grid')}
-
                     className={`p-2 rounded-md transition-all duration-200 ${viewMode === 'grid'
                       ? 'bg-white dark:bg-neutral-600 text-primary-600 dark:text-primary-400 shadow-sm'
                       : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
                       }`}
-      >
+                  >
                     <Grid className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-
                     className={`p-2 rounded-md transition-all duration-200 ${viewMode === 'list'
                       ? 'bg-white dark:bg-neutral-600 text-primary-600 dark:text-primary-400 shadow-sm'
                       : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200'
                       }`}
-
                   >
                     <List className="h-4 w-4" />
                   </button>
@@ -416,8 +414,27 @@ const Products = () => {
               </div>
             </div>
 
-            {/* Products Grid/List */}
-            {sortedProducts.length > 0 ? (
+            {/* Loading State */}
+            {isLoading ? (
+              <div className="text-center py-16">
+                <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-white">Loading products...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Package className="h-12 w-12 text-red-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">Error loading products</h3>
+                <p className="text-red-200 mb-6">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="btn btn-primary"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : sortedProducts.length > 0 ? (
               <div className={`grid gap-6 ${viewMode === 'grid'
                 ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
                 : 'grid-cols-1'

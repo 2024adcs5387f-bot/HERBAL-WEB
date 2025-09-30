@@ -89,14 +89,24 @@ export const resolveUserAnyToken = async (req, res, next) => {
     try {
       const decoded = jwt.verify(bearer, process.env.JWT_SECRET);
       if (decoded?.id) {
-        // Prefer DB lookup to get latest role
-        const user = await User.findByPk(decoded.id);
-        if (user && user.isActive) {
-          req.authUser = { id: user.id, userType: user.userType, source: 'app' };
-          console.info('[auth] resolveUserAnyToken: app JWT (sequelize) user=', { id: user.id, role: user.userType });
-          return next();
+        // Try Supabase lookup first for latest role
+        try {
+          const { data: user, error } = await supabase
+            .from('users')
+            .select('id, user_type, is_active')
+            .eq('id', decoded.id)
+            .single();
+          
+          if (!error && user && user.is_active !== false) {
+            req.authUser = { id: user.id, userType: user.user_type, source: 'app' };
+            console.info('[auth] resolveUserAnyToken: app JWT (supabase) user=', { id: user.id, role: user.user_type });
+            return next();
+          }
+        } catch (dbErr) {
+          console.warn('[auth] resolveUserAnyToken: supabase lookup failed for app JWT', dbErr.message);
         }
-        // If Sequelize user not found, continue using decoded payload
+        
+        // If Supabase user not found, use decoded payload
         if (decoded?.userType) {
           req.authUser = { id: decoded.id, userType: decoded.userType, source: 'app' };
           console.info('[auth] resolveUserAnyToken: app JWT (decoded payload) user=', { id: decoded.id, role: decoded.userType });

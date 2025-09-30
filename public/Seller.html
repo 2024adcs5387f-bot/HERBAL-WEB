@@ -860,8 +860,8 @@
             <div class="nav-user">
                 <img id="nav-profile-img" src="https://i.pravatar.cc/150?img=8" alt="User">
                 <div class="user-info">
-                    <h3 id="nav-user-name">Sarah Green</h3>
-                    <p id="nav-store-name">Herbal Haven Store</p>
+                    <h3 id="nav-user-name">Loading...</h3>
+                    <p id="nav-store-name">Loading...</p>
                 </div>
             </div>
         </div>
@@ -870,7 +870,7 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <img id="sidebar-profile-img" src="https://i.pravatar.cc/150?img=8" alt="Seller Avatar">
-            <h2 id="sidebar-store-name">Herbal Haven</h2>
+            <h2 id="sidebar-store-name">Loading...</h2>
         </div>
         <div class="sidebar-menu">
             <ul>
@@ -898,8 +898,8 @@
             <div class="user-info">
                 <img id="header-profile-img" src="https://i.pravatar.cc/150?img=8" alt="User">
                 <div>
-                    <h3 id="header-user-name">Sarah Green</h3>
-                    <p id="header-store-name">Herbal Haven Store</p>
+                    <h3 id="header-user-name">Loading...</h3>
+                    <p id="header-store-name">Loading...</p>
                 </div>
             </div>
         </div>
@@ -1237,8 +1237,8 @@
                                 <input type="file" id="profile-picture-input" accept="image/*" style="display: none;">
                             </div>
                             <div class="profile-info">
-                                <h2 id="profile-fullname">Sarah Green</h2>
-                                <p>Seller at <span id="profile-storename">Herbal Haven Store</span></p>
+                                <h2 id="profile-fullname">Loading...</h2>
+                                <p>Seller at <span id="profile-storename">Loading...</span></p>
                                 <p>Member since January 2022</p>
                             </div>
                         </div>
@@ -1247,34 +1247,34 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="first-name">First Name</label>
-                                    <input type="text" id="first-name" class="form-control" value="Sarah" required>
+                                    <input type="text" id="first-name" class="form-control" value="" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="last-name">Last Name</label>
-                                    <input type="text" id="last-name" class="form-control" value="Green" required>
+                                    <input type="text" id="last-name" class="form-control" value="" required>
                                 </div>
                             </div>
 
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="username">Username</label>
-                                    <input type="text" id="username" class="form-control" value="sarah_green" required>
+                                    <input type="text" id="username" class="form-control" value="" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="phone">Phone Number</label>
-                                    <input type="tel" id="phone" class="form-control" value="+256 712 345 678" required>
+                                    <input type="tel" id="phone" class="form-control" value="" required>
                                 </div>
                             </div>
 
                             <div class="form-group">
                                 <label for="email">Email Address</label>
-                                <input type="email" id="email" class="form-control" value="sarah@herbalhaven.com"
+                                <input type="email" id="email" class="form-control" value=""
                                     required>
                             </div>
 
                             <div class="form-group">
                                 <label for="store-name">Store Name</label>
-                                <input type="text" id="store-name" class="form-control" value="Herbal Haven Store"
+                                <input type="text" id="store-name" class="form-control" value=""
                                     required>
                             </div>
 
@@ -1510,13 +1510,13 @@
         // Application State
         const state = {
             user: {
-                firstName: "Sarah",
-                lastName: "Green",
-                username: "sarah_green",
-                email: "sarah@herbalhaven.com",
-                phone: "+256 712 345 678",
+                firstName: "User",
+                lastName: "",
+                username: "user",
+                email: "",
+                phone: "",
                 profileImage: "https://i.pravatar.cc/150?img=8",
-                storeName: "Herbal Haven Store"
+                storeName: "My Store"
             },
             products: [
                 {
@@ -1599,6 +1599,248 @@
 
         // ========== PRODUCT FUNCTIONS ==========
 
+        // Function to load products from API (seller's products only)
+        async function loadProductsFromAPI() {
+            try {
+                // Get current user ID from token
+                const currentUserId = getCurrentUserId();
+                if (!currentUserId) {
+                    console.warn('No user ID found, cannot load products');
+                    return;
+                }
+
+                const response = await fetch('http://localhost:5000/api/products/supabase-list');
+                const data = await response.json();
+                
+                if (data.success && Array.isArray(data.data?.products)) {
+                    // Filter products to show only current seller's products
+                    const sellerProducts = data.data.products.filter(product => 
+                        product.seller_id === currentUserId
+                    );
+                    
+                    // Transform API data to match local state format
+                    state.products = sellerProducts.map(product => ({
+                        id: product.id,
+                        name: product.name || 'Unnamed Product',
+                        description: product.description || '',
+                        price: Number(product.price || 0),
+                        image: Array.isArray(product.images) && product.images.length > 0 
+                            ? product.images[0] 
+                            : (product.image_url || 'https://via.placeholder.com/150'),
+                        category: product.category || 'Other',
+                        stock: Number(product.stock || 0)
+                    }));
+                    
+                    // Update total products count
+                    document.getElementById('total-products').textContent = state.products.length;
+                    
+                    // Re-render products
+                    renderProducts();
+                    renderAllProducts();
+                } else {
+                    console.warn('Failed to load products:', data.message);
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        // Function to get current user ID from JWT token
+        function getCurrentUserId() {
+            try {
+                const token = localStorage.getItem('token') || localStorage.getItem('sellerToken');
+                if (!token) return null;
+                
+                // Decode JWT to get user ID
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                return payload.id || payload.sub;
+            } catch (error) {
+                console.error('Error getting user ID:', error);
+                return null;
+            }
+        }
+
+        // Function to get auth headers
+        function authHeader() {
+            // Prefer app JWT ('token') to match main app; fallback to Supabase access token ('sellerToken')
+            const appJwt = localStorage.getItem('token');
+            const sbToken = localStorage.getItem('sellerToken');
+            const use = appJwt || sbToken;
+            return use ? { 'Authorization': 'Bearer ' + use } : {};
+        }
+
+        // Function to load user profile from API
+        async function loadUserProfile() {
+            try {
+                // Debug token availability
+                const appJwt = localStorage.getItem('token');
+                const sbToken = localStorage.getItem('sellerToken');
+                console.log('Debug tokens:', { appJwt: !!appJwt, sbToken: !!sbToken });
+                
+                // If no tokens available, try to get fresh session
+                if (!appJwt && !sbToken) {
+                    console.log('No tokens found, trying to get fresh session...');
+                    if (window.sb) {
+                        const { data: { session } } = await window.sb.auth.getSession();
+                        if (session?.access_token) {
+                            localStorage.setItem('sellerToken', session.access_token);
+                            await ensureAppJwt(session.access_token);
+                        } else {
+                            console.warn('No active session found');
+                            // Show user-friendly message
+                            alert('Please log in through the main application first, then return to the seller dashboard.');
+                            window.location.href = '/';
+                            return;
+                        }
+                    } else {
+                        console.warn('Supabase not initialized');
+                        alert('Authentication system not available. Please refresh the page.');
+                        return;
+                    }
+                }
+                
+                const headers = authHeader();
+                console.log('Auth headers:', headers);
+                
+                const response = await fetch('http://localhost:5000/api/users/profile', {
+                    headers: headers
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        console.warn('Authentication failed, redirecting to login');
+                        alert('Your session has expired. Please log in again.');
+                        window.location.href = '/';
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.data?.user) {
+                    const user = data.data.user;
+                    
+                    // Check for saved profile picture
+                    const savedProfilePicture = loadProfilePicture();
+                    
+                    // Update state with real user data
+                    state.user = {
+                        firstName: user.name ? user.name.split(' ')[0] : 'User',
+                        lastName: user.name ? user.name.split(' ').slice(1).join(' ') : '',
+                        username: user.email ? user.email.split('@')[0] : 'user',
+                        email: user.email || '',
+                        phone: user.phone || '',
+                        profileImage: savedProfilePicture || user.avatar_url || "https://i.pravatar.cc/150?img=8",
+                        storeName: user.business_name || 'My Store'
+                    };
+                    
+                    // Update form fields with real data (with null checks)
+                    const setFieldValue = (id, value) => {
+                        const element = document.getElementById(id);
+                        if (element) element.value = value || '';
+                    };
+                    
+                    setFieldValue('first-name', state.user.firstName);
+                    setFieldValue('last-name', state.user.lastName);
+                    setFieldValue('username', state.user.username);
+                    setFieldValue('phone', state.user.phone);
+                    setFieldValue('email', state.user.email);
+                    setFieldValue('store-name', state.user.storeName);
+                    
+                    // Update store information fields
+                    setFieldValue('store-description', user.bio);
+                    setFieldValue('store-phone', user.phone);
+                    setFieldValue('store-email', user.email);
+                    if (user.address && user.address.address) {
+                        setFieldValue('store-address', user.address.address);
+                    }
+                    
+                    // Update UI displays
+                    updateUserInfo();
+                } else {
+                    console.warn('Failed to load user profile:', data.message);
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+            }
+        }
+
+        // Function to update user profile
+        async function updateUserProfile(profileData) {
+            try {
+                const response = await fetch('http://localhost:5000/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authHeader()
+                    },
+                    body: JSON.stringify(profileData)
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    return { success: true, message: 'Profile updated successfully' };
+                } else {
+                    return { success: false, message: data.message || 'Failed to update profile' };
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                return { success: false, message: 'Network error occurred' };
+            }
+        }
+
+        // Function to change password
+        async function changePassword(currentPassword, newPassword) {
+            try {
+                // Use Supabase auth for password change
+                if (window.sb) {
+                    const { error } = await window.sb.auth.updateUser({
+                        password: newPassword
+                    });
+                    
+                    if (error) {
+                        return { success: false, message: error.message };
+                    }
+                    
+                    return { success: true, message: 'Password updated successfully' };
+                } else {
+                    return { success: false, message: 'Authentication service not available' };
+                }
+            } catch (error) {
+                console.error('Error changing password:', error);
+                return { success: false, message: 'Network error occurred' };
+            }
+        }
+
+        // Function to save profile picture to localStorage
+        function saveProfilePicture(imageDataUrl) {
+            try {
+                const userId = getCurrentUserId();
+                if (userId) {
+                    localStorage.setItem(`profilePicture_${userId}`, imageDataUrl);
+                }
+            } catch (error) {
+                console.error('Error saving profile picture:', error);
+            }
+        }
+
+        // Function to load profile picture from localStorage
+        function loadProfilePicture() {
+            try {
+                const userId = getCurrentUserId();
+                if (userId) {
+                    const savedPicture = localStorage.getItem(`profilePicture_${userId}`);
+                    if (savedPicture) {
+                        return savedPicture;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading profile picture:', error);
+            }
+            return null;
+        }
+
         // Function to render products on dashboard
         function renderProducts() {
             const productsGrid = document.getElementById('products-grid');
@@ -1608,12 +1850,22 @@
                 // Show only first 4 products on dashboard
                 const productsToShow = state.products.slice(0, 4);
 
+                if (productsToShow.length === 0) {
+                    productsGrid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">
+                            <i class="fas fa-box fa-3x" style="margin-bottom: 20px; opacity: 0.3;"></i>
+                            <p>No products yet. Add your first product to get started!</p>
+                        </div>
+                    `;
+                    return;
+                }
+
                 productsToShow.forEach(product => {
                     const productCard = document.createElement('div');
                     productCard.className = 'product-card';
                     productCard.innerHTML = `
                         <div class="product-img">
-                            <img src="${product.image}" alt="${product.name}">
+                            <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/150'">
                         </div>
                         <div class="product-info">
                             <h3>${product.name}</h3>
@@ -1632,17 +1884,34 @@
             if (allProductsGrid) {
                 allProductsGrid.innerHTML = '';
 
+                if (state.products.length === 0) {
+                    allProductsGrid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: #666;">
+                            <i class="fas fa-box fa-4x" style="margin-bottom: 30px; opacity: 0.3;"></i>
+                            <h3 style="margin-bottom: 15px;">No Products Found</h3>
+                            <p style="margin-bottom: 30px;">Start building your inventory by adding your first product.</p>
+                            <button class="btn btn-primary" onclick="document.getElementById('add-product-btn-2').click()">
+                                <i class="fas fa-plus"></i> Add Your First Product
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
                 state.products.forEach(product => {
                     const productCard = document.createElement('div');
                     productCard.className = 'product-card';
                     productCard.innerHTML = `
                         <div class="product-img">
-                            <img src="${product.image}" alt="${product.name}">
+                            <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/150'">
                         </div>
                         <div class="product-info">
                             <h3>${product.name}</h3>
                             <p>${product.description}</p>
                             <div class="product-price">UGX ${product.price.toLocaleString()}</div>
+                            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                                Stock: ${product.stock} | Category: ${product.category}
+                            </div>
                         </div>
                     `;
                     allProductsGrid.appendChild(productCard);
@@ -1907,11 +2176,10 @@
             } catch (e) {
                 console.warn('Supabase init skipped:', e?.message || e);
             }
-            // Render initial products
-            renderProducts();
-
-            // Update user info displays
-            updateUserInfo();
+            
+            // Load user profile and products from API
+            await loadUserProfile();
+            await loadProductsFromAPI();
 
             // Initialize image upload functionality
             setupImageUpload();
@@ -1976,7 +2244,8 @@
 
                         // Section-specific initializations
                         if (target === 'products') {
-                            renderAllProducts();
+                            // Reload products from API when navigating to products section
+                            loadProductsFromAPI();
                         } else if (target === 'analytics') {
                             setTimeout(initializeSalesChart, 100);
                         }
@@ -2024,8 +2293,13 @@
                     const reader = new FileReader();
 
                     reader.addEventListener('load', function () {
-                        profileImg.src = reader.result;
-                        state.user.profileImage = reader.result;
+                        const imageDataUrl = reader.result;
+                        profileImg.src = imageDataUrl;
+                        state.user.profileImage = imageDataUrl;
+                        
+                        // Save to localStorage for persistence
+                        saveProfilePicture(imageDataUrl);
+                        
                         updateUserInfo();
                     });
 
@@ -2036,38 +2310,120 @@
             // Profile form submission
             const profileForm = document.getElementById('profile-form');
 
-            profileForm.addEventListener('submit', function (e) {
+            profileForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
-                // Update user state
-                state.user.firstName = document.getElementById('first-name').value;
-                state.user.lastName = document.getElementById('last-name').value;
-                state.user.username = document.getElementById('username').value;
-                state.user.phone = document.getElementById('phone').value;
-                state.user.email = document.getElementById('email').value;
-                state.user.storeName = document.getElementById('store-name').value;
+                const firstName = document.getElementById('first-name').value.trim();
+                const lastName = document.getElementById('last-name').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const storeName = document.getElementById('store-name').value.trim();
 
-                // Update UI
-                updateUserInfo();
+                if (!firstName) {
+                    alert('First name is required');
+                    return;
+                }
 
-                alert('Profile updated successfully!');
+                // Prepare profile data for API
+                const profileData = {
+                    name: `${firstName} ${lastName}`.trim(),
+                    phone: phone || null,
+                    business_name: storeName || null
+                };
+
+                try {
+                    const result = await updateUserProfile(profileData);
+                    
+                    if (result.success) {
+                        // Update local state
+                        state.user.firstName = firstName;
+                        state.user.lastName = lastName;
+                        state.user.phone = phone;
+                        state.user.storeName = storeName;
+
+                        // Update UI
+                        updateUserInfo();
+
+                        alert('Profile updated successfully!');
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Profile update error:', error);
+                    alert('Failed to update profile. Please try again.');
+                }
             });
 
             // Security form submission
             const securityForm = document.getElementById('security-form');
 
-            securityForm.addEventListener('submit', function (e) {
+            securityForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
-                alert('Password updated successfully!');
-                securityForm.reset();
+
+                const currentPassword = document.getElementById('current-password').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+
+                // Validation
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    alert('All password fields are required');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    alert('New passwords do not match');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    alert('New password must be at least 6 characters long');
+                    return;
+                }
+
+                try {
+                    const result = await changePassword(currentPassword, newPassword);
+                    
+                    if (result.success) {
+                        alert('Password updated successfully!');
+                        securityForm.reset();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Password change error:', error);
+                    alert('Failed to change password. Please try again.');
+                }
             });
 
             // Store form submission
             const storeForm = document.getElementById('store-form');
 
-            storeForm.addEventListener('submit', function (e) {
+            storeForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
-                alert('Store information updated successfully!');
+
+                const storeDescription = document.getElementById('store-description').value.trim();
+                const storePhone = document.getElementById('store-phone').value.trim();
+                const storeEmail = document.getElementById('store-email').value.trim();
+                const storeAddress = document.getElementById('store-address').value.trim();
+
+                // Prepare store data for API
+                const storeData = {
+                    bio: storeDescription || null,
+                    phone: storePhone || null,
+                    address: storeAddress ? { address: storeAddress } : null
+                };
+
+                try {
+                    const result = await updateUserProfile(storeData);
+                    
+                    if (result.success) {
+                        alert('Store information updated successfully!');
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Store update error:', error);
+                    alert('Failed to update store information. Please try again.');
+                }
             });
 
             // Add product modal functionality
@@ -2154,13 +2510,6 @@
                 return null;
             }
 
-            function authHeader() {
-                // Prefer app JWT ('token') to match main app; fallback to Supabase access token ('sellerToken')
-                const appJwt = localStorage.getItem('token');
-                const sbToken = localStorage.getItem('sellerToken');
-                const use = appJwt || sbToken;
-                return use ? { 'Authorization': 'Bearer ' + use } : {};
-            }
 
             // Product form submission
             productForm.addEventListener('submit', async function (e) {
@@ -2259,21 +2608,8 @@
                         throw new Error(createJson.message || 'Failed to create product');
                     }
 
-                    const created = createJson.data.product;
-
-                    // Update local UI state (optional)
-                    state.products.unshift({
-                        id: created.id || Date.now(),
-                        name: created.name,
-                        description: created.description,
-                        price: created.price || Number(priceVal),
-                        image: imageUrl,
-                        category: created.category,
-                        stock: created.stock || Number(stockVal || 0)
-                    });
-                    renderProducts();
-                    renderAllProducts();
-                    document.getElementById('total-products').textContent = state.products.length;
+                    // Reload products from API to ensure consistency
+                    await loadProductsFromAPI();
 
                     // Reset form and close modal
                     productForm.reset();

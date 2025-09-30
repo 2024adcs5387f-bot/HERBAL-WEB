@@ -8,8 +8,49 @@ import { validateProduct } from '../utils/validation.js';
 
 const router = express.Router();
 
+// @route   GET /api/products/supabase-list
+// @desc    Get all products from Supabase
+// @access  Public
+router.get('/supabase-list', async (req, res) => {
+  try {
+    const { data: products, error } = await supabaseAdmin
+      .from('products')
+      .select(`
+        *,
+        users!seller_id (
+          id,
+          name,
+          business_name
+        )
+      `)
+      // Include active or records where is_active is NULL (older rows)
+      .or('is_active.is.null,is_active.eq.true')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        products: products || [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalItems: products?.length || 0,
+          itemsPerPage: products?.length || 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get Supabase products error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // @route   GET /api/products
-// @desc    Get all products with filtering
+// @desc    Get all products with filtering (Sequelize)
 // @access  Public
 router.get('/', optionalAuth, async (req, res) => {
   try {
