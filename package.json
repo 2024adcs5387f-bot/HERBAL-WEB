@@ -17,14 +17,11 @@
     "@fortawesome/react-fontawesome": "^3.0.2",
     "@popperjs/core": "^2.11.8",
     "@supabase/supabase-js": "^2.57.4",
-<<<<<<< HEAD
-=======
     "@tiptap/extension-image": "^2.7.4",
     "@tiptap/extension-link": "^2.7.4",
     "@tiptap/extension-placeholder": "^2.7.4",
     "@tiptap/react": "^2.7.4",
     "@tiptap/starter-kit": "^2.7.4",
->>>>>>> 74fb3ef21c2af94a908f92f39ead7686e3ff0a6e
     "bootstrap": "^5.3.8",
     "dompurify": "^3.1.7",
     "framer-motion": "^12.19.2",
