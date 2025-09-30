@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+﻿import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   Filter,
@@ -24,140 +24,33 @@ const Products = () => {
     category: '',
     priceRange: '',
     organicOnly: false,
-    sortBy: 'featured'
+    sortBy: 'featured',
   });
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [products, setProducts] = useState([]);
-  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(12);
+  const [totalItems, setTotalItems] = useState(0);
 
-  // Core fetcher
-  const loadProducts = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/products/supabase-list', { cache: 'no-store' });
-      const data = await response.json();
-
-      console.log('API Response:', data);
-      console.log('Products count:', data.data?.products?.length);
-
-      if (data.success && Array.isArray(data.data?.products)) {
-        // Transform Supabase data to match component expectations
-        const transformedProducts = data.data.products.map((raw) => {
-            // Normalize field names (snake_case -> camelCase)
-            const p = {
-              id: raw.id,
-              name: raw.name || raw.title || 'Unnamed Product',
-              description: raw.description || '',
-              price: Number(raw.price ?? raw.unit_price ?? 0),
-              compareAtPrice: raw.compare_at_price ?? raw.compareAtPrice ?? null,
-              rating: Number(raw.rating ?? 0),
-              totalReviews: Number(raw.total_reviews ?? raw.totalReviews ?? 0),
-              isOrganic: Boolean(raw.is_organic ?? raw.isOrganic ?? false),
-              category: raw.category || 'Other',
-              subcategory: raw.subcategory || '',
-              stock: Number(raw.stock ?? 0),
-              isFeatured: Boolean(raw.is_featured ?? raw.isFeatured ?? false),
-              tags: Array.isArray(raw.tags) ? raw.tags : [],
-              seller: raw.users?.name || raw.users?.business_name || 'Unknown Seller',
-              origin: raw.origin || 'Unknown',
-              botanicalName: raw.botanical_name || raw.botanicalName || '',
-              medicinalUses: Array.isArray(raw.medicinal_uses) ? raw.medicinal_uses : [],
-              contraindications: Array.isArray(raw.contraindications) ? raw.contraindications : [],
-              dosage: raw.dosage || '',
-              preparation: raw.preparation || ''
-            };
-
-            // Image extraction: supports array, single string, or JSON string
-            let image = null;
-            if (Array.isArray(raw.images) && raw.images.length > 0) {
-              image = raw.images[0];
-            } else if (typeof raw.images === 'string') {
-              // Try parse JSON array string; if not JSON, treat as direct URL
-              try {
-                const parsed = JSON.parse(raw.images);
-                if (Array.isArray(parsed) && parsed.length > 0) image = parsed[0];
-                else image = raw.images; // likely direct URL
-              } catch {
-                image = raw.images; // direct URL string
-              }
-            } else if (raw.image_url || raw.imageUrl) {
-              image = raw.image_url || raw.imageUrl;
-            }
-            // If image is an R2 key (no protocol), prefix with public base URL when available
-            if (image && !/^https?:\/\//i.test(image) && R2_BASE) {
-              image = `${R2_BASE.replace(/\/$/, '')}/${String(image).replace(/^\//, '')}`;
-            }
-            p.image = image || null;
-
-            return p;
-          });
-
-        // Fallback: if transform yielded 0 but API has items, use minimal mapping
-        if (transformedProducts.length === 0 && data.data.products.length > 0) {
-          const minimal = data.data.products.map((r) => ({
-            id: r.id,
-            name: r.name || 'Product',
-            description: r.description || '',
-            price: Number(r.price ?? 0),
-            image: Array.isArray(r.images) ? r.images[0] : (r.image_url || r.imageUrl || null),
-            category: r.category || 'Other',
-            rating: Number(r.rating ?? 0),
-            totalReviews: Number(r.total_reviews ?? 0)
-          }));
-          setProducts(minimal);
-        } else {
-          setProducts(transformedProducts);
-        }
-      } else {
-        setError('Failed to load products');
-      }
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Initial load + polling and focus refresh
-  useEffect(() => {
-    let timer;
-    loadProducts();
-    // Poll every 15 seconds
-    timer = setInterval(loadProducts, 15000);
-
-    // Refresh on tab focus / visibility change
-    const onFocus = () => loadProducts();
-    const onVisibility = () => { if (document.visibilityState === 'visible') loadProducts(); };
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisibility);
-
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVisibility);
-    };
-  }, []);
-
+  // Categories list (include 'herbs' to match backend sample)
   const categories = [
     { value: 'herbs', label: 'Herbs', icon: Leaf },
+    { value: 'spices-herbs', label: 'Spices & Herbs', icon: Leaf },
     { value: 'supplements', label: 'Supplements', icon: Package },
-    { value: 'teas', label: 'Teas', icon: Package },
-    { value: 'oils', label: 'Oils', icon: Package },
-    { value: 'powders', label: 'Powders', icon: Package },
-    { value: 'capsules', label: 'Capsules', icon: Package },
-    { value: 'tinctures', label: 'Tinctures', icon: Package },
-    { value: 'other', label: 'Other', icon: Package }
+    { value: 'teas', label: 'Herbal Teas', icon: Package },
+    { value: 'essential-oils', label: 'Essential Oils', icon: Package },
+    { value: 'powders', label: 'Powders & Extracts', icon: Package },
+    { value: 'capsules', label: 'Capsules & Tablets', icon: Package },
   ];
 
   const priceRanges = [
     { value: '0-95000', label: 'Under UGX 95,000' },
     { value: '95000-190000', label: 'UGX 95,000 - 190,000' },
     { value: '190000-380000', label: 'UGX 190,000 - 380,000' },
-    { value: '380000+', label: 'Over UGX 380,000' }
+    { value: '380000+', label: 'Over UGX 380,000' },
   ];
 
   const sortOptions = [
@@ -166,86 +59,101 @@ const Products = () => {
     { value: 'price-high', label: 'Price: High to Low' },
     { value: 'rating', label: 'Highest Rated' },
     { value: 'newest', label: 'Newest First' },
-    { value: 'popular', label: 'Most Popular' }
+    { value: 'popular', label: 'Most Popular' },
   ];
 
-  const filteredProducts = products.filter(product => {
-    if (filters.organicOnly && !product.isOrganic) return false;
-    if (filters.category && product.category.toLowerCase() !== filters.category.toLowerCase()) return false;
-    if (filters.priceRange) {
-      const [min, max] = filters.priceRange.includes('+') 
-        ? [parseFloat(filters.priceRange.replace('+', '')), Infinity]
-        : filters.priceRange.split('-').map(p => parseFloat(p));
-      const priceInCents = product.price * 100;
-      if (priceInCents < min || priceInCents > max) return false;
-    }
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const searchableText = [
-        product.name,
-        product.description,
-        product.botanicalName,
-        ...(product.tags || []),
-        ...(product.medicinalUses || [])
-      ].join(' ').toLowerCase();
-      if (!searchableText.includes(query)) return false;
-    }
-    return true;
-  });
+  // Fetch products from backend (Supabase via Express)
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (filters.sortBy) {
-      case 'price-low':
-        return a.price - b.price;
-      case 'price-high':
-        return b.price - a.price;
-      case 'rating':
-        return b.rating - a.rating;
-      case 'newest':
-        return b.id - a.id;
-      case 'popular':
-        return b.totalReviews - a.totalReviews;
-      default:
-        return b.isFeatured - a.isFeatured;
-    }
-  });
+        // Map sort option to backend columns
+        let sortBy = 'created_at';
+        let sortOrder = 'DESC';
+        switch (filters.sortBy) {
+          case 'price-low': sortBy = 'price'; sortOrder = 'ASC'; break;
+          case 'price-high': sortBy = 'price'; sortOrder = 'DESC'; break;
+          case 'rating': sortBy = 'rating'; sortOrder = 'DESC'; break;
+          case 'newest': sortBy = 'created_at'; sortOrder = 'DESC'; break;
+          case 'popular': sortBy = 'purchase_count'; sortOrder = 'DESC'; break;
+          default: sortBy = 'created_at'; sortOrder = 'DESC';
+        }
 
-  const handleAddToCart = (product) => {
-    const existingCart = JSON.parse(localStorage.getItem('herbalCart') || '[]');
-    const existingItem = existingCart.find(item => item.id === product.id);
+        // Price range
+        let minPrice;
+        let maxPrice;
+        if (filters.priceRange) {
+          if (filters.priceRange.endsWith('+')) {
+            minPrice = Number(filters.priceRange.replace('+', ''));
+          } else {
+            const [min, max] = filters.priceRange.split('-');
+            minPrice = Number(min);
+            maxPrice = Number(max);
+          }
+        }
 
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      existingCart.push({ ...product, quantity: 1 });
-    }
+        const params = new URLSearchParams({ page: String(page), limit: String(limit), sortBy, sortOrder });
+        if (filters.category) params.set('category', filters.category);
+        if (filters.organicOnly) params.set('isOrganic', 'true');
+        if (searchQuery) params.set('search', searchQuery);
+        if (minPrice !== undefined) params.set('minPrice', String(minPrice));
+        if (maxPrice !== undefined) params.set('maxPrice', String(maxPrice));
 
-    localStorage.setItem('herbalCart', JSON.stringify(existingCart));
-    window.dispatchEvent(new Event('cartUpdated'));
-  };
+        const res = await fetch(`/api/products?${params.toString()}`, { signal: controller.signal });
+        if (!res.ok) throw new Error(`Failed to fetch products (${res.status})`);
+        const json = await res.json();
+        const items = json?.data?.products || [];
+        const pagination = json?.data?.pagination || {};
 
-  const handleQuickView = (product) => {
-    console.log('Quick view:', product.name);
-  };
+        // Map backend fields (snake_case) to card props
+        const mapped = items.map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          compareAtPrice: p.compare_at_price ?? null,
+          rating: p.rating ?? 0,
+          totalReviews: p.total_reviews ?? 0,
+          image: Array.isArray(p.images) && p.images.length ? p.images[0] : (p.image || null),
+          isOrganic: p.is_organic ?? false,
+          category: p.category,
+          subcategory: p.subcategory,
+          stock: p.stock ?? 0,
+          isFeatured: p.is_featured ?? false,
+          tags: p.tags ?? [],
+          seller: p.seller_name || p.seller_id || null,
+          origin: p.origin || null,
+        }));
 
-  const handleWishlist = (product) => {
-    console.log('Added to wishlist:', product.name);
-  };
+        setProducts(mapped);
+        setTotalItems(pagination.totalItems || mapped.length);
+      } catch (e) {
+        console.error('Products fetch error:', e);
+        setProducts([]);
+        setTotalItems(0);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+    return () => controller.abort();
+  }, [filters.category, filters.priceRange, filters.organicOnly, filters.sortBy, searchQuery, page, limit]);
 
   const clearFilters = () => {
-    setFilters({
-      category: '',
-      priceRange: '',
-      organicOnly: false,
-      sortBy: 'featured'
-    });
+    setFilters({ category: '', priceRange: '', organicOnly: false, sortBy: 'featured' });
     setSearchQuery('');
   };
 
+  // Server-side sorting/filtering is applied; use list as-is
+  const sortedProducts = products;
+
   return (
-    <div 
+    <div
       className="min-h-screen pt-24 relative"
-      style={{ backgroundColor: '#88E788', }}
+      style={{ backgroundColor: '#88E788' }}
     >
       <div className="container relative">
         {/* Header Section */}
@@ -254,7 +162,7 @@ const Products = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <div className="text-center mb-8" style={{paddingTop:'40px',}}>
+          <div className="text-center mb-8" style={{ paddingTop: '40px' }}>
             <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-white mb-4">
               Herbal Products
             </h1>
@@ -311,7 +219,7 @@ const Products = () => {
                   >
                     <option value="">All Categories</option>
                     {categories.map((category) => (
-                      <option key={category.value} value={category.label}>
+                      <option key={category.value} value={category.value}>
                         {category.label}
                       </option>
                     ))}
@@ -344,10 +252,7 @@ const Products = () => {
                     onChange={(e) => setFilters({ ...filters, organicOnly: e.target.checked })}
                     className="form-checkbox h-5 w-5 rounded border-white/50 bg-white/10 text-white focus:ring-white/50"
                   />
-                  <label
-                    htmlFor="organicOnly"
-                    className="text-sm font-medium flex items-center gap-2 text-white/90"
-                  >
+                  <label htmlFor="organicOnly" className="text-sm font-medium flex items-center gap-2 text-white/90">
                     <Leaf className="h-4 w-4 text-white" />
                     Organic Only
                   </label>
@@ -372,8 +277,8 @@ const Products = () => {
                 {/* Results Count */}
                 <div className="pt-4 border-t border-white/20">
                   <p className="text-sm text-white/80">
-                    Showing <span className="font-semibold text-white">{filteredProducts.length}</span> of{' '}
-                    <span className="font-semibold text-white">{products.length}</span> products
+                    Showing <span className="font-semibold text-white">{sortedProducts.length}</span> of{' '}
+                    <span className="font-semibold text-white">{totalItems}</span> products
                   </p>
                 </div>
               </div>
@@ -414,39 +319,32 @@ const Products = () => {
               </div>
             </div>
 
-            {/* Loading State */}
+            {/* Products Grid/List */}
             {isLoading ? (
-              <div className="text-center py-16">
-                <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-white">Loading products...</p>
-              </div>
-            ) : error ? (
-              <div className="text-center py-16">
-                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Package className="h-12 w-12 text-red-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Error loading products</h3>
-                <p className="text-red-200 mb-6">{error}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="btn btn-primary"
-                >
-                  Try Again
-                </button>
+              <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-72 bg-white/20 rounded-2xl animate-pulse" />
+                ))}
               </div>
             ) : sortedProducts.length > 0 ? (
               <div className={`grid gap-6 ${viewMode === 'grid'
                 ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
                 : 'grid-cols-1'
                 }`}>
-                {sortedProducts.map((product, index) => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product} 
+                {sortedProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
                     viewMode={viewMode}
-                    onAddToCart={handleAddToCart}
-                    onWishlist={handleWishlist}
-                    onQuickView={handleQuickView}
+                    onAddToCart={(p) => {
+                      const existingCart = JSON.parse(localStorage.getItem('herbalCart') || '[]');
+                      const existingItem = existingCart.find((item) => item.id === p.id);
+                      if (existingItem) existingItem.quantity += 1; else existingCart.push({ ...p, quantity: 1 });
+                      localStorage.setItem('herbalCart', JSON.stringify(existingCart));
+                      window.dispatchEvent(new Event('cartUpdated'));
+                    }}
+                    onWishlist={(p) => console.log('Added to wishlist:', p.name)}
+                    onQuickView={(p) => console.log('Quick view:', p.name)}
                   />
                 ))}
               </div>
@@ -463,23 +361,20 @@ const Products = () => {
                 <p className="text-primary-200 mb-6 max-w-md mx-auto">
                   Try adjusting your filters or search terms to find what you're looking for.
                 </p>
-                <button
-                  onClick={clearFilters}
-                  className="btn btn-primary"
-                >
+                <button onClick={clearFilters} className="btn btn-primary">
                   Clear All Filters
                 </button>
               </motion.div>
             )}
 
             {/* Load More */}
-            {sortedProducts.length > 0 && (
+            {sortedProducts.length > 0 && totalItems > page * limit && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-center mt-12"
               >
-                <button className="btn btn-outline btn-lg">
+                <button className="btn btn-outline btn-lg" onClick={() => setPage((p) => p + 1)}>
                   Load More Products
                 </button>
               </motion.div>

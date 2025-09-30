@@ -1599,324 +1599,84 @@
 
         // ========== PRODUCT FUNCTIONS ==========
 
-        // Function to load products from API (seller's products only)
-        async function loadProductsFromAPI() {
+        async function getCurrentSellerId() {
             try {
-                // Get current user ID from token
-                const currentUserId = getCurrentUserId();
-                if (!currentUserId) {
-                    console.warn('No user ID found, cannot load products');
-                    return;
-                }
-
-                const response = await fetch('http://localhost:5000/api/products/supabase-list');
-                const data = await response.json();
-                
-                if (data.success && Array.isArray(data.data?.products)) {
-                    // Filter products to show only current seller's products
-                    const sellerProducts = data.data.products.filter(product => 
-                        product.seller_id === currentUserId
-                    );
-                    
-                    // Transform API data to match local state format
-                    state.products = sellerProducts.map(product => ({
-                        id: product.id,
-                        name: product.name || 'Unnamed Product',
-                        description: product.description || '',
-                        price: Number(product.price || 0),
-                        image: Array.isArray(product.images) && product.images.length > 0 
-                            ? product.images[0] 
-                            : (product.image_url || 'https://via.placeholder.com/150'),
-                        category: product.category || 'Other',
-                        stock: Number(product.stock || 0)
-                    }));
-                    
-                    // Update total products count
-                    document.getElementById('total-products').textContent = state.products.length;
-                    
-                    // Re-render products
-                    renderProducts();
-                    renderAllProducts();
-                } else {
-                    console.warn('Failed to load products:', data.message);
-                }
-            } catch (error) {
-                console.error('Error loading products:', error);
-            }
-        }
-
-        // Function to get current user ID from JWT token
-        function getCurrentUserId() {
-            try {
-                const token = localStorage.getItem('token') || localStorage.getItem('sellerToken');
-                if (!token) return null;
-                
-                // Decode JWT to get user ID
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                return payload.id || payload.sub;
-            } catch (error) {
-                console.error('Error getting user ID:', error);
+                // Use backend session (not Supabase client) to identify current user
+                const res = await fetch('/api/session/public', { credentials: 'include' });
+                const json = await res.json().catch(() => ({}));
+                const userId = json?.data?.user?.id || json?.user?.id || null;
+                return userId;
+            } catch {
                 return null;
             }
         }
 
-        // Function to get auth headers
-        function authHeader() {
-            // Prefer app JWT ('token') to match main app; fallback to Supabase access token ('sellerToken')
-            const appJwt = localStorage.getItem('token');
-            const sbToken = localStorage.getItem('sellerToken');
-            const use = appJwt || sbToken;
-            return use ? { 'Authorization': 'Bearer ' + use } : {};
-        }
-
-        // Function to load user profile from API
-        async function loadUserProfile() {
+        async function fetchSellerProducts() {
+            const sellerId = await getCurrentSellerId();
+            if (!sellerId) return [];
             try {
-                // Debug token availability
-                const appJwt = localStorage.getItem('token');
-                const sbToken = localStorage.getItem('sellerToken');
-                console.log('Debug tokens:', { appJwt: !!appJwt, sbToken: !!sbToken });
-                
-                // If no tokens available, try to get fresh session
-                if (!appJwt && !sbToken) {
-                    console.log('No tokens found, trying to get fresh session...');
-                    if (window.sb) {
-                        const { data: { session } } = await window.sb.auth.getSession();
-                        if (session?.access_token) {
-                            localStorage.setItem('sellerToken', session.access_token);
-                            await ensureAppJwt(session.access_token);
-                        } else {
-                            console.warn('No active session found');
-                            // Show user-friendly message
-                            alert('Please log in through the main application first, then return to the seller dashboard.');
-                            window.location.href = '/';
-                            return;
-                        }
-                    } else {
-                        console.warn('Supabase not initialized');
-                        alert('Authentication system not available. Please refresh the page.');
-                        return;
-                    }
-                }
-                
-                const headers = authHeader();
-                console.log('Auth headers:', headers);
-                
-                const response = await fetch('http://localhost:5000/api/users/profile', {
-                    headers: headers
-                });
-                
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        console.warn('Authentication failed, redirecting to login');
-                        alert('Your session has expired. Please log in again.');
-                        window.location.href = '/';
-                        return;
-                    }
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                
-                if (data.success && data.data?.user) {
-                    const user = data.data.user;
-                    
-                    // Check for saved profile picture
-                    const savedProfilePicture = loadProfilePicture();
-                    
-                    // Update state with real user data
-                    state.user = {
-                        firstName: user.name ? user.name.split(' ')[0] : 'User',
-                        lastName: user.name ? user.name.split(' ').slice(1).join(' ') : '',
-                        username: user.email ? user.email.split('@')[0] : 'user',
-                        email: user.email || '',
-                        phone: user.phone || '',
-                        profileImage: savedProfilePicture || user.avatar_url || "https://i.pravatar.cc/150?img=8",
-                        storeName: user.business_name || 'My Store'
-                    };
-                    
-                    // Update form fields with real data (with null checks)
-                    const setFieldValue = (id, value) => {
-                        const element = document.getElementById(id);
-                        if (element) element.value = value || '';
-                    };
-                    
-                    setFieldValue('first-name', state.user.firstName);
-                    setFieldValue('last-name', state.user.lastName);
-                    setFieldValue('username', state.user.username);
-                    setFieldValue('phone', state.user.phone);
-                    setFieldValue('email', state.user.email);
-                    setFieldValue('store-name', state.user.storeName);
-                    
-                    // Update store information fields
-                    setFieldValue('store-description', user.bio);
-                    setFieldValue('store-phone', user.phone);
-                    setFieldValue('store-email', user.email);
-                    if (user.address && user.address.address) {
-                        setFieldValue('store-address', user.address.address);
-                    }
-                    
-                    // Update UI displays
-                    updateUserInfo();
-                } else {
-                    console.warn('Failed to load user profile:', data.message);
-                }
-            } catch (error) {
-                console.error('Error loading user profile:', error);
+                const res = await fetch(`/api/products/seller/${sellerId}?limit=100`, { headers: { ...authHeader() } });
+                const json = await res.json().catch(() => ({}));
+                const list = json?.data?.products || [];
+                return list.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    description: p.description || '',
+                    price: Number(p.price || 0),
+                    image: Array.isArray(p.images) && p.images.length ? p.images[0] : (typeof p.images === 'string' ? p.images : ''),
+                }));
+            } catch {
+                return [];
             }
         }
 
-        // Function to update user profile
-        async function updateUserProfile(profileData) {
-            try {
-                const response = await fetch('http://localhost:5000/api/users/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeader()
-                    },
-                    body: JSON.stringify(profileData)
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    return { success: true, message: 'Profile updated successfully' };
-                } else {
-                    return { success: false, message: data.message || 'Failed to update profile' };
-                }
-            } catch (error) {
-                console.error('Error updating profile:', error);
-                return { success: false, message: 'Network error occurred' };
-            }
-        }
-
-        // Function to change password
-        async function changePassword(currentPassword, newPassword) {
-            try {
-                // Use Supabase auth for password change
-                if (window.sb) {
-                    const { error } = await window.sb.auth.updateUser({
-                        password: newPassword
-                    });
-                    
-                    if (error) {
-                        return { success: false, message: error.message };
-                    }
-                    
-                    return { success: true, message: 'Password updated successfully' };
-                } else {
-                    return { success: false, message: 'Authentication service not available' };
-                }
-            } catch (error) {
-                console.error('Error changing password:', error);
-                return { success: false, message: 'Network error occurred' };
-            }
-        }
-
-        // Function to save profile picture to localStorage
-        function saveProfilePicture(imageDataUrl) {
-            try {
-                const userId = getCurrentUserId();
-                if (userId) {
-                    localStorage.setItem(`profilePicture_${userId}`, imageDataUrl);
-                }
-            } catch (error) {
-                console.error('Error saving profile picture:', error);
-            }
-        }
-
-        // Function to load profile picture from localStorage
-        function loadProfilePicture() {
-            try {
-                const userId = getCurrentUserId();
-                if (userId) {
-                    const savedPicture = localStorage.getItem(`profilePicture_${userId}`);
-                    if (savedPicture) {
-                        return savedPicture;
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading profile picture:', error);
-            }
-            return null;
-        }
-
-        // Function to render products on dashboard
-        function renderProducts() {
+        // Render products on dashboard (first 4)
+        async function renderProducts() {
             const productsGrid = document.getElementById('products-grid');
-            if (productsGrid) {
-                productsGrid.innerHTML = '';
-
-                // Show only first 4 products on dashboard
-                const productsToShow = state.products.slice(0, 4);
-
-                if (productsToShow.length === 0) {
-                    productsGrid.innerHTML = `
-                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">
-                            <i class="fas fa-box fa-3x" style="margin-bottom: 20px; opacity: 0.3;"></i>
-                            <p>No products yet. Add your first product to get started!</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                productsToShow.forEach(product => {
-                    const productCard = document.createElement('div');
-                    productCard.className = 'product-card';
-                    productCard.innerHTML = `
-                        <div class="product-img">
-                            <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/150'">
-                        </div>
-                        <div class="product-info">
-                            <h3>${product.name}</h3>
-                            <p>${product.description}</p>
-                            <div class="product-price">UGX ${product.price.toLocaleString()}</div>
-                        </div>
-                    `;
-                    productsGrid.appendChild(productCard);
-                });
-            }
+            if (!productsGrid) return;
+            productsGrid.innerHTML = '';
+            const products = await fetchSellerProducts();
+            const productsToShow = products.slice(0, 4);
+            productsToShow.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card';
+                productCard.innerHTML = `
+                    <div class="product-img">
+                        <img src="${product.image || '/placeholder.png'}" alt="${product.name}">
+                    </div>
+                    <div class="product-info">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <div class="product-price">UGX ${Number(product.price||0).toLocaleString()}</div>
+                    </div>
+                `;
+                productsGrid.appendChild(productCard);
+            });
         }
 
-        // Function to render all products in products section
-        function renderAllProducts() {
+        // Render all products in products section
+        async function renderAllProducts() {
             const allProductsGrid = document.getElementById('all-products-grid');
-            if (allProductsGrid) {
-                allProductsGrid.innerHTML = '';
-
-                if (state.products.length === 0) {
-                    allProductsGrid.innerHTML = `
-                        <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: #666;">
-                            <i class="fas fa-box fa-4x" style="margin-bottom: 30px; opacity: 0.3;"></i>
-                            <h3 style="margin-bottom: 15px;">No Products Found</h3>
-                            <p style="margin-bottom: 30px;">Start building your inventory by adding your first product.</p>
-                            <button class="btn btn-primary" onclick="document.getElementById('add-product-btn-2').click()">
-                                <i class="fas fa-plus"></i> Add Your First Product
-                            </button>
-                        </div>
-                    `;
-                    return;
-                }
-
-                state.products.forEach(product => {
-                    const productCard = document.createElement('div');
-                    productCard.className = 'product-card';
-                    productCard.innerHTML = `
-                        <div class="product-img">
-                            <img src="${product.image}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/150'">
-                        </div>
-                        <div class="product-info">
-                            <h3>${product.name}</h3>
-                            <p>${product.description}</p>
-                            <div class="product-price">UGX ${product.price.toLocaleString()}</div>
-                            <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                                Stock: ${product.stock} | Category: ${product.category}
-                            </div>
-                        </div>
-                    `;
-                    allProductsGrid.appendChild(productCard);
-                });
-            }
+            if (!allProductsGrid) return;
+            allProductsGrid.innerHTML = '';
+            const products = await fetchSellerProducts();
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'product-card';
+                productCard.innerHTML = `
+                    <div class="product-img">
+                        <img src="${product.image || '/placeholder.png'}" alt="${product.name}">
+                    </div>
+                    <div class="product-info">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <div class="product-price">UGX ${Number(product.price||0).toLocaleString()}</div>
+                    </div>
+                `;
+                allProductsGrid.appendChild(productCard);
+            });
+            const totalEl = document.getElementById('total-products');
+            if (totalEl) totalEl.textContent = String(products.length);
         }
 
         // ========== IMAGE UPLOAD FUNCTIONS ==========
@@ -2167,19 +1927,27 @@
                         if (_session?.access_token) {
                             localStorage.setItem('sellerToken', _session.access_token);
                             await ensureAppJwt(_session.access_token);
+                            // Re-render products now that session is ready
+                            await renderProducts();
+                            await renderAllProducts();
                         } else {
                             try { localStorage.removeItem('sellerToken'); } catch {}
                             try { localStorage.removeItem('token'); } catch {}
+                            // Clear UI
+                            await renderProducts();
+                            await renderAllProducts();
                         }
                     });
                 }
             } catch (e) {
                 console.warn('Supabase init skipped:', e?.message || e);
             }
-            
-            // Load user profile and products from API
-            await loadUserProfile();
-            await loadProductsFromAPI();
+            // Render initial products (both sections)
+            await renderProducts();
+            await renderAllProducts();
+
+            // Update user info displays
+            updateUserInfo();
 
             // Initialize image upload functionality
             setupImageUpload();
@@ -2608,8 +2376,9 @@
                         throw new Error(createJson.message || 'Failed to create product');
                     }
 
-                    // Reload products from API to ensure consistency
-                    await loadProductsFromAPI();
+                    // Refresh UI from backend (no local state mutation)
+                    await renderProducts();
+                    await renderAllProducts();
 
                     // Reset form and close modal
                     productForm.reset();
