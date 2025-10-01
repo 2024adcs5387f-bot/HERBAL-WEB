@@ -2075,6 +2075,31 @@
                 }
             });
 
+            // Helpers for auth and profile updates
+            function authHeader() {
+                const appJwt = localStorage.getItem('token');
+                const sbToken = localStorage.getItem('sellerToken');
+                const use = appJwt || sbToken;
+                return use ? { 'Authorization': 'Bearer ' + use } : {};
+            }
+
+            async function updateUserProfile(update) {
+                const res = await fetch('/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authHeader(),
+                    },
+                    body: JSON.stringify(update || {}),
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    const err = new Error(json?.message || `HTTP ${res.status}: ${res.statusText}`);
+                    throw err;
+                }
+                return json;
+            }
+
             // Profile form submission
             const profileForm = document.getElementById('profile-form');
 
