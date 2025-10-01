@@ -44,8 +44,14 @@ router.get("/profile", resolveUserAnyToken, async (req, res) => {
 
     return res.json({ success: true, data: { user } });
   } catch (err) {
-    console.error("Get profile error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    console.error("Get profile error:", err?.message || err, {
+      userId: req?.authUser?.id,
+    });
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Server error",
+      code: err?.code || undefined,
+    });
   }
 });
 
@@ -77,8 +83,15 @@ router.put("/profile", resolveUserAnyToken, async (req, res) => {
       .from("users")
       .upsert(upsertPayload, { onConflict: "id" });
     if (upsertErr) {
-      console.error("Upsert profile failed:", upsertErr);
-      return res.status(500).json({ success: false, message: "Failed to update profile" });
+      console.error("Upsert profile failed:", upsertErr, {
+        userId: req?.authUser?.id,
+        payload: upsertPayload,
+      });
+      return res.status(500).json({
+        success: false,
+        message: upsertErr?.message || "Failed to update profile",
+        code: upsertErr?.code || undefined,
+      });
     }
 
     const { data: updatedUser, error } = await supabase
@@ -94,8 +107,15 @@ router.put("/profile", resolveUserAnyToken, async (req, res) => {
       data: { user: updatedUser },
     });
   } catch (err) {
-    console.error("Update profile error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    console.error("Update profile error:", err?.message || err, {
+      userId: req?.authUser?.id,
+      body: req?.body,
+    });
+    return res.status(500).json({
+      success: false,
+      message: err?.message || "Server error",
+      code: err?.code || undefined,
+    });
   }
 });
 
