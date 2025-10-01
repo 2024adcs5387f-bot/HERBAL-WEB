@@ -52,6 +52,9 @@ const App = () => {
             <Route path="/cart" element={<Cart />} />
             {/* Diagnostics */}
             <Route path="/health/supabase" element={<SupabaseHealth />} />
+            
+            {/* AI Tools */}
+            <Route path="/plant-scanner" element={<PlantScanner />} />
             <Route path="/symptom-checker" element={<SymptomChecker />} />
             <Route path="/ai-recommendations" element={<AIRecommendations />} />
             <Route path="/research" element={<Research />} />

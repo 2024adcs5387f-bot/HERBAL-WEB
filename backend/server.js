@@ -21,6 +21,7 @@ import uploadRoutes from './routes/uploads.js';
 import knowledgeRoutes from './routes/knowledge.js';
 import proxyRoutes from './routes/proxy.js';
 import sessionRoutes from './routes/session.js';
+import plantDataRoutes from './routes/plantData.js';
 
 // Import error handler
 import { errorHandler } from './middleware/errorHandler.js';
@@ -100,6 +101,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/proxy', proxyRoutes);
 app.use('/api/session', sessionRoutes);
+app.use('/api/plant-data', plantDataRoutes);
 
 // Ensure no /api/* path ever falls through to SPA index.html
 // Any unmatched /api/* should return JSON 404 instead of HTML
