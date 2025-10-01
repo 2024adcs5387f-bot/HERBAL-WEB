@@ -1,39 +1,58 @@
 import express from "express";
-import supabase from "../config/supabase.js";
-import { authenticate } from "../middleware/auth.js";
+import supabase, { supabaseAdmin } from "../config/supabase.js";
+import { resolveUserAnyToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
 // ----------------------
 // Get logged-in user profile
 // ----------------------
-router.get("/profile", authenticate, async (req, res) => {
+router.get("/profile", resolveUserAnyToken, async (req, res) => {
   try {
-    const { data: user, error } = await supabase
+    // Try fetch existing user row
+    let { data: user, error } = await supabase
       .from("users")
       .select("*")
-      .eq("id", req.user.id)
+      .eq("id", req.authUser.id)
       .single();
 
-    if (error) throw error;
+    // If no row (PGRST116) or user null, auto-provision minimal record
+    if ((error && error.code === "PGRST116") || !user) {
+      const minimal = {
+        id: req.authUser.id,
+        user_type: req.authUser.userType || process.env.DEFAULT_NEW_USER_ROLE || "buyer",
+        is_active: true,
+      };
+      const { error: insErr } = await supabaseAdmin
+        .from("users")
+        .insert([minimal]);
+      if (insErr) {
+        console.error("Auto-provision user failed:", insErr);
+        return res.status(500).json({ success: false, message: "Failed to provision user" });
+      }
+      // Re-fetch the newly created row
+      const re = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", req.authUser.id)
+        .single();
+      user = re.data;
+    } else if (error) {
+      // Other errors
+      throw error;
+    }
 
-    res.json({
-      success: true,
-      data: { user },
-    });
+    return res.json({ success: true, data: { user } });
   } catch (err) {
     console.error("Get profile error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
 // ----------------------
 // Update user profile
 // ----------------------
-router.put("/profile", authenticate, async (req, res) => {
+router.put("/profile", resolveUserAnyToken, async (req, res) => {
   try {
     const allowedFields = [
       "name",
@@ -51,71 +70,32 @@ router.put("/profile", authenticate, async (req, res) => {
       if (req.body[field] !== undefined) updateData[field] = req.body[field];
     });
 
+    // Ensure row exists, then update via admin upsert (bypasses RLS)
+    const base = { id: req.authUser.id };
+    const upsertPayload = { ...base, ...updateData };
+    const { error: upsertErr } = await supabaseAdmin
+      .from("users")
+      .upsert(upsertPayload, { onConflict: "id" });
+    if (upsertErr) {
+      console.error("Upsert profile failed:", upsertErr);
+      return res.status(500).json({ success: false, message: "Failed to update profile" });
+    }
+
     const { data: updatedUser, error } = await supabase
       .from("users")
-      .update(updateData)
-      .eq("id", req.user.id)
       .select("*")
+      .eq("id", req.authUser.id)
       .single();
-
     if (error) throw error;
 
-    res.json({
+    return res.json({
       success: true,
       message: "Profile updated successfully",
       data: { user: updatedUser },
     });
   } catch (err) {
     console.error("Update profile error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
-});
-
-// ----------------------
-// Get verified herbalists
-// ----------------------
-router.get("/herbalists", async (req, res) => {
-  try {
-    const { page = 1, limit = 10, specialization } = req.query;
-    const from = (page - 1) * limit;
-    const to = from + parseInt(limit) - 1;
-
-    let query = supabase
-      .from("users")
-      .select("*", { count: "exact" })
-      .eq("user_type", "herbalist")
-      .eq("herbalist_verification_status", "approved")
-      .eq("is_active", true);
-
-    if (specialization) {
-      query = query.contains("specializations", [specialization]);
-    }
-
-    const { data: herbalists, count, error } = await query.range(from, to);
-
-    if (error) throw error;
-
-    res.json({
-      success: true,
-      data: {
-        herbalists,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages: Math.ceil(count / limit),
-          totalItems: count,
-          itemsPerPage: parseInt(limit),
-        },
-      },
-    });
-  } catch (err) {
-    console.error("Get herbalists error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

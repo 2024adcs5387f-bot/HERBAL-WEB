@@ -860,8 +860,8 @@
             <div class="nav-user">
                 <img id="nav-profile-img" src="https://i.pravatar.cc/150?img=8" alt="User">
                 <div class="user-info">
-                    <h3 id="nav-user-name">Sarah Green</h3>
-                    <p id="nav-store-name">Herbal Haven Store</p>
+                    <h3 id="nav-user-name">Loading...</h3>
+                    <p id="nav-store-name">Loading...</p>
                 </div>
             </div>
         </div>
@@ -870,7 +870,7 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <img id="sidebar-profile-img" src="https://i.pravatar.cc/150?img=8" alt="Seller Avatar">
-            <h2 id="sidebar-store-name">Herbal Haven</h2>
+            <h2 id="sidebar-store-name">Loading...</h2>
         </div>
         <div class="sidebar-menu">
             <ul>
@@ -898,8 +898,8 @@
             <div class="user-info">
                 <img id="header-profile-img" src="https://i.pravatar.cc/150?img=8" alt="User">
                 <div>
-                    <h3 id="header-user-name">Sarah Green</h3>
-                    <p id="header-store-name">Herbal Haven Store</p>
+                    <h3 id="header-user-name">Loading...</h3>
+                    <p id="header-store-name">Loading...</p>
                 </div>
             </div>
         </div>
@@ -1237,8 +1237,8 @@
                                 <input type="file" id="profile-picture-input" accept="image/*" style="display: none;">
                             </div>
                             <div class="profile-info">
-                                <h2 id="profile-fullname">Sarah Green</h2>
-                                <p>Seller at <span id="profile-storename">Herbal Haven Store</span></p>
+                                <h2 id="profile-fullname">Loading...</h2>
+                                <p>Seller at <span id="profile-storename">Loading...</span></p>
                                 <p>Member since January 2022</p>
                             </div>
                         </div>
@@ -1247,34 +1247,34 @@
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="first-name">First Name</label>
-                                    <input type="text" id="first-name" class="form-control" value="Sarah" required>
+                                    <input type="text" id="first-name" class="form-control" value="" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="last-name">Last Name</label>
-                                    <input type="text" id="last-name" class="form-control" value="Green" required>
+                                    <input type="text" id="last-name" class="form-control" value="" required>
                                 </div>
                             </div>
 
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="username">Username</label>
-                                    <input type="text" id="username" class="form-control" value="sarah_green" required>
+                                    <input type="text" id="username" class="form-control" value="" required>
                                 </div>
                                 <div class="form-group">
                                     <label for="phone">Phone Number</label>
-                                    <input type="tel" id="phone" class="form-control" value="+256 712 345 678" required>
+                                    <input type="tel" id="phone" class="form-control" value="" required>
                                 </div>
                             </div>
 
                             <div class="form-group">
                                 <label for="email">Email Address</label>
-                                <input type="email" id="email" class="form-control" value="sarah@herbalhaven.com"
+                                <input type="email" id="email" class="form-control" value=""
                                     required>
                             </div>
 
                             <div class="form-group">
                                 <label for="store-name">Store Name</label>
-                                <input type="text" id="store-name" class="form-control" value="Herbal Haven Store"
+                                <input type="text" id="store-name" class="form-control" value=""
                                     required>
                             </div>
 
@@ -1510,13 +1510,13 @@
         // Application State
         const state = {
             user: {
-                firstName: "Sarah",
-                lastName: "Green",
-                username: "sarah_green",
-                email: "sarah@herbalhaven.com",
-                phone: "+256 712 345 678",
+                firstName: "User",
+                lastName: "",
+                username: "user",
+                email: "",
+                phone: "",
                 profileImage: "https://i.pravatar.cc/150?img=8",
-                storeName: "Herbal Haven Store"
+                storeName: "My Store"
             },
             products: [
                 {
@@ -2012,7 +2012,8 @@
 
                         // Section-specific initializations
                         if (target === 'products') {
-                            renderAllProducts();
+                            // Reload products from API when navigating to products section
+                            loadProductsFromAPI();
                         } else if (target === 'analytics') {
                             setTimeout(initializeSalesChart, 100);
                         }
@@ -2060,8 +2061,13 @@
                     const reader = new FileReader();
 
                     reader.addEventListener('load', function () {
-                        profileImg.src = reader.result;
-                        state.user.profileImage = reader.result;
+                        const imageDataUrl = reader.result;
+                        profileImg.src = imageDataUrl;
+                        state.user.profileImage = imageDataUrl;
+                        
+                        // Save to localStorage for persistence
+                        saveProfilePicture(imageDataUrl);
+                        
                         updateUserInfo();
                     });
 
@@ -2072,38 +2078,120 @@
             // Profile form submission
             const profileForm = document.getElementById('profile-form');
 
-            profileForm.addEventListener('submit', function (e) {
+            profileForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
-                // Update user state
-                state.user.firstName = document.getElementById('first-name').value;
-                state.user.lastName = document.getElementById('last-name').value;
-                state.user.username = document.getElementById('username').value;
-                state.user.phone = document.getElementById('phone').value;
-                state.user.email = document.getElementById('email').value;
-                state.user.storeName = document.getElementById('store-name').value;
+                const firstName = document.getElementById('first-name').value.trim();
+                const lastName = document.getElementById('last-name').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+                const storeName = document.getElementById('store-name').value.trim();
 
-                // Update UI
-                updateUserInfo();
+                if (!firstName) {
+                    alert('First name is required');
+                    return;
+                }
 
-                alert('Profile updated successfully!');
+                // Prepare profile data for API
+                const profileData = {
+                    name: `${firstName} ${lastName}`.trim(),
+                    phone: phone || null,
+                    business_name: storeName || null
+                };
+
+                try {
+                    const result = await updateUserProfile(profileData);
+                    
+                    if (result.success) {
+                        // Update local state
+                        state.user.firstName = firstName;
+                        state.user.lastName = lastName;
+                        state.user.phone = phone;
+                        state.user.storeName = storeName;
+
+                        // Update UI
+                        updateUserInfo();
+
+                        alert('Profile updated successfully!');
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Profile update error:', error);
+                    alert('Failed to update profile. Please try again.');
+                }
             });
 
             // Security form submission
             const securityForm = document.getElementById('security-form');
 
-            securityForm.addEventListener('submit', function (e) {
+            securityForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
-                alert('Password updated successfully!');
-                securityForm.reset();
+
+                const currentPassword = document.getElementById('current-password').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+
+                // Validation
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    alert('All password fields are required');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    alert('New passwords do not match');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    alert('New password must be at least 6 characters long');
+                    return;
+                }
+
+                try {
+                    const result = await changePassword(currentPassword, newPassword);
+                    
+                    if (result.success) {
+                        alert('Password updated successfully!');
+                        securityForm.reset();
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Password change error:', error);
+                    alert('Failed to change password. Please try again.');
+                }
             });
 
             // Store form submission
             const storeForm = document.getElementById('store-form');
 
-            storeForm.addEventListener('submit', function (e) {
+            storeForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
-                alert('Store information updated successfully!');
+
+                const storeDescription = document.getElementById('store-description').value.trim();
+                const storePhone = document.getElementById('store-phone').value.trim();
+                const storeEmail = document.getElementById('store-email').value.trim();
+                const storeAddress = document.getElementById('store-address').value.trim();
+
+                // Prepare store data for API
+                const storeData = {
+                    bio: storeDescription || null,
+                    phone: storePhone || null,
+                    address: storeAddress ? { address: storeAddress } : null
+                };
+
+                try {
+                    const result = await updateUserProfile(storeData);
+                    
+                    if (result.success) {
+                        alert('Store information updated successfully!');
+                    } else {
+                        alert('Error: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Store update error:', error);
+                    alert('Failed to update store information. Please try again.');
+                }
             });
 
             // Add product modal functionality
@@ -2190,13 +2278,6 @@
                 return null;
             }
 
-            function authHeader() {
-                // Prefer app JWT ('token') to match main app; fallback to Supabase access token ('sellerToken')
-                const appJwt = localStorage.getItem('token');
-                const sbToken = localStorage.getItem('sellerToken');
-                const use = appJwt || sbToken;
-                return use ? { 'Authorization': 'Bearer ' + use } : {};
-            }
 
             // Product form submission
             productForm.addEventListener('submit', async function (e) {

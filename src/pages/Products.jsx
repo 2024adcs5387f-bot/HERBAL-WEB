@@ -19,6 +19,7 @@ import {
 import ProductCard from '../components/ProductCard';
 
 const Products = () => {
+  const R2_BASE = import.meta.env.VITE_R2_PUBLIC_URL || '';
   const [filters, setFilters] = useState({
     category: '',
     priceRange: '',
