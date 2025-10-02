@@ -237,13 +237,8 @@ const Navbar = () => {
                 </NavLink>
               </li>
               <li className="nav-item">
-                <NavLink to="/symptom-checker" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-                  <i className="fas fa-stethoscope me-1"></i> Symptom Checker
-                </NavLink>
-              </li>
-              <li className="nav-item">
-                <NavLink to="/ai-recommendations" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-                  <i className="fas fa-robot me-1"></i> AI Recommendations
+                <NavLink to="/chatbot" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+                  <i className="fas fa-comments me-1"></i> Chatbot
                 </NavLink>
               </li>
               <li className="nav-item">

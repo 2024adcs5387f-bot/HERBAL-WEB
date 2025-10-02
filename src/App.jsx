@@ -14,8 +14,7 @@ import Register from './pages/Register';
 import DashboardRouter from './pages/user/DashboardRouter';
 import BuyerDashboard from './pages/user/BuyerDashboard';
 import PlantScanner from './pages/PlantScanner';
-import SymptomChecker from './pages/SymptomChecker';
-import AIRecommendations from './pages/AIRecommendations';
+import Chatbot from './pages/Chatbot';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Research from './pages/Research';
 import ResearchPost from './pages/ResearchPost';
@@ -55,8 +54,7 @@ const App = () => {
             
             {/* AI Tools */}
             <Route path="/plant-scanner" element={<PlantScanner />} />
-            <Route path="/symptom-checker" element={<SymptomChecker />} />
-            <Route path="/ai-recommendations" element={<AIRecommendations />} />
+            <Route path="/chatbot" element={<Chatbot />} />
             <Route path="/research" element={<Research />} />
             <Route path="/research/:id" element={<ResearchPost />} />
             <Route path="/research-hub" element={<ResearchHub />} />
