@@ -5,6 +5,7 @@ import PlantComparisonTable from './PlantComparisonTable';
 import PlantHistory, { saveToHistory } from './PlantHistory';
 import ShareResults from './ShareResults';
 import AudioAssistant from './AudioAssistant';
+import ErrorDisplay from './ErrorDisplay';
 
 const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -19,13 +20,21 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
   const [isLoadingComparison, setIsLoadingComparison] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [shareData, setShareData] = useState(null);
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  const compressImage = (file, maxWidth = 400, maxHeight = 200) => {
-    return new Promise((resolve) => {
+  /**
+   * Compress and resize image to optimal dimensions for plant identification
+   * - Compresses large images to reduce file size
+   * - Enlarges small images to meet minimum requirements
+   * - Maintains aspect ratio
+   * - Optimal size: 1024x1024 (max), minimum: 512x512
+   */
+  const compressImage = (file, targetWidth = 1024, targetHeight = 1024, minWidth = 512, minHeight = 512) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
@@ -34,29 +43,101 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
           let width = img.width;
           let height = img.height;
 
-          // Calculate new dimensions maintaining aspect ratio
-          // Only resize if image is larger than max dimensions
-          if (width > maxWidth || height > maxHeight) {
-            const ratio = Math.min(maxWidth / width, maxHeight / height);
-            width = width * ratio;
-            height = height * ratio;
+          console.log(`📸 Original image size: ${width}x${height}`);
+
+          // Calculate aspect ratio
+          const aspectRatio = width / height;
+
+          // Determine if we need to resize
+          let newWidth, newHeight;
+
+          if (width > targetWidth || height > targetHeight) {
+            // Image is too large - compress it
+            console.log('🔽 Image too large, compressing...');
+            if (aspectRatio > 1) {
+              // Landscape
+              newWidth = Math.min(width, targetWidth);
+              newHeight = newWidth / aspectRatio;
+            } else {
+              // Portrait or square
+              newHeight = Math.min(height, targetHeight);
+              newWidth = newHeight * aspectRatio;
+            }
+          } else if (width < minWidth || height < minHeight) {
+            // Image is too small - enlarge it
+            console.log('🔼 Image too small, enlarging...');
+            if (aspectRatio > 1) {
+              // Landscape
+              newWidth = Math.max(width, minWidth);
+              newHeight = newWidth / aspectRatio;
+            } else {
+              // Portrait or square
+              newHeight = Math.max(height, minHeight);
+              newWidth = newHeight * aspectRatio;
+            }
+          } else {
+            // Image is within acceptable range
+            console.log('✅ Image size is optimal');
+            newWidth = width;
+            newHeight = height;
           }
 
-          canvas.width = width;
-          canvas.height = height;
+          // Round to integers
+          newWidth = Math.round(newWidth);
+          newHeight = Math.round(newHeight);
+
+          console.log(`📐 Resized image to: ${newWidth}x${newHeight}`);
+
+          canvas.width = newWidth;
+          canvas.height = newHeight;
 
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Use high-quality image smoothing
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          
+          // Draw image on canvas
+          ctx.drawImage(img, 0, 0, newWidth, newHeight);
 
-          // Use lower quality for better compression
+          // Determine quality based on operation
+          let quality = 0.85; // Default high quality
+          
+          if (width > targetWidth || height > targetHeight) {
+            // Compressing large image - use slightly lower quality
+            quality = 0.80;
+          } else if (width < minWidth || height < minHeight) {
+            // Enlarging small image - use higher quality
+            quality = 0.90;
+          }
+
+          console.log(`💾 Compression quality: ${quality * 100}%`);
+
+          // Convert to blob
           canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error('Failed to create image blob'));
+              return;
+            }
+
+            const sizeKB = (blob.size / 1024).toFixed(2);
+            console.log(`✅ Final image size: ${sizeKB}KB`);
+
             resolve({
               blob,
-              preview: canvas.toDataURL('image/jpeg', 0.7)
+              preview: canvas.toDataURL('image/jpeg', quality),
+              dimensions: { width: newWidth, height: newHeight },
+              sizeKB: sizeKB
             });
-          }, 'image/jpeg', 0.7);
+          }, 'image/jpeg', quality);
+        };
+        img.onerror = () => {
+          reject(new Error('Failed to load image'));
         };
         img.src = e.target.result;
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
       };
       reader.readAsDataURL(file);
     });
@@ -118,24 +199,13 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
 
       // Check if response was successful
       if (!response.ok || !data.success) {
-        // Handle error response
+        // Handle error response - Use the detailed error message from backend
         const errorMessage = data.message || data.error || 'Failed to identify plant';
         
         console.log('Error message:', errorMessage); // Debug log
         
-        if (errorMessage.includes('NOT A PLANT') || 
-            errorMessage.includes('not a plant') || 
-            errorMessage.includes('No plant') ||
-            errorMessage.includes('does not contain plant material') ||
-            errorMessage.includes('No plant material detected')) {
-          setError('🚫 NOT A PLANT DETECTED\n\nThis image does not contain plant material. We can only identify:\n✅ Roots\n✅ Stems\n✅ Leaves\n✅ Flowers\n✅ Seeds\n✅ Bark\n\n❌ We cannot identify:\n• Animals (dogs, cats, birds, etc.)\n• People\n• Objects\n• Food (unless it\'s a plant)\n• Buildings or landscapes\n\nPlease upload a clear photo of a plant.');
-        } else if (errorMessage.includes('UNCLEAR IMAGE') || errorMessage.includes('confidence') || errorMessage.includes('clearer')) {
-          setError('🔍 UNCLEAR IMAGE\n\nThe image quality is too low to identify the plant. Please:\n• Use better lighting\n• Focus on the plant\n• Show clear plant parts (leaves, flowers, stems)\n• Avoid blurry or dark images\n• Take photo from closer distance');
-        } else if (errorMessage.includes('size')) {
-          setError('📏 IMAGE SIZE ISSUE\n\nImage must be between 10KB and 10MB.\n• Compress large images\n• Use higher quality for small images');
-        } else {
-          setError(errorMessage);
-        }
+        // Display the error message as-is from backend (it's already formatted)
+        setError(errorMessage);
         return; // Stop processing
       }
 
@@ -295,7 +365,7 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
     setIsCameraOpen(false);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
@@ -315,10 +385,23 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
     // Create file object
     const file = dataURLtoFile(imageDataUrl, 'camera-capture.jpg');
     
-    setSelectedImage({
-      file,
-      preview: imageDataUrl
-    });
+    // Apply compression and resizing to camera capture
+    try {
+      const compressed = await compressImage(file);
+      setSelectedImage({
+        file: new File([compressed.blob], 'camera-capture.jpg', { type: 'image/jpeg' }),
+        preview: compressed.preview
+      });
+      console.log(`📸 Camera image processed: ${compressed.dimensions.width}x${compressed.dimensions.height}, ${compressed.sizeKB}KB`);
+    } catch (err) {
+      console.error('Error compressing camera image:', err);
+      // Fallback to uncompressed image
+      setSelectedImage({
+        file,
+        preview: imageDataUrl
+      });
+    }
+    
     setResults(null);
     setError(null);
     
@@ -572,14 +655,12 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="bg-red-100 dark:bg-red-500/20 border-2 border-red-600 dark:border-red-500 rounded-xl p-6 shadow-xl backdrop-blur-sm"
-              style={{ backgroundColor: 'rgba(254, 202, 202, 0.95)' }}
+              className="hidden"
+              style={{ display: 'none' }}
             >
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-8 w-8 text-red-700 dark:text-red-400 flex-shrink-0 mt-1" />
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-red-900 dark:text-red-100 mb-2">Error</h3>
-                  <p className="text-base text-red-900 dark:text-red-100 whitespace-pre-line leading-relaxed font-medium">{error}</p>
+                  <ErrorDisplay error={error} onDismiss={() => setError(null)} />
                 </div>
               </div>
             </motion.div>
@@ -656,14 +737,18 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
                         </div>
                       )}
 
-                      {suggestion.medicinal_uses && (
+                      {/* Medicinal Uses Section */}
+                      {suggestion.medicinal_uses && suggestion.medicinal_uses.length > 0 && (
                         <div className="mb-4">
-                          <h5 className="text-lg font-medium text-neutral-900 dark:text-white mb-2">Medicinal Uses</h5>
+                          <h5 className="text-lg font-medium text-neutral-900 dark:text-white mb-2 flex items-center gap-2">
+                            <Leaf className="h-5 w-5 text-green-600" />
+                            Medicinal Uses
+                          </h5>
                           <div className="flex flex-wrap gap-2">
                             {suggestion.medicinal_uses.map((use, useIndex) => (
                               <span
                                 key={useIndex}
-                                className="px-3 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-full text-base"
+                                className="px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-full text-base font-medium"
                               >
                                 {use}
                               </span>
@@ -672,10 +757,55 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
                         </div>
                       )}
 
+                      {/* Active Compounds */}
+                      {suggestion.active_compounds && suggestion.active_compounds.length > 0 && (
+                        <div className="mb-4">
+                          <h5 className="text-lg font-medium text-neutral-900 dark:text-white mb-2">Active Compounds</h5>
+                          <div className="flex flex-wrap gap-2">
+                            {suggestion.active_compounds.map((compound, compoundIndex) => (
+                              <span
+                                key={compoundIndex}
+                                className="px-3 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200 rounded-full text-sm"
+                              >
+                                {compound}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Traditional Uses */}
+                      {suggestion.traditional_uses && suggestion.traditional_uses.length > 0 && (
+                        <div className="mb-4">
+                          <h5 className="text-lg font-medium text-neutral-900 dark:text-white mb-2">Traditional Uses</h5>
+                          <ul className="list-disc list-inside space-y-1 text-neutral-700 dark:text-neutral-300">
+                            {suggestion.traditional_uses.map((use, useIndex) => (
+                              <li key={useIndex} className="text-base">{use}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Modern Applications */}
+                      {suggestion.modern_applications && suggestion.modern_applications.length > 0 && (
+                        <div className="mb-4">
+                          <h5 className="text-lg font-medium text-neutral-900 dark:text-white mb-2">Modern Applications</h5>
+                          <ul className="list-disc list-inside space-y-1 text-neutral-700 dark:text-neutral-300">
+                            {suggestion.modern_applications.map((app, appIndex) => (
+                              <li key={appIndex} className="text-base">{app}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Safety Information */}
                       {suggestion.safety_info && (
-                        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-                          <h5 className="text-lg font-medium text-yellow-900 dark:text-yellow-200 mb-1">Safety Information</h5>
-                          <p className="text-yellow-800 dark:text-yellow-300 text-base">{suggestion.safety_info}</p>
+                        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                          <h5 className="text-lg font-medium text-yellow-900 dark:text-yellow-200 mb-2 flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5" />
+                            Safety Information
+                          </h5>
+                          <p className="text-yellow-800 dark:text-yellow-300 text-base leading-relaxed">{suggestion.safety_info}</p>
                         </div>
                       )}
                     </div>

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
 import plantIdentificationService from '../services/plantIdentificationService.js';
 import imageComparisonService from '../services/imageComparisonService.js';
+import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
@@ -61,11 +62,23 @@ router.post('/plant-identify', optionalAuth, async (req, res) => {
 
     // Enhance with medicinal information from database
     if (result.success && result.data.suggestions) {
-      result.data.suggestions = result.data.suggestions.map(suggestion => ({
-        ...suggestion,
-        medicinal_uses: suggestion.medicinal_uses || getMedicinalUses(suggestion.plant_name),
-        safety_info: suggestion.safety_info || getSafetyInfo(suggestion.plant_name)
-      }));
+      const enhancedSuggestions = await Promise.all(
+        result.data.suggestions.map(async (suggestion) => {
+          // Try to get medicinal info from database first
+          const medicinalInfo = await getMedicinalUsesFromDatabase(suggestion.plant_name);
+          
+          return {
+            ...suggestion,
+            medicinal_uses: suggestion.medicinal_uses || medicinalInfo.medicinal_uses || medicinalInfo,
+            active_compounds: suggestion.active_compounds || medicinalInfo.active_compounds || [],
+            traditional_uses: medicinalInfo.traditional_uses || [],
+            modern_applications: medicinalInfo.modern_applications || [],
+            safety_info: suggestion.safety_info || getSafetyInfo(suggestion.plant_name)
+          };
+        })
+      );
+      
+      result.data.suggestions = enhancedSuggestions;
     }
 
     res.json(result);
@@ -321,26 +334,85 @@ router.post('/recommend', authenticate, async (req, res) => {
 });
 
 // Helper functions (you can expand these with your own database)
+async function getMedicinalUsesFromDatabase(plantName) {
+  try {
+    // First, try to get from medicinal_plants table
+    const { data, error } = await supabase
+      .from('medicinal_plants')
+      .select('medicinal_uses, active_compounds, traditional_uses, modern_applications')
+      .or(`common_name.ilike.%${plantName}%,scientific_name.ilike.%${plantName}%`)
+      .eq('verified', true)
+      .limit(1)
+      .single();
+
+    if (data && !error) {
+      return {
+        medicinal_uses: data.medicinal_uses || [],
+        active_compounds: data.active_compounds || [],
+        traditional_uses: data.traditional_uses || [],
+        modern_applications: data.modern_applications || []
+      };
+    }
+  } catch (error) {
+    console.log('Database lookup failed, using fallback data');
+  }
+
+  // Fallback to expanded hardcoded database
+  return getMedicinalUses(plantName);
+}
+
 function getMedicinalUses(plantName) {
   const medicinalDatabase = {
-    'Turmeric': ['Anti-inflammatory', 'Antioxidant', 'Digestive aid'],
-    'Ginger': ['Nausea relief', 'Anti-inflammatory', 'Digestive aid'],
-    'Echinacea': ['Immune support', 'Cold prevention', 'Wound healing'],
-    'Aloe Vera': ['Skin healing', 'Burns treatment', 'Digestive aid']
+    'Turmeric': ['Anti-inflammatory', 'Antioxidant', 'Digestive aid', 'Joint pain relief', 'Wound healing'],
+    'Ginger': ['Nausea relief', 'Anti-inflammatory', 'Digestive aid', 'Motion sickness', 'Arthritis pain'],
+    'Echinacea': ['Immune support', 'Cold prevention', 'Wound healing', 'Upper respiratory infections'],
+    'Aloe Vera': ['Skin healing', 'Burns treatment', 'Digestive aid', 'Wound care', 'Moisturizing'],
+    'Chamomile': ['Sleep aid', 'Anxiety relief', 'Digestive support', 'Anti-inflammatory', 'Skin soothing'],
+    'Peppermint': ['Digestive relief', 'Headache treatment', 'Respiratory support', 'Nausea relief'],
+    'Lavender': ['Anxiety relief', 'Sleep aid', 'Pain relief', 'Wound healing', 'Headache treatment'],
+    'Garlic': ['Cardiovascular health', 'Immune support', 'Antimicrobial', 'Blood pressure regulation'],
+    'Ginseng': ['Energy boost', 'Cognitive function', 'Immune support', 'Stress reduction'],
+    'St. John\'s Wort': ['Mild depression', 'Anxiety relief', 'Wound healing', 'Nerve pain'],
+    'Valerian': ['Sleep aid', 'Anxiety relief', 'Muscle relaxation', 'Stress reduction'],
+    'Milk Thistle': ['Liver support', 'Detoxification', 'Antioxidant', 'Digestive health'],
+    'Ashwagandha': ['Stress relief', 'Anxiety reduction', 'Energy boost', 'Cognitive support'],
+    'Holy Basil': ['Stress relief', 'Immune support', 'Anti-inflammatory', 'Respiratory health'],
+    'Calendula': ['Wound healing', 'Skin inflammation', 'Antimicrobial', 'Digestive support'],
+    'Elderberry': ['Immune support', 'Cold and flu relief', 'Antiviral', 'Antioxidant'],
+    'Dandelion': ['Liver support', 'Digestive aid', 'Diuretic', 'Antioxidant'],
+    'Nettle': ['Allergy relief', 'Anti-inflammatory', 'Joint pain', 'Urinary health'],
+    'Rosemary': ['Memory enhancement', 'Circulation', 'Digestive aid', 'Antioxidant'],
+    'Thyme': ['Respiratory support', 'Antimicrobial', 'Cough relief', 'Digestive aid']
   };
   
-  return medicinalDatabase[plantName] || ['Consult an herbalist for specific uses'];
+  return medicinalDatabase[plantName] || ['Consult an herbalist for specific medicinal uses'];
 }
 
 function getSafetyInfo(plantName) {
   const safetyDatabase = {
-    'Turmeric': 'Generally safe, may interact with blood thinners',
-    'Ginger': 'Generally safe, avoid high doses during pregnancy',
-    'Echinacea': 'Generally safe, may cause allergic reactions in some people',
-    'Aloe Vera': 'Safe for topical use, internal use requires caution'
+    'Turmeric': 'Generally safe, may interact with blood thinners. Avoid high doses if you have gallbladder issues.',
+    'Ginger': 'Generally safe, avoid high doses during pregnancy. May interact with blood thinners.',
+    'Echinacea': 'Generally safe, may cause allergic reactions in people with ragweed allergies. Not recommended for autoimmune conditions.',
+    'Aloe Vera': 'Safe for topical use, internal use requires caution. May cause digestive upset.',
+    'Chamomile': 'Generally safe, may cause allergic reactions in people allergic to ragweed. Avoid if taking blood thinners.',
+    'Peppermint': 'Generally safe, may worsen acid reflux. Avoid if you have GERD.',
+    'Lavender': 'Generally safe, may cause drowsiness. Use caution when driving.',
+    'Garlic': 'Generally safe, may interact with blood thinners. Can cause digestive upset in large amounts.',
+    'Ginseng': 'May interact with diabetes medications and blood thinners. Avoid before surgery.',
+    'St. John\'s Wort': 'Interacts with many medications including antidepressants, birth control, and blood thinners. Consult doctor before use.',
+    'Valerian': 'May cause drowsiness. Avoid with alcohol or sedatives. Not recommended for long-term use.',
+    'Milk Thistle': 'Generally safe, may cause digestive upset. May interact with diabetes medications.',
+    'Ashwagandha': 'Generally safe, avoid during pregnancy. May interact with thyroid medications.',
+    'Holy Basil': 'Generally safe, may lower blood sugar. Monitor if diabetic.',
+    'Calendula': 'Generally safe for topical use. May cause allergic reactions in people allergic to marigolds.',
+    'Elderberry': 'Generally safe when cooked. Raw berries are toxic. May interact with immune suppressants.',
+    'Dandelion': 'Generally safe, may cause allergic reactions. Avoid if you have bile duct obstruction.',
+    'Nettle': 'Generally safe, may interact with blood pressure and diabetes medications.',
+    'Rosemary': 'Generally safe in culinary amounts. High doses may cause seizures in sensitive individuals.',
+    'Thyme': 'Generally safe in culinary amounts. May slow blood clotting.'
   };
   
-  return safetyDatabase[plantName] || 'Consult healthcare provider before use';
+  return safetyDatabase[plantName] || 'Consult healthcare provider before use. May interact with medications or existing conditions.';
 }
 
 function getHerbalRemedies(conditionName) {
