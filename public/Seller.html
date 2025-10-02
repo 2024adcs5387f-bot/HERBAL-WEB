@@ -1510,13 +1510,13 @@
         // Application State
         const state = {
             user: {
-                firstName: "User",
+                firstName: "Loading...",
                 lastName: "",
-                username: "user",
-                email: "",
+                username: "Loading...",
+                email: "Loading...",
                 phone: "",
-                profileImage: "https://i.pravatar.cc/150?img=8",
-                storeName: "My Store"
+                profileImage: "", // Start with empty profile image
+                storeName: "Loading..."
             },
             products: [
                 {
@@ -1647,7 +1647,7 @@
                     <div class="product-info">
                         <h3>${product.name}</h3>
                         <p>${product.description}</p>
-                        <div class="product-price">UGX ${Number(product.price||0).toLocaleString()}</div>
+                        <div class="product-price">UGX ${Number(product.price || 0).toLocaleString()}</div>
                     </div>
                 `;
                 productsGrid.appendChild(productCard);
@@ -1670,7 +1670,7 @@
                     <div class="product-info">
                         <h3>${product.name}</h3>
                         <p>${product.description}</p>
-                        <div class="product-price">UGX ${Number(product.price||0).toLocaleString()}</div>
+                        <div class="product-price">UGX ${Number(product.price || 0).toLocaleString()}</div>
                     </div>
                 `;
                 allProductsGrid.appendChild(productCard);
@@ -1908,7 +1908,7 @@
         // ========== INITIALIZE APPLICATION ==========
 
         // Initialize the application
-        document.addEventListener('DOMContentLoaded', async function () {
+        document.addEventListener('DOMContentLoaded', async function (){
             // Initialize Supabase and store access token for backend Authorization
             try {
                 const pubRes = await fetch('/api/session/public');
@@ -1942,6 +1942,8 @@
             } catch (e) {
                 console.warn('Supabase init skipped:', e?.message || e);
             }
+                // Load user profile data first
+            await updateUserInfoWithProfile();
             // Render initial products (both sections)
             await renderProducts();
             await renderAllProducts();
@@ -2110,6 +2112,8 @@
                 const lastName = document.getElementById('last-name').value.trim();
                 const phone = document.getElementById('phone').value.trim();
                 const storeName = document.getElementById('store-name').value.trim();
+                const profilePictureInput = document.getElementById('profile-picture-input');
+                const profilePictureFile = profilePictureInput.files[0];
 
                 if (!firstName) {
                     alert('First name is required');
@@ -2124,6 +2128,26 @@
                 };
 
                 try {
+                    // If a new profile picture was selected, upload it first
+                    if (profilePictureFile) {
+                        const fd = new FormData();
+                        fd.append('file', profilePictureFile);
+                        
+                        const uploadRes = await fetch('http://localhost:5000/api/uploads/profile/single', {
+                            method: 'POST',
+                            headers: { ...authHeader() },
+                            body: fd
+                        });
+                        
+                        const uploadJson = await uploadRes.json();
+                        if (!uploadRes.ok || !uploadJson.success) {
+                            throw new Error(uploadJson.message || 'Profile picture upload failed');
+                        }
+                        
+                        // Add the profile picture URL to the update data
+                        profileData.profile_picture = uploadJson.data.url;
+                    }
+
                     const result = await updateUserProfile(profileData);
                     
                     if (result.success) {
@@ -2132,6 +2156,11 @@
                         state.user.lastName = lastName;
                         state.user.phone = phone;
                         state.user.storeName = storeName;
+                        
+                        // Update profile picture if it was uploaded
+                        if (profileData.profile_picture) {
+                            state.user.profileImage = profileData.profile_picture;
+                        }
 
                         // Update UI
                         updateUserInfo();
