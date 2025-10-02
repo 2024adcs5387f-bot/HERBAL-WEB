@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herbal Wellness | Buyer Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2d5a27',
+                        secondary: '#6b8e23',
+                        accent: '#c1d8ac',
+                        light: '#f5f9f0',
+                        dark: '#1a3317',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item.active {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #c1d8ac;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .profile-pic-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-pic-overlay {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            width: 100%;
+            text-align: center;
+            padding: 5px;
+            border-radius: 0 0 50% 50%;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .profile-pic-container:hover .profile-pic-overlay {
+            opacity: 1;
+        }
+
+        #profile-pic-input {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 bg-gradient-to-b from-primary to-secondary text-white flex flex-col">
+            <!-- Logo -->
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-leaf text-2xl text-accent"></i>
+                    <h1 class="text-xl font-bold">Herbal Wellness</h1>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors active"
+                            data-section="dashboard">
+                            <i class="fas fa-home w-6 text-center"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors"
+                            data-section="orders">
+                            <i class="fas fa-shopping-bag w-6 text-center"></i>
+                            <span>My Orders</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors"
+                            data-section="wishlist">
+                            <i class="fas fa-heart w-6 text-center"></i>
+                            <span>Wishlist</span>
+                            <span
+                                class="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-auto">3</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors"
+                            data-section="cart">
+                            <i class="fas fa-shopping-cart w-6 text-center"></i>
+                            <span>Shopping Cart</span>
+                            <span
+                                class="bg-secondary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ml-auto">2</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors"
+                            data-section="profile">
+                            <i class="fas fa-user w-6 text-center"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors"
+                            data-section="addresses">
+                            <i class="fas fa-map-marker-alt w-6 text-center"></i>
+                            <span>Addresses</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center space-x-3 p-3 rounded-lg hover:bg-white/10 transition-colors"
+                            data-section="settings">
+                            <i class="fas fa-cog w-6 text-center"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- User Info & Logout -->
+            <div class="p-4 border-t border-white/10">
+                <div class="flex items-center space-x-3 mb-4">
+                    <img id="sidebar-profile-pic" src="https://i.pravatar.cc/150?img=12" alt="User"
+                        class="w-10 h-10 rounded-full">
+                    <div>
+                        <p class="font-medium">Sarah Johnson</p>
+                        <p class="text-xs text-accent">Premium Member</p>
+                    </div>
+                </div>
+                <a href="#" id="logout-btn"
+                    class="flex items-center space-x-3 text-white/70 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10">
+                    <i class="fas fa-sign-out-alt w-6 text-center"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-sm py-4 px-6">
+                <div class="flex justify-between items-center">
+                    <h2 id="page-title" class="text-2xl font-bold text-primary">Dashboard</h2>
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <input type="text" placeholder="Search products..."
+                                class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        <button class="relative p-2 text-gray-600 hover:text-primary">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span
+                                class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- Dashboard Section -->
+                <div id="dashboard" class="content-section active">
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="stat-card bg-white rounded-xl shadow-md p-6 flex items-center">
+                            <div class="p-3 rounded-full bg-green-100 text-primary mr-4">
+                                <i class="fas fa-shopping-cart text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800">5</h3>
+                                <p class="text-gray-600">Active Orders</p>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-white rounded-xl shadow-md p-6 flex items-center">
+                            <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
+                                <i class="fas fa-box-open text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800">24</h3>
+                                <p class="text-gray-600">Total Orders</p>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-white rounded-xl shadow-md p-6 flex items-center">
+                            <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
+                                <i class="fas fa-heart text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800">12</h3>
+                                <p class="text-gray-600">Wishlist Items</p>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-white rounded-xl shadow-md p-6 flex items-center">
+                            <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                                <i class="fas fa-star text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-800">4.8</h3>
+                                <p class="text-gray-600">Average Rating</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Recent Orders -->
+                        <div class="bg-white rounded-xl shadow-md p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-primary">Recent Orders</h3>
+                                <a href="#" class="text-secondary hover:text-primary font-medium view-all-orders">View
+                                    All</a>
+                            </div>
+                            <div class="space-y-4">
+                                <div
+                                    class="flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
+                                    <div>
+                                        <p class="font-medium">#HW-7842</p>
+                                        <p class="text-sm text-gray-600">Oct 12, 2023</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-medium">UGX 158,000</p>
+                                        <span
+                                            class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Delivered</span>
+                                    </div>
+                                </div>
+                                <div
+                                    class="flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
+                                    <div>
+                                        <p class="font-medium">#HW-7791</p>
+                                        <p class="text-sm text-gray-600">Oct 8, 2023</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-medium">UGX 108,000</p>
+                                        <span
+                                            class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Delivered</span>
+                                    </div>
+                                </div>
+                                <div
+                                    class="flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
+                                    <div>
+                                        <p class="font-medium">#HW-7654</p>
+                                        <p class="text-sm text-gray-600">Oct 5, 2023</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-medium">UGX 252,000</p>
+                                        <span
+                                            class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Shipped</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recommended Products -->
+                        <div class="bg-white rounded-xl shadow-md p-6">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-primary">Recommended For You</h3>
+                                <a href="#"
+                                    class="text-secondary hover:text-primary font-medium browse-all-products">Browse
+                                    All</a>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="product-card bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                                    <div class="h-32 bg-accent flex items-center justify-center">
+                                        <i class="fas fa-spa text-4xl text-primary"></i>
+                                    </div>
+                                    <div class="p-3">
+                                        <h4 class="font-medium text-gray-800">Lavender Oil</h4>
+                                        <p class="text-sm text-gray-600 mb-2">Calming and relaxing</p>
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-bold text-primary">UGX 48,000</span>
+                                            <button
+                                                class="add-to-cart-btn bg-secondary text-white p-2 rounded-full hover:bg-primary transition-colors">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="product-card bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
+                                    <div class="h-32 bg-accent flex items-center justify-center">
+                                        <i class="fas fa-leaf text-4xl text-primary"></i>
+                                    </div>
+                                    <div class="p-3">
+                                        <h4 class="font-medium text-gray-800">Echinacea</h4>
+                                        <p class="text-sm text-gray-600 mb-2">Immune support</p>
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-bold text-primary">UGX 68,500</span>
+                                            <button
+                                                class="add-to-cart-btn bg-secondary text-white p-2 rounded-full hover:bg-primary transition-colors">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Section -->
+                <div id="orders" class="content-section">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-xl font-bold text-primary mb-6">My Orders</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="py-3 text-left">Order ID</th>
+                                        <th class="py-3 text-left">Date</th>
+                                        <th class="py-3 text-left">Items</th>
+                                        <th class="py-3 text-left">Total</th>
+                                        <th class="py-3 text-left">Status</th>
+                                        <th class="py-3 text-left">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                        <td class="py-4">#HW-7842</td>
+                                        <td class="py-4">Oct 12, 2023</td>
+                                        <td class="py-4">Lavender Oil, Chamomile Tea</td>
+                                        <td class="py-4 font-medium">UGX 158,000</td>
+                                        <td class="py-4">
+                                            <span
+                                                class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Delivered</span>
+                                        </td>
+                                        <td class="py-4">
+                                            <button
+                                                class="text-secondary hover:text-primary font-medium view-order-details">View
+                                                Details</button>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                        <td class="py-4">#HW-7791</td>
+                                        <td class="py-4">Oct 8, 2023</td>
+                                        <td class="py-4">Echinacea Tincture</td>
+                                        <td class="py-4 font-medium">UGX 108,000</td>
+                                        <td class="py-4">
+                                            <span
+                                                class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Delivered</span>
+                                        </td>
+                                        <td class="py-4">
+                                            <button
+                                                class="text-secondary hover:text-primary font-medium view-order-details">View
+                                                Details</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wishlist Section -->
+                <div id="wishlist" class="content-section">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-xl font-bold text-primary mb-6">My Wishlist</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="product-card border border-gray-200 rounded-lg overflow-hidden">
+                                <div class="h-48 bg-accent flex items-center justify-center">
+                                    <i class="fas fa-spa text-5xl text-primary"></i>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-bold text-lg text-gray-800">Lavender Essential Oil</h4>
+                                    <p class="text-gray-600 mb-2">Calming and relaxing aroma</p>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xl font-bold text-primary">UGX 48,000</span>
+                                        <div class="flex space-x-2">
+                                            <button
+                                                class="add-to-cart-from-wishlist bg-secondary text-white p-2 rounded-full hover:bg-primary transition-colors">
+                                                <i class="fas fa-shopping-cart"></i>
+                                            </button>
+                                            <button
+                                                class="remove-from-wishlist bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="product-card border border-gray-200 rounded-lg overflow-hidden">
+                                <div class="h-48 bg-accent flex items-center justify-center">
+                                    <i class="fas fa-leaf text-5xl text-primary"></i>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-bold text-lg text-gray-800">Echinacea Tincture</h4>
+                                    <p class="text-gray-600 mb-2">Immune system support</p>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xl font-bold text-primary">UGX 68,500</span>
+                                        <div class="flex space-x-2">
+                                            <button
+                                                class="add-to-cart-from-wishlist bg-secondary text-white p-2 rounded-full hover:bg-primary transition-colors">
+                                                <i class="fas fa-shopping-cart"></i>
+                                            </button>
+                                            <button
+                                                class="remove-from-wishlist bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shopping Cart Section -->
+                <div id="cart" class="content-section">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-xl font-bold text-primary mb-6">Shopping Cart</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-16 h-16 bg-accent rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-spa text-xl text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold">Lavender Essential Oil</h4>
+                                        <p class="text-gray-600">Calming and relaxing</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center border border-gray-300 rounded-lg">
+                                        <button
+                                            class="decrease-quantity px-3 py-1 text-gray-600 hover:text-primary">-</button>
+                                        <span class="quantity px-3 py-1">1</span>
+                                        <button
+                                            class="increase-quantity px-3 py-1 text-gray-600 hover:text-primary">+</button>
+                                    </div>
+                                    <span class="font-bold text-primary text-lg">UGX 48,000</span>
+                                    <button class="remove-from-cart text-red-500 hover:text-red-700">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-16 h-16 bg-accent rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-leaf text-xl text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-bold">Echinacea Tincture</h4>
+                                        <p class="text-gray-600">Immune support</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center border border-gray-300 rounded-lg">
+                                        <button
+                                            class="decrease-quantity px-3 py-1 text-gray-600 hover:text-primary">-</button>
+                                        <span class="quantity px-3 py-1">1</span>
+                                        <button
+                                            class="increase-quantity px-3 py-1 text-gray-600 hover:text-primary">+</button>
+                                    </div>
+                                    <span class="font-bold text-primary text-lg">UGX 68,500</span>
+                                    <button class="remove-from-cart text-red-500 hover:text-red-700">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                            <div class="flex justify-between mb-2">
+                                <span>Subtotal</span>
+                                <span class="font-bold cart-subtotal">UGX 116,500</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span>Shipping</span>
+                                <span class="font-bold">UGX 18,500</span>
+                            </div>
+                            <div class="flex justify-between mb-4 pt-4 border-t border-gray-300">
+                                <span class="font-bold text-lg">Total</span>
+                                <span class="font-bold text-lg text-primary cart-total">UGX 135,000</span>
+                            </div>
+                            <button
+                                class="w-full bg-secondary text-white py-3 rounded-lg font-bold hover:bg-primary transition-colors checkout-btn">
+                                Proceed to Checkout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Section -->
+                <div id="profile" class="content-section">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-xl font-bold text-primary mb-6">My Profile</h3>
+                        <div class="max-w-2xl">
+                            <div class="flex items-center space-x-6 mb-8">
+                                <div class="profile-pic-container">
+                                    <img id="profile-pic" src="https://i.pravatar.cc/150?img=12" alt="User"
+                                        class="w-24 h-24 rounded-full">
+                                    <div class="profile-pic-overlay" id="change-profile-pic-btn">
+                                        Change Photo
+                                    </div>
+                                    <input type="file" id="profile-pic-input" accept="image/*">
+                                </div>
+                                <div>
+                                    <h4 class="text-xl font-bold">Sarah Johnson</h4>
+                                    <p class="text-gray-600">Premium Member</p>
+                                    <p class="text-gray-600">Joined October 2022</p>
+                                </div>
+                            </div>
+                            <form class="space-y-6 profile-form">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">First Name</label>
+                                        <input type="text" value="Sarah"
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Last Name</label>
+                                        <input type="text" value="Johnson"
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Email</label>
+                                    <input type="email" value="sarah.johnson@example.com"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Phone</label>
+                                    <input type="tel" value="+256 712 345 678"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Bio</label>
+                                    <textarea
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                                        rows="4">I'm passionate about natural remedies and holistic wellness. I love exploring different herbal products to support my health journey.</textarea>
+                                </div>
+                                <div class="flex space-x-4">
+                                    <button type="submit"
+                                        class="bg-secondary text-white px-6 py-2 rounded-lg font-bold hover:bg-primary transition-colors save-profile">Save
+                                        Changes</button>
+                                    <button type="button"
+                                        class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-bold hover:bg-gray-300 transition-colors cancel-profile">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Addresses Section -->
+                <div id="addresses" class="content-section">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-primary">My Addresses</h3>
+                            <button
+                                class="bg-secondary text-white px-4 py-2 rounded-lg font-bold hover:bg-primary transition-colors add-address-btn">
+                                Add New Address
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="border-2 border-secondary rounded-lg p-4 relative">
+                                <span
+                                    class="absolute top-4 right-4 bg-secondary text-white px-2 py-1 rounded text-sm">Default</span>
+                                <h4 class="font-bold text-lg mb-2">Home</h4>
+                                <p class="text-gray-700">Sarah Johnson</p>
+                                <p class="text-gray-700">123 Green Street</p>
+                                <p class="text-gray-700">Kampala, Central Region</p>
+                                <p class="text-gray-700">Uganda</p>
+                                <p class="text-gray-700 mt-2">Phone: +256 712 345 678</p>
+                                <div class="mt-4 flex space-x-2">
+                                    <button
+                                        class="text-secondary hover:text-primary font-medium edit-address">Edit</button>
+                                    <button
+                                        class="text-red-500 hover:text-red-700 font-medium remove-address">Remove</button>
+                                </div>
+                            </div>
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <h4 class="font-bold text-lg mb-2">Work</h4>
+                                <p class="text-gray-700">Sarah Johnson</p>
+                                <p class="text-gray-700">456 Wellness Avenue, Suite 200</p>
+                                <p class="text-gray-700">Kampala, Central Region</p>
+                                <p class="text-gray-700">Uganda</p>
+                                <p class="text-gray-700 mt-2">Phone: +256 788 901 234</p>
+                                <div class="mt-4 flex space-x-2">
+                                    <button
+                                        class="text-secondary hover:text-primary font-medium set-default-address">Set as
+                                        Default</button>
+                                    <button
+                                        class="text-secondary hover:text-primary font-medium edit-address">Edit</button>
+                                    <button
+                                        class="text-red-500 hover:text-red-700 font-medium remove-address">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div id="settings" class="content-section">
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-xl font-bold text-primary mb-6">Account Settings</h3>
+                        <div class="max-w-2xl space-y-8">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800 mb-4">Notifications</h4>
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                                        <span>Email Notifications</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" checked>
+                                            <div
+                                                class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary">
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div
+                                        class="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                                        <span>Order Updates</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" checked>
+                                            <div
+                                                class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary">
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-800 mb-4">Privacy</h4>
+                                <div class="space-y-4">
+                                    <div
+                                        class="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                                        <span>Show my profile to other users</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer">
+                                            <div
+                                                class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary">
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Add Address Modal -->
+    <div id="address-modal" class="modal">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-primary">Add New Address</h3>
+            </div>
+            <form class="p-6 space-y-6 address-form">
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">1. CUSTOMER ADDRESS</h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">First Name</label>
+                            <input type="text"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                                placeholder="First Name" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Last Name</label>
+                            <input type="text"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                                placeholder="Last Name" required>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Prefix</label>
+                            <select
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
+                                <option>+256</option>
+                                <option>+1</option>
+                                <option>+44</option>
+                                <option>+91</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-gray-700 mb-2">Phone Number</label>
+                            <input type="tel"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                                placeholder="Enter Phone Number" required>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Add. Prefix</label>
+                            <select
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
+                                <option>+256</option>
+                                <option>+1</option>
+                                <option>+44</option>
+                                <option>+91</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-gray-700 mb-2">Additional Phone</label>
+                            <input type="tel"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                                placeholder="Enter Additional Phone">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Address</label>
+                        <input type="text"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                            placeholder="Enter your Address" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Additional Information</label>
+                        <input type="text"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                            placeholder="Enter Additional Information">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Region</label>
+                            <select
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                                required>
+                                <option value="">Please select</option>
+                                <option>Central Region</option>
+                                <option>Eastern Region</option>
+                                <option>Northern Region</option>
+                                <option>Western Region</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">City</label>
+                            <select
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
+                                required>
+                                <option value="">Please select</option>
+                                <option>Kampala</option>
+                                <option>Entebbe</option>
+                                <option>Jinja</option>
+                                <option>Mbarara</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                    <button type="button"
+                        class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg font-bold hover:bg-gray-300 transition-colors cancel-address">Cancel</button>
+                    <button type="submit"
+                        class="bg-secondary text-white px-6 py-2 rounded-lg font-bold hover:bg-primary transition-colors save-address">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Navigation functionality
+            const navItems = document.querySelectorAll('.nav-item');
+            const contentSections = document.querySelectorAll('.content-section');
+            const pageTitle = document.getElementById('page-title');
+
+            // Page titles for each section
+            const pageTitles = {
+                'dashboard': 'Dashboard',
+                'orders': 'My Orders',
+                'wishlist': 'My Wishlist',
+                'cart': 'Shopping Cart',
+                'profile': 'My Profile',
+                'addresses': 'My Addresses',
+                'settings': 'Account Settings'
+            };
+
+            // Navigation click handler
+            navItems.forEach(item => {
+                item.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    // Remove active class from all nav items
+                    navItems.forEach(i => i.classList.remove('active'));
+
+                    // Add active class to clicked nav item
+                    this.classList.add('active');
+
+                    // Get the target section
+                    const targetSection = this.getAttribute('data-section');
+
+                    // Hide all content sections
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                    });
+
+                    // Show the target section
+                    document.getElementById(targetSection).classList.add('active');
+
+                    // Update page title
+                    pageTitle.textContent = pageTitles[targetSection] || 'Herbal Wellness';
+                });
+            });
+
+            // Logout functionality
+            document.getElementById('logout-btn').addEventListener('click', function (e) {
+                e.preventDefault();
+                if (confirm('Are you sure you want to log out?')) {
+                    alert('You have been logged out successfully.');
+                    // In a real application, you would redirect to login page
+                    // window.location.href = '/login';
+                }
+            });
+
+            // Profile picture functionality
+            const profilePicInput = document.getElementById('profile-pic-input');
+            const profilePic = document.getElementById('profile-pic');
+            const sidebarProfilePic = document.getElementById('sidebar-profile-pic');
+            const changeProfilePicBtn = document.getElementById('change-profile-pic-btn');
+
+            changeProfilePicBtn.addEventListener('click', function () {
+                profilePicInput.click();
+            });
+
+            profilePicInput.addEventListener('change', function (e) {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        // Update profile picture in profile section
+                        profilePic.src = e.target.result;
+
+                        // Update profile picture in sidebar
+                        sidebarProfilePic.src = e.target.result;
+
+                        // In a real app, you would upload the image to your server here
+                        alert('Profile picture updated successfully!');
+                    }
+
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+
+            // Add to cart functionality
+            const addToCartButtons = document.querySelectorAll('.add-to-cart-btn, .add-to-cart-from-wishlist');
+            addToCartButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const productCard = this.closest('.product-card');
+                    const productName = productCard.querySelector('h4').textContent;
+                    alert(`${productName} has been added to your cart!`);
+
+                    // Update cart count
+                    const cartCount = document.querySelector('a[data-section="cart"] .bg-secondary');
+                    if (cartCount) {
+                        let count = parseInt(cartCount.textContent);
+                        cartCount.textContent = count + 1;
+                    }
+                });
+            });
+
+            // Remove from wishlist functionality
+            const removeWishlistButtons = document.querySelectorAll('.remove-from-wishlist');
+            removeWishlistButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const productCard = this.closest('.product-card');
+                    const productName = productCard.querySelector('h4').textContent;
+                    if (confirm(`Are you sure you want to remove ${productName} from your wishlist?`)) {
+                        productCard.remove();
+                        alert(`${productName} has been removed from your wishlist.`);
+
+                        // Update wishlist count
+                        const wishlistCount = document.querySelector('a[data-section="wishlist"] .bg-red-500');
+                        if (wishlistCount) {
+                            let count = parseInt(wishlistCount.textContent);
+                            if (count > 0) {
+                                wishlistCount.textContent = count - 1;
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Shopping cart functionality
+            const increaseButtons = document.querySelectorAll('.increase-quantity');
+            const decreaseButtons = document.querySelectorAll('.decrease-quantity');
+            const removeCartButtons = document.querySelectorAll('.remove-from-cart');
+
+            // Format UGX currency
+            function formatUGX(amount) {
+                return 'UGX ' + amount.toLocaleString('en-US');
+            }
+
+            // Update cart totals
+            function updateCartTotals() {
+                let subtotal = 0;
+                document.querySelectorAll('.flex.items-center.justify-between.p-4').forEach(item => {
+                    const quantity = parseInt(item.querySelector('.quantity').textContent);
+                    const priceText = item.querySelector('.font-bold.text-primary').textContent;
+                    const price = parseFloat(priceText.replace('UGX ', '').replace(/,/g, ''));
+                    subtotal += quantity * price;
+                });
+
+                const shipping = 18500;
+                const total = subtotal + shipping;
+
+                document.querySelector('.cart-subtotal').textContent = formatUGX(subtotal);
+                document.querySelector('.cart-total').textContent = formatUGX(total);
+            }
+
+            // Increase quantity
+            increaseButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const quantitySpan = this.parentElement.querySelector('.quantity');
+                    let quantity = parseInt(quantitySpan.textContent);
+                    quantitySpan.textContent = quantity + 1;
+                    updateCartTotals();
+                });
+            });
+
+            // Decrease quantity
+            decreaseButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const quantitySpan = this.parentElement.querySelector('.quantity');
+                    let quantity = parseInt(quantitySpan.textContent);
+                    if (quantity > 1) {
+                        quantitySpan.textContent = quantity - 1;
+                        updateCartTotals();
+                    }
+                });
+            });
+
+            // Remove from cart
+            removeCartButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const cartItem = this.closest('.flex.items-center.justify-between.p-4');
+                    const productName = cartItem.querySelector('h4').textContent;
+                    if (confirm(`Are you sure you want to remove ${productName} from your cart?`)) {
+                        cartItem.remove();
+                        updateCartTotals();
+
+                        // Update cart count
+                        const cartCount = document.querySelector('a[data-section="cart"] .bg-secondary');
+                        if (cartCount) {
+                            let count = parseInt(cartCount.textContent);
+                            if (count > 0) {
+                                cartCount.textContent = count - 1;
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Checkout button
+            document.querySelector('.checkout-btn').addEventListener('click', function () {
+                alert('Proceeding to checkout...');
+                // In a real app, this would redirect to checkout page
+            });
+
+            // Profile form submission
+            document.querySelector('.profile-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                alert('Profile updated successfully!');
+            });
+
+            // Cancel profile changes
+            document.querySelector('.cancel-profile').addEventListener('click', function () {
+                if (confirm('Are you sure you want to cancel? All unsaved changes will be lost.')) {
+                    // Reset form to original values
+                    document.querySelector('.profile-form').reset();
+                }
+            });
+
+            // Address management
+            const addressModal = document.getElementById('address-modal');
+            const addAddressBtn = document.querySelector('.add-address-btn');
+            const cancelAddressBtn = document.querySelector('.cancel-address');
+            const saveAddressBtn = document.querySelector('.save-address');
+            const addressForm = document.querySelector('.address-form');
+
+            // Open address modal
+            addAddressBtn.addEventListener('click', function () {
+                addressModal.classList.add('active');
+            });
+
+            // Close address modal
+            cancelAddressBtn.addEventListener('click', function () {
+                addressModal.classList.remove('active');
+            });
+
+            // Save address
+            addressForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                alert('Address saved successfully!');
+                addressModal.classList.remove('active');
+
+                // In a real app, you would add the new address to the addresses list
+            });
+
+            // Edit address
+            document.querySelectorAll('.edit-address').forEach(button => {
+                button.addEventListener('click', function () {
+                    alert('Edit address functionality would open the address form with pre-filled data in a real app.');
+                });
+            });
+
+            // Remove address
+            document.querySelectorAll('.remove-address').forEach(button => {
+                button.addEventListener('click', function () {
+                    const addressCard = this.closest('.border');
+                    if (confirm('Are you sure you want to remove this address?')) {
+                        addressCard.remove();
+                        alert('Address removed successfully!');
+                    }
+                });
+            });
+
+            // Set default address
+            document.querySelectorAll('.set-default-address').forEach(button => {
+                button.addEventListener('click', function () {
+                    alert('Address set as default!');
+                    // In a real app, this would update the default address
+                });
+            });
+
+            // View all orders
+            document.querySelector('.view-all-orders').addEventListener('click', function (e) {
+                e.preventDefault();
+                // Navigate to orders section
+                document.querySelector('a[data-section="orders"]').click();
+            });
+
+            // Browse all products
+            document.querySelector('.browse-all-products').addEventListener('click', function (e) {
+                e.preventDefault();
+                alert('This would navigate to the products page in a real app.');
+            });
+
+            // View order details
+            document.querySelectorAll('.view-order-details').forEach(button => {
+                button.addEventListener('click', function () {
+                    alert('This would show order details in a real app.');
+                });
+            });
+
+            // Toggle switch functionality
+            const toggleSwitches = document.querySelectorAll('input[type="checkbox"]');
+            toggleSwitches.forEach(toggle => {
+                toggle.addEventListener('change', function () {
+                    const settingName = this.closest('.flex.justify-between').querySelector('span').textContent;
+                    const status = this.checked ? 'enabled' : 'disabled';
+                    console.log(`${settingName} is now ${status}`);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

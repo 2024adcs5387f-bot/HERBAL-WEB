@@ -1597,15 +1597,125 @@
             }
         };
 
+        // ========== SUPABASE INITIALIZATION (single-call) ==========
+        let supabaseInitialized = false;
+        let initializationPromise = null;
+
+        async function initializeSupabaseOnce() {
+            if (supabaseInitialized) return window.sb;
+            if (initializationPromise) return initializationPromise;
+
+            initializationPromise = (async () => {
+                const pubRes = await fetch('/api/session/public');
+                if (!pubRes.ok) throw new Error(`Failed to fetch Supabase credentials: ${pubRes.status}`);
+                const pubJson = await pubRes.json();
+                const url = pubJson?.data?.SUPABASE_URL;
+                const anon = pubJson?.data?.SUPABASE_ANON_KEY;
+                if (!url || !anon) throw new Error('Missing Supabase credentials');
+                if (!window.supabase) throw new Error('Supabase SDK not loaded');
+                window.sb = window.supabase.createClient(url, anon);
+                await window.sb.auth.getSession();
+                supabaseInitialized = true;
+                return window.sb;
+            })();
+
+            return initializationPromise;
+        }
+
+        // ========== USER PROFILE HELPERS ==========
+        async function fetchUserProfile() {
+            try {
+                const sb = await initializeSupabaseOnce();
+                const { data: { user }, error: authError } = await sb.auth.getUser();
+                if (authError || !user) return getFallbackUserData();
+
+                const { data: userProfile, error: profileError } = await sb
+                    .from('users')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profileError || !userProfile) {
+                    return {
+                        id: user.id,
+                        email: user.email || '',
+                        name: (user.email || '').split('@')[0] || 'Seller',
+                        username: (user.email || '').split('@')[0] || 'seller',
+                        phone: user.phone || '',
+                        business_name: 'My Store',
+                        profile_picture: null
+                    };
+                }
+                return userProfile;
+            } catch (e) {
+                return getFallbackUserData();
+            }
+        }
+
+        function getFallbackUserData() {
+            return {
+                name: 'Seller',
+                username: 'seller',
+                email: '',
+                phone: '',
+                business_name: 'My Store',
+                profile_picture: null
+            };
+            }
+
+        async function updateUserInfoWithProfile() {
+            const userProfile = await fetchUserProfile();
+            if (userProfile) {
+                const fullName = userProfile.name || (userProfile.email ? userProfile.email.split('@')[0] : 'Seller');
+                const nameParts = fullName.split(' ');
+                const firstName = nameParts[0] || 'Seller';
+                const lastName = nameParts.slice(1).join(' ') || '';
+
+                state.user.firstName = firstName;
+                state.user.lastName = lastName;
+                state.user.username = userProfile.username || firstName.toLowerCase();
+                state.user.email = userProfile.email || '';
+                state.user.phone = userProfile.phone || '';
+                state.user.storeName = userProfile.business_name || 'My Store';
+                state.user.profileImage = userProfile.profile_picture || '';
+            }
+            if (typeof updateUserInfo === 'function') {
+                updateUserInfo();
+            } else {
+                try {
+                    const fullNameTxt = `${state.user.firstName} ${state.user.lastName}`.trim();
+                    const headerName = document.getElementById('header-user-name');
+                    const headerStore = document.getElementById('header-store-name');
+                    const headerImg = document.getElementById('header-profile-img');
+                    if (headerName) headerName.textContent = fullNameTxt || 'Seller';
+                    if (headerStore) headerStore.textContent = state.user.storeName || 'My Store';
+                    if (headerImg && state.user.profileImage) headerImg.src = state.user.profileImage;
+
+                    const navName = document.getElementById('nav-user-name');
+                    const navStore = document.getElementById('nav-store-name');
+                    const navImg = document.getElementById('nav-profile-img');
+                    if (navName) navName.textContent = fullNameTxt || 'Seller';
+                    if (navStore) navStore.textContent = state.user.storeName || 'My Store';
+                    if (navImg && state.user.profileImage) navImg.src = state.user.profileImage;
+
+                    const sideImg = document.getElementById('sidebar-profile-img');
+                    const sideStore = document.getElementById('sidebar-store-name');
+                    if (sideImg && state.user.profileImage) sideImg.src = state.user.profileImage;
+                    if (sideStore) {
+                        const parts = (state.user.storeName || 'My Store').split(' ');
+                        sideStore.textContent = parts[0] + (parts[1] ? ' ' + parts[1] : '');
+                    }
+                } catch {}
+            }
+        }
+
         // ========== PRODUCT FUNCTIONS ==========
 
         async function getCurrentSellerId() {
             try {
-                // Use backend session (not Supabase client) to identify current user
-                const res = await fetch('/api/session/public', { credentials: 'include' });
-                const json = await res.json().catch(() => ({}));
-                const userId = json?.data?.user?.id || json?.user?.id || null;
-                return userId;
+                const sb = await initializeSupabaseOnce();
+                const { data: { user } } = await sb.auth.getUser();
+                return user?.id || null;
             } catch {
                 return null;
             }
@@ -1615,10 +1725,14 @@
             const sellerId = await getCurrentSellerId();
             if (!sellerId) return [];
             try {
-                const res = await fetch(`/api/products/seller/${sellerId}?limit=100`, { headers: { ...authHeader() } });
-                const json = await res.json().catch(() => ({}));
-                const list = json?.data?.products || [];
-                return list.map(p => ({
+                const sb = await initializeSupabaseOnce();
+                const { data: products, error } = await sb
+                    .from('products')
+                    .select('*')
+                    .eq('seller_id', sellerId)
+                    .limit(100);
+                if (error) return [];
+                return (products || []).map(p => ({
                     id: p.id,
                     name: p.name,
                     description: p.description || '',
@@ -1909,47 +2023,40 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function (){
-            // Initialize Supabase and store access token for backend Authorization
             try {
-                const pubRes = await fetch('/api/session/public');
-                const pubJson = await pubRes.json();
-                const url = pubJson?.data?.SUPABASE_URL;
-                const anon = pubJson?.data?.SUPABASE_ANON_KEY;
-                if (url && anon && window.supabase) {
-                    window.sb = window.supabase.createClient(url, anon);
-                    const { data: { session } } = await window.sb.auth.getSession();
-                    if (session?.access_token) {
-                        localStorage.setItem('sellerToken', session.access_token);
-                        await ensureAppJwt(session.access_token);
-                    }
-                    // keep app JWT in sync with Supabase session
-                    window.sb.auth.onAuthStateChange(async (_event, _session) => {
-                        if (_session?.access_token) {
-                            localStorage.setItem('sellerToken', _session.access_token);
-                            await ensureAppJwt(_session.access_token);
-                            // Re-render products now that session is ready
-                            await renderProducts();
-                            await renderAllProducts();
-                        } else {
-                            try { localStorage.removeItem('sellerToken'); } catch {}
-                            try { localStorage.removeItem('token'); } catch {}
-                            // Clear UI
-                            await renderProducts();
-                            await renderAllProducts();
-                        }
-                    });
+                // Initialize Supabase once
+                await initializeSupabaseOnce();
+                // Seed backend token if session exists
+                const { data: { session } } = await window.sb.auth.getSession();
+                if (session?.access_token) {
+                    localStorage.setItem('sellerToken', session.access_token);
+                    await ensureAppJwt(session.access_token);
                 }
+                // Load user profile UI
+                await updateUserInfoWithProfile?.();
+                // Auth state listener (single bind)
+                window.sb.auth.onAuthStateChange(async (event, _session) => {
+                    if (_session?.access_token) {
+                        localStorage.setItem('sellerToken', _session.access_token);
+                        await ensureAppJwt(_session.access_token);
+                        await updateUserInfoWithProfile?.();
+                    } else {
+                        try { localStorage.removeItem('sellerToken'); } catch {}
+                        try { localStorage.removeItem('token'); } catch {}
+                        state.user.firstName = 'Seller';
+                        state.user.profileImage = '';
+                        updateUserInfo();
+                    }
+                    await renderProducts();
+                    await renderAllProducts();
+                });
             } catch (e) {
-                console.warn('Supabase init skipped:', e?.message || e);
+                console.error('Supabase init failed:', e);
             }
-                // Load user profile data first
-            await updateUserInfoWithProfile();
-            // Render initial products (both sections)
+
+            // Render initial products
             await renderProducts();
             await renderAllProducts();
-
-            // Update user info displays
-            updateUserInfo();
 
             // Initialize image upload functionality
             setupImageUpload();
@@ -2085,6 +2192,57 @@
                 return use ? { 'Authorization': 'Bearer ' + use } : {};
             }
 
+            // Local profile picture helpers
+            function profilePicKey(userId) {
+                return userId ? `profilePicture_${userId}` : 'profilePicture';
+            }
+            function saveProfilePicture(dataUrl, userId) {
+                try { localStorage.setItem(profilePicKey(userId), dataUrl); } catch {}
+            }
+            function loadProfilePicture(userId) {
+                try { return localStorage.getItem(profilePicKey(userId)) || null; } catch { return null; }
+            }
+
+            // Debug: log Supabase client and session status
+            async function debugSupabaseStatus(context = 'init') {
+                try {
+                    console.log(`[Debug:${context}] window.sb exists:`, !!window.sb);
+                    if (window.sb?.auth) {
+                        const [{ data: sessionData }, { data: userData }] = await Promise.all([
+                            window.sb.auth.getSession(),
+                            window.sb.auth.getUser()
+                        ]);
+                        console.log(`[Debug:${context}] session exists:`, !!sessionData?.session);
+                        console.log(`[Debug:${context}] user:`, userData?.user || null);
+                    }
+                } catch (e) {
+                    console.warn(`[Debug:${context}] error while checking Supabase status:`, e?.message || e);
+                }
+            }
+
+            // Fetch current user's profile from Supabase and set first name (minimal)
+            async function fetchCurrentUser() {
+                try {
+                    if (!window.sb || !window.sb.auth) return;
+                    const { data: { user } } = await window.sb.auth.getUser();
+                    if (!user) return;
+                    // Prefer user_metadata for names if present
+                    const meta = user.user_metadata || {};
+                    const fullName = (meta.full_name || meta.name || `${meta.first_name || ''} ${meta.last_name || ''}` || '').trim();
+                    const email = user.email || '';
+                    const usernameGuess = meta.username || (email.includes('@') ? email.split('@')[0] : (user.id ? `user_${String(user.id).slice(0,6)}` : 'User'));
+                    const [firstName, ...rest] = (fullName || '').split(' ').filter(Boolean);
+
+                    state.user.firstName = firstName || state.user.firstName || usernameGuess || 'User';
+                    state.user.lastName = rest.join(' ') || state.user.lastName;
+                    state.user.username = usernameGuess || state.user.username;
+                    state.user.email = email || state.user.email;
+                    if (!state.user.storeName || state.user.storeName === 'Loading...') {
+                        state.user.storeName = meta.business_name || fullName || usernameGuess || state.user.storeName;
+                    }
+                } catch (_) { /* ignore */ }
+            }
+
             async function updateUserProfile(update) {
                 const res = await fetch('/api/users/profile', {
                     method: 'PUT',
@@ -2124,54 +2282,47 @@
                 const profileData = {
                     name: `${firstName} ${lastName}`.trim(),
                     phone: phone || null,
-                    business_name: storeName || null
+                    business_name: storeName || null,
+                    email: state.user.email || ''
                 };
+                // Ensure email is populated (backend requires NOT NULL)
+                if (!profileData.email && window.sb?.auth) {
+                    try {
+                        const { data: { user } } = await window.sb.auth.getUser();
+                        if (user?.email) profileData.email = user.email;
+                    } catch {}
+                }
 
                 try {
-                    // If a new profile picture was selected, upload it first
-                    if (profilePictureFile) {
-                        const fd = new FormData();
-                        fd.append('file', profilePictureFile);
-                        
-                        const uploadRes = await fetch('http://localhost:5000/api/uploads/profile/single', {
-                            method: 'POST',
-                            headers: { ...authHeader() },
-                            body: fd
-                        });
-                        
-                        const uploadJson = await uploadRes.json();
-                        if (!uploadRes.ok || !uploadJson.success) {
-                            throw new Error(uploadJson.message || 'Profile picture upload failed');
-                        }
-                        
-                        // Add the profile picture URL to the update data
-                        profileData.profile_picture = uploadJson.data.url;
+                    // Local-only picture persistence (no backend upload)
+                    if (profilePictureFile || state.user.profileImage) {
+                        profileData.profile_picture = state.user.profileImage || null;
                     }
 
+                    // Save profile data (text + optional picture)
                     const result = await updateUserProfile(profileData);
-                    
-                    if (result.success) {
+                    if (result?.success) {
                         // Update local state
                         state.user.firstName = firstName;
                         state.user.lastName = lastName;
                         state.user.phone = phone;
                         state.user.storeName = storeName;
-                        
-                        // Update profile picture if it was uploaded
                         if (profileData.profile_picture) {
                             state.user.profileImage = profileData.profile_picture;
+                            // Persist locally for future loads
+                            try {
+                                const { data: { user } } = await (window.sb?.auth.getUser() || { data: { user: null } });
+                                saveProfilePicture(state.user.profileImage, user?.id);
+                            } catch {}
                         }
-
-                        // Update UI
                         updateUserInfo();
-
                         alert('Profile updated successfully!');
                     } else {
-                        alert('Error: ' + result.message);
+                        throw new Error(result?.message || 'API endpoint not found');
                     }
                 } catch (error) {
                     console.error('Profile update error:', error);
-                    alert('Failed to update profile. Please try again.');
+                    alert(error?.message || 'Failed to update profile. Please try again.');
                 }
             });
 
