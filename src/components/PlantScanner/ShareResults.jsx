@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, X, Facebook, Twitter, Link2, Mail, MessageCircle, Download, Check } from 'lucide-react';
+import { Share2, X, Facebook, Twitter, Link2, Mail, MessageCircle, Download, Check, ArrowLeft, Home, ChevronRight } from 'lucide-react';
 
 const ShareResults = ({ plantData, onClose }) => {
   const [copied, setCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+  const [shareMethod, setShareMethod] = useState(null); // Track which share method was used
 
   const shareUrl = window.location.href;
   const shareTitle = `I identified ${plantData.plant_name}!`;
@@ -15,35 +16,59 @@ const ShareResults = ({ plantData, onClose }) => {
     setTimeout(onClose, 300);
   };
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(`${shareTitle}\n\n${shareText}\n\n${shareUrl}`);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setShareMethod('clipboard');
+      setTimeout(() => {
+        setCopied(false);
+        setShareMethod(null);
+      }, 3000);
     } catch (err) {
       console.error('Failed to copy:', err);
     }
   };
 
   const shareViaFacebook = () => {
+    setShareMethod('facebook');
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
     window.open(url, '_blank', 'width=600,height=400');
+    setTimeout(() => setShareMethod(null), 2000);
   };
 
   const shareViaTwitter = () => {
+    setShareMethod('twitter');
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(url, '_blank', 'width=600,height=400');
+    setTimeout(() => setShareMethod(null), 2000);
   };
 
   const shareViaWhatsApp = () => {
+    setShareMethod('whatsapp');
     const url = `https://wa.me/?text=${encodeURIComponent(shareText + '\n' + shareUrl)}`;
     window.open(url, '_blank');
+    setTimeout(() => setShareMethod(null), 2000);
   };
 
   const shareViaEmail = () => {
+    setShareMethod('email');
     const subject = encodeURIComponent(shareTitle);
     const body = encodeURIComponent(`${shareText}\n\nView more: ${shareUrl}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    setTimeout(() => setShareMethod(null), 2000);
   };
 
   const shareViaNativeAPI = async () => {
@@ -63,6 +88,7 @@ const ShareResults = ({ plantData, onClose }) => {
   };
 
   const downloadAsImage = () => {
+    setShareMethod('download');
     // Create a simple text-based image
     const canvas = document.createElement('canvas');
     canvas.width = 800;
@@ -123,6 +149,7 @@ const ShareResults = ({ plantData, onClose }) => {
       a.download = `${plantData.plant_name.replace(/\s+/g, '_')}_identification.png`;
       a.click();
       URL.revokeObjectURL(url);
+      setTimeout(() => setShareMethod(null), 2000);
     });
   };
 
@@ -144,8 +171,21 @@ const ShareResults = ({ plantData, onClose }) => {
           onClick={(e) => e.stopPropagation()}
           className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
         >
-          {/* Header */}
+          {/* Header with Breadcrumb */}
           <div className="p-6 border-b border-neutral-200 dark:border-neutral-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+            {/* Breadcrumb Navigation */}
+            <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-4">
+              <button
+                onClick={handleClose}
+                className="flex items-center gap-1 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Back to Results</span>
+              </button>
+              <ChevronRight className="h-4 w-4" />
+              <span className="text-neutral-900 dark:text-white font-medium">Share</span>
+            </div>
+
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center">
@@ -163,11 +203,31 @@ const ShareResults = ({ plantData, onClose }) => {
               <button
                 onClick={handleClose}
                 className="p-2 hover:bg-white/50 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                title="Close (Esc)"
               >
                 <X className="h-6 w-6 text-neutral-600 dark:text-neutral-400" />
               </button>
             </div>
           </div>
+
+          {/* Success Message */}
+          {shareMethod && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mx-6 mt-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg flex items-center gap-2"
+            >
+              <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <span className="text-green-800 dark:text-green-200 font-medium">
+                {shareMethod === 'clipboard' && 'Link copied to clipboard!'}
+                {shareMethod === 'facebook' && 'Opening Facebook...'}
+                {shareMethod === 'twitter' && 'Opening Twitter...'}
+                {shareMethod === 'whatsapp' && 'Opening WhatsApp...'}
+                {shareMethod === 'email' && 'Opening email client...'}
+                {shareMethod === 'download' && 'Image downloaded!'}
+              </span>
+            </motion.div>
+          )}
 
           {/* Share Options */}
           <div className="p-6 space-y-4">
@@ -257,15 +317,21 @@ const ShareResults = ({ plantData, onClose }) => {
             </button>
           </div>
 
-          {/* Preview */}
+          {/* Preview & Footer */}
           <div className="p-6 bg-neutral-50 dark:bg-neutral-900/50 border-t border-neutral-200 dark:border-neutral-700">
             <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">Preview:</p>
-            <div className="p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700">
+            <div className="p-3 bg-white dark:bg-neutral-800 rounded-lg border border-neutral-200 dark:border-neutral-700 mb-3">
               <p className="text-sm text-neutral-900 dark:text-white font-medium mb-1">
                 {shareTitle}
               </p>
               <p className="text-xs text-neutral-600 dark:text-neutral-400">
                 {shareText.substring(0, 100)}...
+              </p>
+            </div>
+            <div className="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+              <p>Choose a sharing method above</p>
+              <p>
+                Press <kbd className="px-2 py-1 bg-neutral-200 dark:bg-neutral-700 rounded">Esc</kbd> to close
               </p>
             </div>
           </div>

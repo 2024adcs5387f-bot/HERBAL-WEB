@@ -236,21 +236,27 @@ class ImageComparisonService {
       if (error.response?.data?.error) {
         const errorMsg = error.response.data.error.toLowerCase();
         
-        // Check for common non-plant rejection messages
+        // Check for common non-plant rejection messages (STRICT)
         if (errorMsg.includes('no plant') || 
             errorMsg.includes('not a plant') ||
-            errorMsg.includes('invalid image')) {
+            errorMsg.includes('invalid image') ||
+            errorMsg.includes('no vegetation') ||
+            errorMsg.includes('animal') ||
+            errorMsg.includes('person') ||
+            errorMsg.includes('human') ||
+            errorMsg.includes('object')) {
           return { 
             isPlant: false, 
-            confidence: 0.9,
-            message: 'No plant detected in image'
+            confidence: 0.95,
+            message: 'No plant detected - image contains non-plant content'
           };
         }
       }
 
-      // On timeout or other errors, allow through (fail open)
-      console.warn('Plant validation error (allowing through):', error.message);
-      return { isPlant: true, confidence: 0.5 };
+      // On timeout or other errors, be more cautious (fail closed for validation)
+      console.warn('Plant validation error:', error.message);
+      // Return lower confidence to trigger stricter checks downstream
+      return { isPlant: true, confidence: 0.6 };
     }
   }
 
@@ -336,16 +342,16 @@ class ImageComparisonService {
         };
       }
 
-      // Stage 2: Validate image contains a plant
+      // Stage 2: Validate image contains a plant (STRICT MODE)
       console.log('🌿 Validating image contains plant...');
       const plantValidation = await this.validateIsPlant(imageBase64);
       
-      if (!plantValidation.isPlant) {
+      if (!plantValidation.isPlant || plantValidation.confidence < 0.7) {
         console.log('❌ NOT A PLANT - Validation failed');
-        throw new Error('🚫 NOT A PLANT: This image does not contain plant material (roots, stems, leaves, or flowers). Please upload a clear photo of a plant. We cannot identify animals, people, objects, or non-plant items.');
+        throw new Error('🚫 NOT A PLANT DETECTED\n\nThis image does not contain identifiable plant material.\n\n✅ WE CAN IDENTIFY:\n• Living plants (leaves, flowers, stems)\n• Plant roots and bark\n• Seeds and fruits\n• Herbs and medicinal plants\n\n❌ WE CANNOT IDENTIFY:\n• Animals (dogs, cats, birds, insects)\n• People or body parts\n• Food products (cooked/processed)\n• Objects, buildings, or landscapes\n• Drawings or illustrations\n\nPlease upload a clear photo of a real plant.');
       }
       
-      console.log('✅ Plant validation passed');
+      console.log('✅ Plant validation passed with confidence:', plantValidation.confidence);
 
       // Stage 3: Call Plant.id API
       console.log('🌐 No cache match, calling Plant.id API...');
@@ -374,14 +380,22 @@ class ImageComparisonService {
       // Additional validation: Check if result has plant suggestions
       if (!result.suggestions || result.suggestions.length === 0) {
         console.log('❌ NO PLANTS FOUND in API response');
-        throw new Error('🚫 NOT A PLANT: No plant material detected in this image. Please upload a photo showing clear plant parts (roots, stems, leaves, or flowers). Animals, people, and objects cannot be identified.');
+        throw new Error('🚫 NOT A PLANT DETECTED\n\nNo plant material found in this image.\n\n✅ UPLOAD A PHOTO WITH:\n• Clear view of leaves or flowers\n• Good lighting (natural light preferred)\n• Focus on one plant\n• Close-up of plant features\n\n❌ AVOID:\n• Animals, people, or objects\n• Blurry or dark images\n• Multiple plants in one photo\n• Processed food or cooked items');
       }
 
-      // Check confidence threshold
+      // Check confidence threshold - STRICT
       const topSuggestion = result.suggestions[0];
-      if (topSuggestion.probability < 0.1) {
+      if (topSuggestion.probability < 0.15) {
         console.log('⚠️ LOW CONFIDENCE - Probability:', topSuggestion.probability);
-        throw new Error('🔍 UNCLEAR IMAGE: Unable to confidently identify a plant. Please upload a clearer photo with better lighting showing plant parts (leaves, flowers, stems, or roots).');
+        throw new Error('🔍 IMAGE TOO UNCLEAR\n\nCannot confidently identify a plant in this image.\n\n💡 TIPS FOR BETTER RESULTS:\n• Use natural daylight\n• Focus clearly on the plant\n• Show distinctive features (leaves, flowers, bark)\n• Get closer to the plant\n• Avoid shadows and glare\n• Take multiple angles if needed\n\nIf this is not a plant, please upload a plant photo instead.');
+      }
+      
+      // Additional check: Verify plant name is not generic or suspicious
+      const plantName = topSuggestion.plant_name?.toLowerCase() || '';
+      const suspiciousNames = ['unknown', 'unidentified', 'animal', 'person', 'object', 'food', 'product'];
+      if (suspiciousNames.some(name => plantName.includes(name))) {
+        console.log('⚠️ SUSPICIOUS PLANT NAME:', plantName);
+        throw new Error('🚫 NOT A PLANT DETECTED\n\nThe image does not appear to contain a recognizable plant.\n\nPlease ensure you are uploading a photo of a real, living plant with visible plant parts (leaves, flowers, stems, or roots).');
       }
       
       console.log('✅ Plant identified:', topSuggestion.plant_name, '- Confidence:', Math.round(topSuggestion.probability * 100) + '%');
@@ -405,11 +419,14 @@ class ImageComparisonService {
               description: topSuggestion.plant_details?.wiki_description?.citation,
               wiki_url: topSuggestion.plant_details?.url,
               taxonomy: topSuggestion.plant_details?.taxonomy || {},
+              medicinal_uses: topSuggestion.medicinal_uses || [],
+              active_compounds: topSuggestion.active_compounds || [],
+              safety_info: topSuggestion.safety_info || null,
               raw_api_response: result,
               api_provider: 'plant.id'
             });
           
-          console.log('💾 Saved new identification to cache');
+          console.log('💾 Saved new identification to cache with medicinal info');
         } catch (saveError) {
           console.error('Cache save error (non-critical):', saveError.message);
         }
