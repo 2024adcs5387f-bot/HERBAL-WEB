@@ -30,9 +30,9 @@ const TopSearchBar = () => {
         </form>
         <div className="topbar-quicklinks">
           <Link to="/products" className="qlink"><ShoppingCart className="icon" /> Products</Link>
-          <Link to="/research" className="qlink"><BookOpen className="icon" /> Research</Link>
+          <Link to="/research-hub" className="qlink"><BookOpen className="icon" /> Research</Link>
           <Link to="/plant-scanner" className="qlink"><Leaf className="icon" /> Scanner</Link>
-          <Link to="/symptom-checker" className="qlink"><Heart className="icon" /> Symptoms</Link>
+          <Link to="/chatbot" className="qlink"><Heart className="icon" /> Chatbot</Link>
         </div>
       </div>
     </div>
