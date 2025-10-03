@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { resolveUserAnyToken } from './middleware/auth.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -21,6 +22,7 @@ import uploadRoutes from './routes/uploads.js';
 import knowledgeRoutes from './routes/knowledge.js';
 import proxyRoutes from './routes/proxy.js';
 import sessionRoutes from './routes/session.js';
+import plantDataRoutes from './routes/plantData.js';
 
 // Import error handler
 import { errorHandler } from './middleware/errorHandler.js';
@@ -33,6 +35,7 @@ const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const clientDist = path.resolve(__dirname, '../dist');
+const publicDir = path.resolve(__dirname, '../public');
 
 // Rate limiting
 const limiter = rateLimit({
@@ -100,6 +103,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/proxy', proxyRoutes);
 app.use('/api/session', sessionRoutes);
+app.use('/api/plant-data', plantDataRoutes);
 
 // Ensure no /api/* path ever falls through to SPA index.html
 // Any unmatched /api/* should return JSON 404 instead of HTML
@@ -110,12 +114,23 @@ app.all('/api/*', (req, res, next) => {
 });
 
 // ------------------------------
-// Static frontend (Render single URL / production)
+// Static frontend and role-based dashboard
 // ------------------------------
+// Serve static assets from /public (e.g., Seller.html, Buyer.html, images, favicon)
+app.use(express.static(publicDir));
+
 // Serve React build if it exists (harmless locally if not built)
 app.use(express.static(clientDist));
 
-// SPA fallback: send index.html for non-API routes
+// Role-aware dashboard route
+app.get('/dashboard', resolveUserAnyToken, (req, res) => {
+  const role = (req.authUser?.userType || '').toLowerCase();
+  const file = role === 'buyer' ? 'Buyer.html' : 'Seller.html';
+  const filePath = path.join(publicDir, file);
+  return res.sendFile(filePath);
+});
+
+// SPA fallback: send index.html for non-API routes that are not static files
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
   try {

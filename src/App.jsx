@@ -20,8 +20,7 @@ import Register from './pages/Register';
 import DashboardRouter from './pages/user/DashboardRouter';
 import BuyerDashboard from './pages/user/BuyerDashboard';
 import PlantScanner from './pages/PlantScanner';
-import SymptomChecker from './pages/SymptomChecker';
-import AIRecommendations from './pages/AIRecommendations';
+import Chatbot from './pages/Chatbot';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Research from './pages/Research';
 <<<<<<< HEAD
@@ -65,8 +64,10 @@ const App = () => {
             <Route path="/cart" element={<Cart />} />
             {/* Diagnostics */}
             <Route path="/health/supabase" element={<SupabaseHealth />} />
-            <Route path="/symptom-checker" element={<SymptomChecker />} />
-            <Route path="/ai-recommendations" element={<AIRecommendations />} />
+            
+            {/* AI Tools */}
+            <Route path="/plant-scanner" element={<PlantScanner />} />
+            <Route path="/chatbot" element={<Chatbot />} />
             <Route path="/research" element={<Research />} />
             <Route path="/research/:id" element={<ResearchPost />} />
             <Route path="/research-hub" element={<ResearchHub />} />

@@ -237,13 +237,8 @@ const Navbar = () => {
                 </NavLink>
               </li>
               <li className="nav-item">
-                <NavLink to="/symptom-checker" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-                  <i className="fas fa-stethoscope me-1"></i> Symptom Checker
-                </NavLink>
-              </li>
-              <li className="nav-item">
-                <NavLink to="/ai-recommendations" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-                  <i className="fas fa-robot me-1"></i> AI Recommendations
+                <NavLink to="/chatbot" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+                  <i className="fas fa-comments me-1"></i> Chatbot
                 </NavLink>
               </li>
               <li className="nav-item">
@@ -258,13 +253,6 @@ const Navbar = () => {
         </div>
       </nav>
 
-<<<<<<< HEAD
-      {/* <p style={{ textAlign: 'center', color: 'white',backgroundColor: 'black',paddingTop: '20px',paddingBottom: '0px', fontWeight: 'bold', borderBottom: '1px solid #33e407' }}>
-        Learn, Treat, Research and Heal with the best HerbalMarket
-      </p> */}
-
-=======
->>>>>>> 74fb3ef21c2af94a908f92f39ead7686e3ff0a6e
       <style>{`
         .navbar-brand {
           color: #2E7D32 !important;

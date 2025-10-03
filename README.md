@@ -58,6 +58,16 @@ npm install
 ```
 
 ### 2. Environment Setup
+
+#### Frontend Environment
+Create `.env.local` file in the root directory:
+
+```env
+# API Configuration
+VITE_API_BASE_URL=http://localhost:5000
+```
+
+#### Backend Environment
 Create `.env` file in the backend directory:
 
 ```env

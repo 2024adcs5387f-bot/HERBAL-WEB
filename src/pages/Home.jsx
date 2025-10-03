@@ -26,9 +26,9 @@ const Home = () => {
     },
     {
       icon: Brain,
-      title: 'Symptom Checker',
-      description: 'Get health insights and herbal remedy recommendations',
-      href: '/symptom-checker',
+      title: 'Chatbot',
+      description: 'Describe symptoms to get likely conditions and herbal guidance',
+      href: '/chatbot',
       color: 'from-blue-500 to-blue-600'
     },
     {
@@ -40,9 +40,9 @@ const Home = () => {
     },
     {
       icon: Search,
-      title: 'AI Recommendations',
-      description: 'Personalized herbal solutions based on your needs',
-      href: '/ai-recommendations',
+      title: 'Research Hub',
+      description: 'Explore herbal studies and community knowledge',
+      href: '/research-hub',
       color: 'from-orange-500 to-orange-600'
     }
   ];
