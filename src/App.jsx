@@ -2,9 +2,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
+
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { initAuthBridge } from './services/authService';
+
 import Home from './pages/Home';
 import Products from './pages/product/product';
 import ProductDetail from './pages/ProductDetail';
@@ -17,6 +19,7 @@ import PlantScanner from './pages/PlantScanner';
 import Chatbot from './pages/Chatbot';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Research from './pages/Research';
+
 import ResearchPost from './pages/ResearchPost';
 import ResearchNew from './pages/ResearchNew';
 import ResearchEdit from './pages/ResearchEdit';
@@ -31,6 +34,7 @@ import HerbalistDashboard from './pages/user/HerbalistDashboard';
 import NotFound from './pages/NotFound';
 import SupabaseHealth from './pages/health/SupabaseHealth';
 import Logout from './pages/Logout';
+
 
 const App = () => {
   useEffect(() => {

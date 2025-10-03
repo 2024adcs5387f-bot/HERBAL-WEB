@@ -57,9 +57,9 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white" style={{ backgroundImage: 'url("https://i.pinimg.com/1200x/16/ee/63/16ee633b73ea3e5c643d484095318337.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
       {/* Top Navbar */}
-      <header className="sticky top-0 z-30 w-full border-b border-neutral-200 bg-white shadow-sm">
+      {/* <header className="sticky top-0 z-30 w-full border-b border-neutral-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button className="p-2 rounded-lg hover:bg-neutral-100 lg:hidden focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle navigation" onClick={() => setNavOpen((v) => !v)}>
@@ -102,10 +102,10 @@ export default function Chatbot() {
             </div>
           </div>
         )}
-      </header>
+      </header> */}
 
       {/* Page Content */}
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-black">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-black" style={{paddingTop: '5px'}}>
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-black">Herbal Chat Assistant</h1>
           <p className="text-base text-black mt-1">Informational only · Not a medical diagnosis</p>

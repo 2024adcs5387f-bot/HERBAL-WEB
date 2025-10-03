@@ -26,6 +26,8 @@ if (supabaseUrl && supabaseAnonKey && isValidHttpUrl(supabaseUrl)) {
     },
   });
 } else {
+
+
   console.warn(
     "Supabase is not initialized. Please set valid VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local"
   );

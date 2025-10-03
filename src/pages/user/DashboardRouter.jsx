@@ -6,7 +6,6 @@ import { getCurrentUser } from "../../services/userService";
 export default function DashboardRouter() {
   const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
-
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -22,9 +21,9 @@ export default function DashboardRouter() {
           window.location.href = '/Seller.html';
           return;
         }
-         // Route by role. Sellers go to static Seller.html in public
-         if (role === 'buyer') {
-          window.location.href = '/Buyer.html';
+        // Buyers go to home page immediately (fast redirect)
+        if (role === 'buyer') {
+          window.location.replace('/');
           return;
         }
         const routeByRole = {
