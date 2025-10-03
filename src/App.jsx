@@ -2,15 +2,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
-<<<<<<< HEAD
-import TopSearchBar from './components/Topbar/TopSearchBar';
-import PrivateRoute from './components/PrivateRoute';
-import PublicRoute from './components/PublicRoute';
-=======
+
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { initAuthBridge } from './services/authService';
->>>>>>> 74fb3ef21c2af94a908f92f39ead7686e3ff0a6e
+
 import Home from './pages/Home';
 import Products from './pages/product/product';
 import ProductDetail from './pages/ProductDetail';
@@ -23,12 +19,7 @@ import PlantScanner from './pages/PlantScanner';
 import Chatbot from './pages/Chatbot';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Research from './pages/Research';
-<<<<<<< HEAD
-import ResearchHub from './pages/ResearchHub';
-import Profile from './pages/user/Profile';
-import AdminDashboard from './pages/user/AdminDashboard';
-import NotFound from './pages/NotFound';
-=======
+
 import ResearchPost from './pages/ResearchPost';
 import ResearchNew from './pages/ResearchNew';
 import ResearchEdit from './pages/ResearchEdit';
@@ -43,7 +34,7 @@ import HerbalistDashboard from './pages/user/HerbalistDashboard';
 import NotFound from './pages/NotFound';
 import SupabaseHealth from './pages/health/SupabaseHealth';
 import Logout from './pages/Logout';
->>>>>>> 74fb3ef21c2af94a908f92f39ead7686e3ff0a6e
+
 
 const App = () => {
   useEffect(() => {

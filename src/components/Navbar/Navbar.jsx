@@ -186,9 +186,9 @@ const Navbar = () => {
                         </div>
                       </li>
                       <li>
-                        <Link className="dropdown-item d-flex align-items-center" to="/dashboard" onClick={() => setProfileOpen(false)}>
+                        <a className="dropdown-item d-flex align-items-center" href="/Buyer.html" onClick={() => setProfileOpen(false)}>
                           <i className="fas fa-gauge-high me-2" style={{ color: '#2E7D32' }}></i> Dashboard
-                        </Link>
+                        </a>
                       </li>
                       <li>
                         <button className="dropdown-item d-flex align-items-center" onClick={handleLogout}>
