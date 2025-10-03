@@ -22,6 +22,11 @@ export default function DashboardRouter() {
           window.location.href = '/Seller.html';
           return;
         }
+         // Route by role. Sellers go to static Seller.html in public
+         if (role === 'buyer') {
+          window.location.href = '/Buyer.html';
+          return;
+        }
         const routeByRole = {
           buyer: "/dashboard/buyer",
           herbalist: "/dashboard/herbalist",
