@@ -342,16 +342,10 @@ class ImageComparisonService {
         };
       }
 
-      // Stage 2: Validate image contains a plant (STRICT MODE)
-      console.log('🌿 Validating image contains plant...');
-      const plantValidation = await this.validateIsPlant(imageBase64);
-      
-      if (!plantValidation.isPlant || plantValidation.confidence < 0.7) {
-        console.log('❌ NOT A PLANT - Validation failed');
-        throw new Error('🚫 NOT A PLANT DETECTED\n\nThis image does not contain identifiable plant material.\n\n✅ WE CAN IDENTIFY:\n• Living plants (leaves, flowers, stems)\n• Plant roots and bark\n• Seeds and fruits\n• Herbs and medicinal plants\n\n❌ WE CANNOT IDENTIFY:\n• Animals (dogs, cats, birds, insects)\n• People or body parts\n• Food products (cooked/processed)\n• Objects, buildings, or landscapes\n• Drawings or illustrations\n\nPlease upload a clear photo of a real plant.');
-      }
-      
-      console.log('✅ Plant validation passed with confidence:', plantValidation.confidence);
+      // Stage 2: Validate image contains a plant (RELAXED MODE)
+      // Skip strict validation - let the main API determine if it's a plant
+      // This prevents false negatives where real plants are rejected
+      console.log('🌿 Skipping strict validation - will validate via main API...');
 
       // Stage 3: Call Plant.id API
       console.log('🌐 No cache match, calling Plant.id API...');
@@ -383,10 +377,10 @@ class ImageComparisonService {
         throw new Error('🚫 NOT A PLANT DETECTED\n\nNo plant material found in this image.\n\n✅ UPLOAD A PHOTO WITH:\n• Clear view of leaves or flowers\n• Good lighting (natural light preferred)\n• Focus on one plant\n• Close-up of plant features\n\n❌ AVOID:\n• Animals, people, or objects\n• Blurry or dark images\n• Multiple plants in one photo\n• Processed food or cooked items');
       }
 
-      // Check confidence threshold - STRICT
+      // Check confidence threshold - RELAXED (lowered from 0.15 to 0.05)
       const topSuggestion = result.suggestions[0];
-      if (topSuggestion.probability < 0.15) {
-        console.log('⚠️ LOW CONFIDENCE - Probability:', topSuggestion.probability);
+      if (topSuggestion.probability < 0.05) {
+        console.log('⚠️ VERY LOW CONFIDENCE - Probability:', topSuggestion.probability);
         throw new Error('🔍 IMAGE TOO UNCLEAR\n\nCannot confidently identify a plant in this image.\n\n💡 TIPS FOR BETTER RESULTS:\n• Use natural daylight\n• Focus clearly on the plant\n• Show distinctive features (leaves, flowers, bark)\n• Get closer to the plant\n• Avoid shadows and glare\n• Take multiple angles if needed\n\nIf this is not a plant, please upload a plant photo instead.');
       }
       
