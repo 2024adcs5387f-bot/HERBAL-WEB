@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herbal Wellness | Buyer Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.55.0/dist/umd/supabase.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
@@ -198,8 +199,8 @@
                     <img id="sidebar-profile-pic" src="https://i.pravatar.cc/150?img=12" alt="User"
                         class="w-10 h-10 rounded-full">
                     <div>
-                        <p class="font-medium">Sarah Johnson</p>
-                        <p class="text-xs text-accent">Premium Member</p>
+                        <p class="font-medium" id="sidebar-user-name">Loading...</p>
+                        <p class="text-xs text-accent" id="sidebar-user-tier">Welcome back</p>
                     </div>
                 </div>
                 <a href="#" id="logout-btn"
@@ -222,11 +223,14 @@
                                 class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent">
                             <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                         </div>
-                        <button class="relative p-2 text-gray-600 hover:text-primary">
-                            <i class="fas fa-bell text-xl"></i>
-                            <span
-                                class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
-                        </button>
+                        <div class="flex items-center space-x-3">
+                            <img id="header-profile-pic" src="https://i.pravatar.cc/150?img=12" alt="User"
+                                class="w-10 h-10 rounded-full border border-gray-200">
+                            <div class="text-right">
+                                <p class="font-semibold text-primary" id="header-user-name">Loading...</p>
+                                <p class="text-sm text-gray-500" id="header-user-email">Signing in...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -242,7 +246,7 @@
                                 <i class="fas fa-shopping-cart text-xl"></i>
                             </div>
                             <div>
-                                <h3 class="text-2xl font-bold text-gray-800">5</h3>
+                                <h3 class="text-2xl font-bold text-gray-800" id="stat-active-orders">0</h3>
                                 <p class="text-gray-600">Active Orders</p>
                             </div>
                         </div>
@@ -251,7 +255,7 @@
                                 <i class="fas fa-box-open text-xl"></i>
                             </div>
                             <div>
-                                <h3 class="text-2xl font-bold text-gray-800">24</h3>
+                                <h3 class="text-2xl font-bold text-gray-800" id="stat-total-orders">0</h3>
                                 <p class="text-gray-600">Total Orders</p>
                             </div>
                         </div>
@@ -260,8 +264,8 @@
                                 <i class="fas fa-heart text-xl"></i>
                             </div>
                             <div>
-                                <h3 class="text-2xl font-bold text-gray-800">12</h3>
-                                <p class="text-gray-600">Wishlist Items</p>
+                                <h3 class="text-2xl font-bold text-gray-800" id="stat-items-purchased">0</h3>
+                                <p class="text-gray-600">Items Purchased</p>
                             </div>
                         </div>
                         <div class="stat-card bg-white rounded-xl shadow-md p-6 flex items-center">
@@ -269,8 +273,8 @@
                                 <i class="fas fa-star text-xl"></i>
                             </div>
                             <div>
-                                <h3 class="text-2xl font-bold text-gray-800">4.8</h3>
-                                <p class="text-gray-600">Average Rating</p>
+                                <h3 class="text-2xl font-bold text-gray-800" id="stat-total-spent">UGX 0</h3>
+                                <p class="text-gray-600">Total Spent</p>
                             </div>
                         </div>
                     </div>
@@ -283,43 +287,8 @@
                                 <a href="#" class="text-secondary hover:text-primary font-medium view-all-orders">View
                                     All</a>
                             </div>
-                            <div class="space-y-4">
-                                <div
-                                    class="flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
-                                    <div>
-                                        <p class="font-medium">#HW-7842</p>
-                                        <p class="text-sm text-gray-600">Oct 12, 2023</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-medium">UGX 158,000</p>
-                                        <span
-                                            class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Delivered</span>
-                                    </div>
-                                </div>
-                                <div
-                                    class="flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
-                                    <div>
-                                        <p class="font-medium">#HW-7791</p>
-                                        <p class="text-sm text-gray-600">Oct 8, 2023</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-medium">UGX 108,000</p>
-                                        <span
-                                            class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">Delivered</span>
-                                    </div>
-                                </div>
-                                <div
-                                    class="flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50">
-                                    <div>
-                                        <p class="font-medium">#HW-7654</p>
-                                        <p class="text-sm text-gray-600">Oct 5, 2023</p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="font-medium">UGX 252,000</p>
-                                        <span
-                                            class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">Shipped</span>
-                                    </div>
-                                </div>
+                            <div id="recent-orders" class="space-y-4">
+                                <div class="text-gray-500" id="recent-orders-empty">No orders yet. Start shopping to see them here.</div>
                             </div>
                         </div>
 
@@ -331,39 +300,8 @@
                                     class="text-secondary hover:text-primary font-medium browse-all-products">Browse
                                     All</a>
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="product-card bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                                    <div class="h-32 bg-accent flex items-center justify-center">
-                                        <i class="fas fa-spa text-4xl text-primary"></i>
-                                    </div>
-                                    <div class="p-3">
-                                        <h4 class="font-medium text-gray-800">Lavender Oil</h4>
-                                        <p class="text-sm text-gray-600 mb-2">Calming and relaxing</p>
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-bold text-primary">UGX 48,000</span>
-                                            <button
-                                                class="add-to-cart-btn bg-secondary text-white p-2 rounded-full hover:bg-primary transition-colors">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="product-card bg-gray-50 rounded-lg overflow-hidden border border-gray-200">
-                                    <div class="h-32 bg-accent flex items-center justify-center">
-                                        <i class="fas fa-leaf text-4xl text-primary"></i>
-                                    </div>
-                                    <div class="p-3">
-                                        <h4 class="font-medium text-gray-800">Echinacea</h4>
-                                        <p class="text-sm text-gray-600 mb-2">Immune support</p>
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-bold text-primary">UGX 68,500</span>
-                                            <button
-                                                class="add-to-cart-btn bg-secondary text-white p-2 rounded-full hover:bg-primary transition-colors">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="recommended-products">
+                                <div class="text-gray-500" id="recommended-placeholder">Personalized picks coming soon.</div>
                             </div>
                         </div>
                     </div>
@@ -385,36 +323,9 @@
                                         <th class="py-3 text-left">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                        <td class="py-4">#HW-7842</td>
-                                        <td class="py-4">Oct 12, 2023</td>
-                                        <td class="py-4">Lavender Oil, Chamomile Tea</td>
-                                        <td class="py-4 font-medium">UGX 158,000</td>
-                                        <td class="py-4">
-                                            <span
-                                                class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Delivered</span>
-                                        </td>
-                                        <td class="py-4">
-                                            <button
-                                                class="text-secondary hover:text-primary font-medium view-order-details">View
-                                                Details</button>
-                                        </td>
-                                    </tr>
-                                    <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                        <td class="py-4">#HW-7791</td>
-                                        <td class="py-4">Oct 8, 2023</td>
-                                        <td class="py-4">Echinacea Tincture</td>
-                                        <td class="py-4 font-medium">UGX 108,000</td>
-                                        <td class="py-4">
-                                            <span
-                                                class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">Delivered</span>
-                                        </td>
-                                        <td class="py-4">
-                                            <button
-                                                class="text-secondary hover:text-primary font-medium view-order-details">View
-                                                Details</button>
-                                        </td>
+                                <tbody id="orders-table-body">
+                                    <tr id="orders-empty-row">
+                                        <td class="py-6 text-center text-gray-500" colspan="6">No orders yet. When you place your first order, it will appear here.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -480,7 +391,7 @@
                     <div class="bg-white rounded-xl shadow-md p-6">
                         <h3 class="text-xl font-bold text-primary mb-6">Shopping Cart</h3>
                         <div class="space-y-4">
-                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                            <div class="cart-item flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                                 <div class="flex items-center space-x-4">
                                     <div class="w-16 h-16 bg-accent rounded-lg flex items-center justify-center">
                                         <i class="fas fa-spa text-xl text-primary"></i>
@@ -498,13 +409,13 @@
                                         <button
                                             class="increase-quantity px-3 py-1 text-gray-600 hover:text-primary">+</button>
                                     </div>
-                                    <span class="font-bold text-primary text-lg">UGX 48,000</span>
+                                    <span class="cart-item-price font-bold text-primary text-lg">UGX 48,000</span>
                                     <button class="remove-from-cart text-red-500 hover:text-red-700">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                            <div class="cart-item flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                                 <div class="flex items-center space-x-4">
                                     <div class="w-16 h-16 bg-accent rounded-lg flex items-center justify-center">
                                         <i class="fas fa-leaf text-xl text-primary"></i>
@@ -522,7 +433,7 @@
                                         <button
                                             class="increase-quantity px-3 py-1 text-gray-600 hover:text-primary">+</button>
                                     </div>
-                                    <span class="font-bold text-primary text-lg">UGX 68,500</span>
+                                    <span class="cart-item-price font-bold text-primary text-lg">UGX 68,500</span>
                                     <button class="remove-from-cart text-red-500 hover:text-red-700">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -565,39 +476,39 @@
                                     <input type="file" id="profile-pic-input" accept="image/*">
                                 </div>
                                 <div>
-                                    <h4 class="text-xl font-bold">Sarah Johnson</h4>
-                                    <p class="text-gray-600">Premium Member</p>
-                                    <p class="text-gray-600">Joined October 2022</p>
+                                    <h4 class="text-xl font-bold" id="profile-fullname">Loading...</h4>
+                                    <p class="text-gray-600" id="profile-tier">Herbal Enthusiast</p>
+                                    <p class="text-gray-600" id="profile-joined">Joined recently</p>
                                 </div>
                             </div>
                             <form class="space-y-6 profile-form">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label class="block text-gray-700 mb-2">First Name</label>
-                                        <input type="text" value="Sarah"
+                                        <input type="text" id="profile-first-name"
                                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
                                     </div>
                                     <div>
                                         <label class="block text-gray-700 mb-2">Last Name</label>
-                                        <input type="text" value="Johnson"
+                                        <input type="text" id="profile-last-name"
                                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-gray-700 mb-2">Email</label>
-                                    <input type="email" value="sarah.johnson@example.com"
-                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
+                                    <input type="email" id="profile-email"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary" disabled>
                                 </div>
                                 <div>
                                     <label class="block text-gray-700 mb-2">Phone</label>
-                                    <input type="tel" value="+256 712 345 678"
+                                    <input type="tel" id="profile-phone"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary">
                                 </div>
                                 <div>
                                     <label class="block text-gray-700 mb-2">Bio</label>
-                                    <textarea
+                                    <textarea id="profile-bio"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-secondary"
-                                        rows="4">I'm passionate about natural remedies and holistic wellness. I love exploring different herbal products to support my health journey.</textarea>
+                                        rows="4" placeholder="Tell sellers more about yourself"></textarea>
                                 </div>
                                 <div class="flex space-x-4">
                                     <button type="submit"
@@ -828,6 +739,325 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // --- Application State ---
+            const apiState = {
+                supabaseClient: null,
+                user: null,
+                appToken: null,
+                dashboard: null,
+                profilePictureCacheKey: null
+            };
+
+            const ORDERS_ENDPOINT = 'http://localhost:3001/api/orders/buyer/dashboard';
+            const PROFILE_ENDPOINT = 'http://localhost:3001/api/users/profile';
+
+            // --- DOM helpers ---
+            const formatCurrency = (amount) => {
+                if (Number.isNaN(amount) || amount === null || amount === undefined) return 'UGX 0';
+                return 'UGX ' + Number(amount).toLocaleString('en-US');
+            };
+
+            const formatDate = (value) => {
+                if (!value) return 'Unknown date';
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) return value;
+                return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            };
+
+            const setText = (selector, text) => {
+                const el = document.querySelector(selector);
+                if (el) el.textContent = text;
+            };
+
+            const setImage = (selector, src, fallback) => {
+                const el = document.querySelector(selector);
+                if (el && src) {
+                    el.src = src;
+                } else if (el && fallback) {
+                    el.src = fallback;
+                }
+            };
+
+            const createStatusBadge = (status) => {
+                const span = document.createElement('span');
+                span.className = 'px-3 py-1 rounded-full text-sm';
+                const s = String(status || '').toLowerCase();
+                span.textContent = status || 'Unknown';
+                const map = {
+                    pending: 'bg-yellow-100 text-yellow-700',
+                    confirmed: 'bg-blue-100 text-blue-700',
+                    processing: 'bg-blue-100 text-blue-700',
+                    shipped: 'bg-blue-100 text-blue-700',
+                    delivered: 'bg-green-100 text-green-800',
+                    cancelled: 'bg-red-100 text-red-700'
+                };
+                span.className += ' ' + (map[s] || 'bg-gray-100 text-gray-600');
+                return span;
+            };
+
+            const persistProfilePicture = (userId, dataUrl) => {
+                if (!userId || !dataUrl) return;
+                try {
+                    localStorage.setItem(`buyerProfilePicture_${userId}`, dataUrl);
+                } catch { /* ignore */ }
+            };
+
+            const loadPersistedProfilePicture = (userId) => {
+                if (!userId) return null;
+                try {
+                    return localStorage.getItem(`buyerProfilePicture_${userId}`);
+                } catch {
+                    return null;
+                }
+            };
+
+            const authHeader = () => {
+                if (!apiState.appToken) return {};
+                return { 'Authorization': `Bearer ${apiState.appToken}` };
+            };
+
+            // --- Supabase initialization ---
+            async function initializeSupabaseOnce() {
+                if (apiState.supabaseClient) return apiState.supabaseClient;
+                if (!window.supabase) {
+                    throw new Error('Supabase SDK failed to load.');
+                }
+
+                const credsRes = await fetch('http://localhost:3001/api/session/public');
+                if (!credsRes.ok) {
+                    throw new Error('Unable to load Supabase credentials');
+                }
+                const credsJson = await credsRes.json();
+                const url = credsJson?.data?.SUPABASE_URL;
+                const anon = credsJson?.data?.SUPABASE_ANON_KEY;
+                if (!url || !anon) {
+                    throw new Error('Supabase credentials missing');
+                }
+
+                apiState.supabaseClient = window.supabase.createClient(url, anon);
+                return apiState.supabaseClient;
+            }
+
+            async function ensureSessionTokens() {
+                const sb = await initializeSupabaseOnce();
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session?.access_token) {
+                    throw new Error('Please sign in to view your buyer dashboard.');
+                }
+
+                apiState.user = session.user;
+                localStorage.setItem('buyerSupabaseToken', session.access_token);
+
+                // Exchange for app JWT if not already stored
+                const existingJwt = localStorage.getItem('token');
+                if (existingJwt) {
+                    apiState.appToken = existingJwt;
+                    return;
+                }
+
+                const exchangeRes = await fetch('http://localhost:3001/api/session/exchange', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_token: session.access_token })
+                });
+
+                if (!exchangeRes.ok) {
+                    throw new Error('Failed to exchange session token.');
+                }
+
+                const exchangeJson = await exchangeRes.json();
+                const token = exchangeJson?.data?.token;
+                if (!token) {
+                    throw new Error('App token missing from exchange response.');
+                }
+                apiState.appToken = token;
+                localStorage.setItem('token', token);
+            }
+
+            async function fetchBuyerProfile() {
+                const res = await fetch(PROFILE_ENDPOINT, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...authHeader()
+                    }
+                });
+                if (!res.ok) {
+                    throw new Error('Unable to load profile');
+                }
+                const json = await res.json();
+                return json?.data?.user || null;
+            }
+
+            async function fetchBuyerOrders() {
+                const res = await fetch(ORDERS_ENDPOINT, { headers: authHeader() });
+                if (!res.ok) {
+                    throw new Error('Unable to load orders');
+                }
+                const json = await res.json();
+                return json?.data || { stats: {}, recentOrders: [], orders: [] };
+            }
+
+            // --- Rendering helpers ---
+            function renderProfile(profile) {
+                if (!profile) return;
+
+                const fullName = profile.name || apiState.user?.user_metadata?.full_name || apiState.user?.email?.split('@')[0] || 'Buyer';
+                const nameParts = fullName.split(' ');
+                const firstName = document.getElementById('profile-first-name');
+                const lastName = document.getElementById('profile-last-name');
+                if (firstName) firstName.value = nameParts[0] || '';
+                if (lastName) lastName.value = nameParts.slice(1).join(' ');
+
+                setText('#profile-fullname', fullName);
+                setText('#header-user-name', fullName);
+                setText('#sidebar-user-name', fullName);
+
+                const email = profile.email || apiState.user?.email || '';
+                setText('#header-user-email', email || '');
+                const emailInput = document.getElementById('profile-email');
+                if (emailInput) emailInput.value = email;
+
+                const phoneInput = document.getElementById('profile-phone');
+                if (phoneInput) phoneInput.value = profile.phone || '';
+
+                const bioTextarea = document.getElementById('profile-bio');
+                if (bioTextarea) bioTextarea.value = profile.bio || '';
+
+                setText('#profile-tier', profile.membership_tier || 'Herbal Enthusiast');
+                if (profile.created_at) {
+                    setText('#profile-joined', `Joined ${formatDate(profile.created_at)}`);
+                }
+
+                const persistedPic = loadPersistedProfilePicture(profile.id);
+                const profilePic = profile.profile_picture || persistedPic;
+                setImage('#profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
+                setImage('#sidebar-profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
+                setImage('#header-profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
+
+                apiState.profilePictureCacheKey = profile.id;
+            }
+
+            function renderStats(stats) {
+                setText('#stat-active-orders', stats?.activeOrders ?? 0);
+                setText('#stat-total-orders', stats?.totalOrders ?? 0);
+                setText('#stat-items-purchased', stats?.itemsPurchased ?? 0);
+                setText('#stat-total-spent', formatCurrency(stats?.totalSpent ?? 0));
+            }
+
+            function renderRecentOrders(orders) {
+                const container = document.getElementById('recent-orders');
+                const emptyState = document.getElementById('recent-orders-empty');
+                if (!container) return;
+
+                container.innerHTML = '';
+                if (!orders || orders.length === 0) {
+                    if (emptyState) emptyState.style.display = 'block';
+                    container.appendChild(emptyState);
+                    return;
+                }
+
+                if (emptyState) emptyState.style.display = 'none';
+
+                orders.forEach((order) => {
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50';
+
+                    const left = document.createElement('div');
+                    left.innerHTML = `<p class="font-medium">${order.orderNumber || order.id}</p>
+                        <p class="text-sm text-gray-600">${formatDate(order.createdAt)}</p>`;
+
+                    const right = document.createElement('div');
+                    right.className = 'text-right';
+                    right.innerHTML = `<p class="font-medium">${formatCurrency(order.totalAmount)}</p>`;
+                    right.appendChild(createStatusBadge(order.status));
+
+                    row.appendChild(left);
+                    row.appendChild(right);
+                    container.appendChild(row);
+                });
+            }
+
+            function renderOrdersTable(orders) {
+                const tbody = document.getElementById('orders-table-body');
+                const emptyRow = document.getElementById('orders-empty-row');
+                if (!tbody) return;
+
+                tbody.innerHTML = '';
+                if (!orders || orders.length === 0) {
+                    if (emptyRow) tbody.appendChild(emptyRow);
+                    return;
+                }
+
+                orders.forEach((order) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-gray-100 hover:bg-gray-50';
+
+                    const itemsList = (order.items || []).map((item) => `${item.name} × ${item.quantity}`).join(', ');
+
+                    tr.innerHTML = `
+                        <td class="py-4">${order.orderNumber || order.id}</td>
+                        <td class="py-4">${formatDate(order.createdAt)}</td>
+                        <td class="py-4">${itemsList || '—'}</td>
+                        <td class="py-4 font-medium">${formatCurrency(order.totalAmount)}</td>
+                        <td class="py-4"></td>
+                        <td class="py-4">
+                            <button class="text-secondary hover:text-primary font-medium" data-order-id="${order.id}">View Details</button>
+                        </td>
+                    `;
+
+                    const statusCell = tr.children[4];
+                    statusCell.appendChild(createStatusBadge(order.status));
+
+                    tbody.appendChild(tr);
+                });
+
+                tbody.querySelectorAll('button[data-order-id]').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        alert('Order detail modal coming soon.');
+                    });
+                });
+            }
+
+            function renderDashboard(data) {
+                renderStats(data?.stats || {});
+                renderRecentOrders(data?.recentOrders || []);
+                renderOrdersTable(data?.orders || []);
+            }
+
+            async function loadDashboard() {
+                try {
+                    await ensureSessionTokens();
+                    const profile = await fetchBuyerProfile();
+                    renderProfile(profile);
+
+                    const dashboard = await fetchBuyerOrders();
+                    apiState.dashboard = dashboard;
+                    renderDashboard(dashboard);
+
+                    toggleLoading(false);
+                } catch (error) {
+                    console.error('Buyer dashboard error:', error);
+                    toggleLoading(false);
+                    showErrorToast(error.message || 'Failed to load dashboard');
+                }
+            }
+
+            function toggleLoading(isLoading) {
+                setText('#stat-active-orders', isLoading ? '…' : document.getElementById('stat-active-orders').textContent);
+                setText('#stat-total-orders', isLoading ? '…' : document.getElementById('stat-total-orders').textContent);
+                setText('#stat-items-purchased', isLoading ? '…' : document.getElementById('stat-items-purchased').textContent);
+                if (isLoading) {
+                    setText('#stat-total-spent', 'Loading…');
+                }
+            }
+
+            function showErrorToast(message) {
+                console.warn(message);
+                alert(message);
+            }
+
+            // --- Event wiring adjustments ---
+
             // Navigation functionality
             const navItems = document.querySelectorAll('.nav-item');
             const contentSections = document.querySelectorAll('.content-section');
@@ -872,13 +1102,25 @@
             });
 
             // Logout functionality
-            document.getElementById('logout-btn').addEventListener('click', function (e) {
+            document.getElementById('logout-btn').addEventListener('click', async function (e) {
                 e.preventDefault();
-                if (confirm('Are you sure you want to log out?')) {
-                    alert('You have been logged out successfully.');
-                    // In a real application, you would redirect to login page
-                    // window.location.href = '/login';
-                }
+                if (!confirm('Are you sure you want to log out?')) return;
+
+                const logoutBtn = this;
+                const original = logoutBtn.innerHTML;
+                logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span> Logging out...</span>';
+
+                try {
+                    const sb = await initializeSupabaseOnce();
+                    await sb.auth.signOut();
+                } catch { /* ignore */ }
+
+                ['buyerSupabaseToken', 'token'].forEach((key) => {
+                    try { localStorage.removeItem(key); } catch { }
+                });
+
+                window.location.href = '/login';
+                setTimeout(() => { logoutBtn.innerHTML = original; }, 2000);
             });
 
             // Profile picture functionality
@@ -902,8 +1144,9 @@
                         // Update profile picture in sidebar
                         sidebarProfilePic.src = e.target.result;
 
-                        // In a real app, you would upload the image to your server here
-                        alert('Profile picture updated successfully!');
+                        if (apiState.profilePictureCacheKey) {
+                            persistProfilePicture(apiState.profilePictureCacheKey, e.target.result);
+                        }
                     }
 
                     reader.readAsDataURL(e.target.files[0]);
@@ -962,18 +1205,24 @@
             // Update cart totals
             function updateCartTotals() {
                 let subtotal = 0;
-                document.querySelectorAll('.flex.items-center.justify-between.p-4').forEach(item => {
-                    const quantity = parseInt(item.querySelector('.quantity').textContent);
-                    const priceText = item.querySelector('.font-bold.text-primary').textContent;
-                    const price = parseFloat(priceText.replace('UGX ', '').replace(/,/g, ''));
+                document.querySelectorAll('.cart-item').forEach(item => {
+                    const quantityEl = item.querySelector('.quantity');
+                    const priceEl = item.querySelector('.cart-item-price');
+                    if (!quantityEl || !priceEl) return;
+
+                    const quantity = parseInt(quantityEl.textContent || '0', 10) || 0;
+                    const priceText = priceEl.textContent || 'UGX 0';
+                    const price = parseFloat(priceText.replace('UGX', '').replace(/[,\s]/g, '')) || 0;
                     subtotal += quantity * price;
                 });
 
                 const shipping = 18500;
                 const total = subtotal + shipping;
 
-                document.querySelector('.cart-subtotal').textContent = formatUGX(subtotal);
-                document.querySelector('.cart-total').textContent = formatUGX(total);
+                const subtotalEl = document.querySelector('.cart-subtotal');
+                const totalEl = document.querySelector('.cart-total');
+                if (subtotalEl) subtotalEl.textContent = formatUGX(subtotal);
+                if (totalEl) totalEl.textContent = formatUGX(total);
             }
 
             // Increase quantity
@@ -1026,9 +1275,31 @@
             });
 
             // Profile form submission
-            document.querySelector('.profile-form').addEventListener('submit', function (e) {
+            document.querySelector('.profile-form').addEventListener('submit', async function (e) {
                 e.preventDefault();
-                alert('Profile updated successfully!');
+                try {
+                    const payload = {
+                        name: `${document.getElementById('profile-first-name').value || ''} ${document.getElementById('profile-last-name').value || ''}`.trim(),
+                        phone: document.getElementById('profile-phone').value || null,
+                        bio: document.getElementById('profile-bio').value || null
+                    };
+
+                    const res = await fetch(PROFILE_ENDPOINT, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...authHeader()
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) throw new Error('Failed to update profile');
+                    const json = await res.json();
+                    renderProfile(json?.data?.user || apiState.user);
+                    alert('Profile updated successfully!');
+                } catch (err) {
+                    alert(err.message || 'Profile update failed');
+                }
             });
 
             // Cancel profile changes
@@ -1104,12 +1375,29 @@
                 alert('This would navigate to the products page in a real app.');
             });
 
-            // View order details
-            document.querySelectorAll('.view-order-details').forEach(button => {
-                button.addEventListener('click', function () {
-                    alert('This would show order details in a real app.');
-                });
-            });
+            // Load authenticated dashboard
+            (async () => {
+                try {
+                    toggleLoading(true);
+                    await loadDashboard();
+
+                    const sb = await initializeSupabaseOnce();
+                    sb.auth.onAuthStateChange(async (_event, session) => {
+                        if (!session?.access_token) {
+                            localStorage.removeItem('buyerSupabaseToken');
+                            localStorage.removeItem('token');
+                            window.location.href = '/login';
+                            return;
+                        }
+                        localStorage.setItem('buyerSupabaseToken', session.access_token);
+                        localStorage.removeItem('token');
+                        apiState.appToken = null;
+                        await loadDashboard();
+                    });
+                } catch (err) {
+                    console.error(err);
+                }
+            })();
 
             // Toggle switch functionality
             const toggleSwitches = document.querySelectorAll('input[type="checkbox"]');

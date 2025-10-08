@@ -7,7 +7,7 @@ const Order = sequelize.define('Order', {
     defaultValue: DataTypes.UUIDV4,
     primaryKey: true
   },
-  userId: {
+  buyerId: {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
@@ -187,7 +187,7 @@ const Order = sequelize.define('Order', {
     }
   },
   indexes: [
-    { fields: ['userId'] },
+    { fields: ['buyerId'] },
     { fields: ['orderNumber'] },
     { fields: ['status'] },
     { fields: ['paymentStatus'] },

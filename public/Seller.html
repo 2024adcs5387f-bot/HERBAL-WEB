@@ -913,7 +913,7 @@
                         <i class="fas fa-shopping-cart"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>42</h3>
+                        <h3 id="new-orders">0</h3>
                         <p>New Orders</p>
                     </div>
                 </div>
@@ -922,7 +922,7 @@
                         <i class="fas fa-dollar-sign"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>UGX 10,452,000</h3>
+                        <h3 id="total-revenue">UGX 0</h3>
                         <p>Total Revenue</p>
                     </div>
                 </div>
@@ -931,7 +931,7 @@
                         <i class="fas fa-box"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="total-products">28</h3>
+                        <h3 id="total-products">0</h3>
                         <p>Products</p>
                     </div>
                 </div>
@@ -940,7 +940,7 @@
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>156</h3>
+                        <h3 id="total-customers">0</h3>
                         <p>Customers</p>
                     </div>
                 </div>
@@ -1108,7 +1108,7 @@
                         <i class="fas fa-chart-line"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="sales-growth">+15%</h3>
+                        <h3 id="sales-growth">0%</h3>
                         <p>Sales Growth</p>
                     </div>
                 </div>
@@ -1117,7 +1117,7 @@
                         <i class="fas fa-user-plus"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="new-customers">24</h3>
+                        <h3 id="new-customers">0</h3>
                         <p>New Customers</p>
                     </div>
                 </div>
@@ -1126,7 +1126,7 @@
                         <i class="fas fa-star"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="avg-rating">4.8</h3>
+                        <h3 id="avg-rating">0.0</h3>
                         <p>Average Rating</p>
                     </div>
                 </div>
@@ -1561,39 +1561,79 @@
         // Chart variables
         let salesChartInstance = null;
 
-        // Sales data (in a real app, this would come from an API)
+        // Initialize dashboard stats with zero values
+        function initializeDashboardStats() {
+            document.getElementById('new-orders').textContent = '0';
+            document.getElementById('total-revenue').textContent = 'UGX 0';
+            document.getElementById('total-products').textContent = '0';
+            document.getElementById('total-customers').textContent = '0';
+            document.getElementById('sales-growth').textContent = '0%';
+            document.getElementById('new-customers').textContent = '0';
+            document.getElementById('avg-rating').textContent = '0.0';
+        }
+
+        // Calculate dashboard stats based on seller's actual data
+        async function updateDashboardStats() {
+            try {
+                // Get seller's products count
+                const products = await fetchSellerProducts();
+                document.getElementById('total-products').textContent = String(products.length);
+
+                // TODO: Fetch actual orders, revenue, and customer data from API
+                // For now, calculate based on available data
+                const totalRevenue = products.reduce((sum, product) => {
+                    return sum + (product.price * (product.sold_count || 0));
+                }, 0);
+                
+                document.getElementById('total-revenue').textContent = `UGX ${totalRevenue.toLocaleString()}`;
+                
+                // Update other stats only if seller has products and sales
+                if (products.length > 0 && totalRevenue > 0) {
+                    // Calculate basic stats from products
+                    const totalSold = products.reduce((sum, product) => sum + (product.sold_count || 0), 0);
+                    const avgRating = products.reduce((sum, product) => sum + (product.rating || 0), 0) / products.length;
+                    
+                    document.getElementById('new-orders').textContent = String(totalSold);
+                    document.getElementById('avg-rating').textContent = avgRating.toFixed(1);
+                }
+            } catch (error) {
+                console.error('Error updating dashboard stats:', error);
+            }
+        }
+
+        // Sales data (calculated from actual seller data, defaults to zero)
         const salesData = {
             '7': {
                 labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                data: [125000, 189000, 152000, 218000, 195000, 267000, 234000],
-                growth: '+15%',
-                customers: 8,
-                rating: 4.8,
-                orders: 42
+                data: [0, 0, 0, 0, 0, 0, 0],
+                growth: '0%',
+                customers: 0,
+                rating: 0.0,
+                orders: 0
             },
             '30': {
                 labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                data: [856000, 924000, 1023000, 1105000],
-                growth: '+12%',
-                customers: 24,
-                rating: 4.7,
-                orders: 156
+                data: [0, 0, 0, 0],
+                growth: '0%',
+                customers: 0,
+                rating: 0.0,
+                orders: 0
             },
             '90': {
                 labels: ['Month 1', 'Month 2', 'Month 3'],
-                data: [3250000, 3890000, 4250000],
-                growth: '+18%',
-                customers: 67,
-                rating: 4.8,
-                orders: 423
+                data: [0, 0, 0],
+                growth: '0%',
+                customers: 0,
+                rating: 0.0,
+                orders: 0
             },
             '365': {
                 labels: ['Q1', 'Q2', 'Q3', 'Q4'],
-                data: [9850000, 11200000, 12450000, 13800000],
-                growth: '+22%',
-                customers: 156,
-                rating: 4.8,
-                orders: 1256
+                data: [0, 0, 0, 0],
+                growth: '0%',
+                customers: 0,
+                rating: 0.0,
+                orders: 0
             }
         };
 
@@ -1791,6 +1831,9 @@
             });
             const totalEl = document.getElementById('total-products');
             if (totalEl) totalEl.textContent = String(products.length);
+            
+            // Update dashboard stats after rendering products
+            await updateDashboardStats();
         }
 
         // ========== IMAGE UPLOAD FUNCTIONS ==========
