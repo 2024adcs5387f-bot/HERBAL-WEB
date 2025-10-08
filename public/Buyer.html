@@ -738,401 +738,782 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // --- Application State ---
-            const apiState = {
-                supabaseClient: null,
-                user: null,
-                appToken: null,
-                dashboard: null,
-                profilePictureCacheKey: null
-            };
 
-            const ORDERS_ENDPOINT = 'http://localhost:3001/api/orders/buyer/dashboard';
-            const PROFILE_ENDPOINT = 'http://localhost:3001/api/users/profile';
+    document.addEventListener('DOMContentLoaded', function () {
+        // --- Application State ---
+        const apiState = {
+            supabaseClient: null,
+            user: null,
+            appToken: null,
+            dashboard: null,
+            profilePictureCacheKey: null,
+            useBackendAPIs: false // Keep disabled until backend is fixed
+        };
 
-            // --- DOM helpers ---
-            const formatCurrency = (amount) => {
-                if (Number.isNaN(amount) || amount === null || amount === undefined) return 'UGX 0';
-                return 'UGX ' + Number(amount).toLocaleString('en-US');
-            };
+        const API_BASE_URL = 'http://localhost:3001/api';
 
-            const formatDate = (value) => {
-                if (!value) return 'Unknown date';
-                const date = new Date(value);
-                if (Number.isNaN(date.getTime())) return value;
-                return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-            };
+        // --- Global Supabase Instance Management ---
+        let supabaseInitialized = false;
 
-            const setText = (selector, text) => {
-                const el = document.querySelector(selector);
-                if (el) el.textContent = text;
-            };
+        // --- Token Management ---
+        const clearTokens = () => {
+            ['token', 'appToken', 'buyerToken', 'buyerSupabaseToken'].forEach(key => {
+                localStorage.removeItem(key);
+            });
+            apiState.appToken = null;
+        };
 
-            const setImage = (selector, src, fallback) => {
-                const el = document.querySelector(selector);
-                if (el && src) {
-                    el.src = src;
-                } else if (el && fallback) {
-                    el.src = fallback;
-                }
-            };
-
-            const createStatusBadge = (status) => {
-                const span = document.createElement('span');
-                span.className = 'px-3 py-1 rounded-full text-sm';
-                const s = String(status || '').toLowerCase();
-                span.textContent = status || 'Unknown';
-                const map = {
-                    pending: 'bg-yellow-100 text-yellow-700',
-                    confirmed: 'bg-blue-100 text-blue-700',
-                    processing: 'bg-blue-100 text-blue-700',
-                    shipped: 'bg-blue-100 text-blue-700',
-                    delivered: 'bg-green-100 text-green-800',
-                    cancelled: 'bg-red-100 text-red-700'
-                };
-                span.className += ' ' + (map[s] || 'bg-gray-100 text-gray-600');
-                return span;
-            };
-
-            const persistProfilePicture = (userId, dataUrl) => {
-                if (!userId || !dataUrl) return;
-                try {
-                    localStorage.setItem(`buyerProfilePicture_${userId}`, dataUrl);
-                } catch { /* ignore */ }
-            };
-
-            const loadPersistedProfilePicture = (userId) => {
-                if (!userId) return null;
-                try {
-                    return localStorage.getItem(`buyerProfilePicture_${userId}`);
-                } catch {
-                    return null;
-                }
-            };
-
-            const authHeader = () => {
-                if (!apiState.appToken) return {};
-                return { 'Authorization': `Bearer ${apiState.appToken}` };
-            };
-
-            // --- Supabase initialization ---
-            async function initializeSupabaseOnce() {
-                if (apiState.supabaseClient) return apiState.supabaseClient;
-                if (!window.supabase) {
-                    throw new Error('Supabase SDK failed to load.');
-                }
-
-                const credsRes = await fetch('http://localhost:3001/api/session/public');
-                if (!credsRes.ok) {
-                    throw new Error('Unable to load Supabase credentials');
-                }
-                const credsJson = await credsRes.json();
-                const url = credsJson?.data?.SUPABASE_URL;
-                const anon = credsJson?.data?.SUPABASE_ANON_KEY;
-                if (!url || !anon) {
-                    throw new Error('Supabase credentials missing');
-                }
-
-                apiState.supabaseClient = window.supabase.createClient(url, anon);
+        // --- Fixed Supabase Initialization ---
+        async function initializeSupabaseOnce() {
+            if (apiState.supabaseClient && supabaseInitialized) {
                 return apiState.supabaseClient;
             }
 
-            async function ensureSessionTokens() {
-                const sb = await initializeSupabaseOnce();
-                const { data: { session } } = await sb.auth.getSession();
-                if (!session?.access_token) {
-                    throw new Error('Please sign in to view your buyer dashboard.');
-                }
-
-                apiState.user = session.user;
-                localStorage.setItem('buyerSupabaseToken', session.access_token);
-
-                // Exchange for app JWT if not already stored
-                const existingJwt = localStorage.getItem('token');
-                if (existingJwt) {
-                    apiState.appToken = existingJwt;
-                    return;
-                }
-
-                const exchangeRes = await fetch('http://localhost:3001/api/session/exchange', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ access_token: session.access_token })
-                });
-
-                if (!exchangeRes.ok) {
-                    throw new Error('Failed to exchange session token.');
-                }
-
-                const exchangeJson = await exchangeRes.json();
-                const token = exchangeJson?.data?.token;
-                if (!token) {
-                    throw new Error('App token missing from exchange response.');
-                }
-                apiState.appToken = token;
-                localStorage.setItem('token', token);
+            if (!window.supabase) {
+                throw new Error('Supabase SDK failed to load.');
             }
 
-            async function fetchBuyerProfile() {
-                const res = await fetch(PROFILE_ENDPOINT, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...authHeader()
+            try {
+                // Use your actual Supabase credentials directly
+                const supabaseUrl = 'https://kokyrsjlduyngftmqybw.supabase.co'; // REPLACE WITH YOUR URL
+                const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtva3lyc2psZHV5bmdmdG1xeWJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3NjMyODQsImV4cCI6MjA3MTMzOTI4NH0.038pY0UYUNUE4zPuKdHzOl1z-Bt57DjeiasQILkM8Qc'; // REPLACE WITH YOUR KEY
+
+                if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project')) {
+                    throw new Error('Please set your Supabase credentials in the code');
+                }
+
+                // Create single instance
+                apiState.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseAnonKey, {
+                    auth: {
+                        persistSession: true,
+                        autoRefreshToken: true,
+                        detectSessionInUrl: true
                     }
                 });
-                if (!res.ok) {
-                    throw new Error('Unable to load profile');
-                }
-                const json = await res.json();
-                return json?.data?.user || null;
+
+                supabaseInitialized = true;
+                return apiState.supabaseClient;
+
+            } catch (error) {
+                console.error('Supabase initialization failed:', error);
+                throw error;
+            }
+        }
+
+        // --- Simplified Session Management ---
+        async function ensureSessionTokens() {
+            const sb = await initializeSupabaseOnce();
+            const { data: { session }, error } = await sb.auth.getSession();
+            
+            if (error || !session?.access_token) {
+                throw new Error('Please sign in to view your buyer dashboard.');
             }
 
-            async function fetchBuyerOrders() {
-                const res = await fetch(ORDERS_ENDPOINT, { headers: authHeader() });
-                if (!res.ok) {
-                    throw new Error('Unable to load orders');
-                }
-                const json = await res.json();
-                return json?.data || { stats: {}, recentOrders: [], orders: [] };
-            }
+            apiState.user = session.user;
+            localStorage.setItem('buyerSupabaseToken', session.access_token);
 
-            // --- Rendering helpers ---
-            function renderProfile(profile) {
-                if (!profile) return;
+            console.log('User authenticated:', apiState.user.email);
+        }
 
-                const fullName = profile.name || apiState.user?.user_metadata?.full_name || apiState.user?.email?.split('@')[0] || 'Buyer';
-                const nameParts = fullName.split(' ');
-                const firstName = document.getElementById('profile-first-name');
-                const lastName = document.getElementById('profile-last-name');
-                if (firstName) firstName.value = nameParts[0] || '';
-                if (lastName) lastName.value = nameParts.slice(1).join(' ');
+        // --- Real Data Fetching from Supabase ---
+        async function fetchBuyerProfile() {
+            try {
+                const sb = await initializeSupabaseOnce();
+                
+                // Get user data from Supabase Auth
+                const { data: { user }, error } = await sb.auth.getUser();
+                if (error) throw error;
 
-                setText('#profile-fullname', fullName);
-                setText('#header-user-name', fullName);
-                setText('#sidebar-user-name', fullName);
+                // Try to get additional profile data from your profiles table
+                const { data: profileData, error: profileError } = await sb
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
 
-                const email = profile.email || apiState.user?.email || '';
-                setText('#header-user-email', email || '');
-                const emailInput = document.getElementById('profile-email');
-                if (emailInput) emailInput.value = email;
-
-                const phoneInput = document.getElementById('profile-phone');
-                if (phoneInput) phoneInput.value = profile.phone || '';
-
-                const bioTextarea = document.getElementById('profile-bio');
-                if (bioTextarea) bioTextarea.value = profile.bio || '';
-
-                setText('#profile-tier', profile.membership_tier || 'Herbal Enthusiast');
-                if (profile.created_at) {
-                    setText('#profile-joined', `Joined ${formatDate(profile.created_at)}`);
-                }
-
-                const persistedPic = loadPersistedProfilePicture(profile.id);
-                const profilePic = profile.profile_picture || persistedPic;
-                setImage('#profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
-                setImage('#sidebar-profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
-                setImage('#header-profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
-
-                apiState.profilePictureCacheKey = profile.id;
-            }
-
-            function renderStats(stats) {
-                setText('#stat-active-orders', stats?.activeOrders ?? 0);
-                setText('#stat-total-orders', stats?.totalOrders ?? 0);
-                setText('#stat-items-purchased', stats?.itemsPurchased ?? 0);
-                setText('#stat-total-spent', formatCurrency(stats?.totalSpent ?? 0));
-            }
-
-            function renderRecentOrders(orders) {
-                const container = document.getElementById('recent-orders');
-                const emptyState = document.getElementById('recent-orders-empty');
-                if (!container) return;
-
-                container.innerHTML = '';
-                if (!orders || orders.length === 0) {
-                    if (emptyState) emptyState.style.display = 'block';
-                    container.appendChild(emptyState);
-                    return;
+                // If profile doesn't exist yet, create a basic one from auth data
+                if (profileError && profileError.code === 'PGRST116') {
+                    console.log('No profile found, using auth data');
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.user_metadata?.full_name || 
+                              user.user_metadata?.name ||
+                              user.email?.split('@')[0] || 
+                              'Buyer',
+                        phone: user.user_metadata?.phone || '',
+                        bio: '',
+                        created_at: user.created_at,
+                        updated_at: user.updated_at
+                    };
                 }
 
-                if (emptyState) emptyState.style.display = 'none';
+                if (profileError) throw profileError;
 
-                orders.forEach((order) => {
-                    const row = document.createElement('div');
-                    row.className = 'flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50';
+                return {
+                    id: user.id,
+                    email: user.email,
+                    name: profileData.name || user.user_metadata?.full_name || user.email?.split('@')[0],
+                    phone: profileData.phone || user.user_metadata?.phone || '',
+                    bio: profileData.bio || '',
+                    profile_picture: profileData.profile_picture,
+                    created_at: profileData.created_at || user.created_at,
+                    updated_at: profileData.updated_at
+                };
 
-                    const left = document.createElement('div');
-                    left.innerHTML = `<p class="font-medium">${order.orderNumber || order.id}</p>
-                        <p class="text-sm text-gray-600">${formatDate(order.createdAt)}</p>`;
-
-                    const right = document.createElement('div');
-                    right.className = 'text-right';
-                    right.innerHTML = `<p class="font-medium">${formatCurrency(order.totalAmount)}</p>`;
-                    right.appendChild(createStatusBadge(order.status));
-
-                    row.appendChild(left);
-                    row.appendChild(right);
-                    container.appendChild(row);
-                });
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+                // Fallback to basic auth data
+                if (apiState.user) {
+                    return {
+                        id: apiState.user.id,
+                        email: apiState.user.email,
+                        name: apiState.user.user_metadata?.full_name || apiState.user.email?.split('@')[0] || 'Buyer',
+                        phone: '',
+                        bio: '',
+                        created_at: apiState.user.created_at
+                    };
+                }
+                throw error;
             }
+        }
 
-            function renderOrdersTable(orders) {
-                const tbody = document.getElementById('orders-table-body');
-                const emptyRow = document.getElementById('orders-empty-row');
-                if (!tbody) return;
+        async function fetchBuyerOrders() {
+            try {
+                const sb = await initializeSupabaseOnce();
+                
+                // Fetch real orders from your orders table
+                const { data: orders, error } = await sb
+                    .from('orders')
+                    .select(`
+                        *,
+                        order_items (
+                            product:products (name, price),
+                            quantity
+                        )
+                    `)
+                    .eq('user_id', apiState.user.id)
+                    .order('created_at', { ascending: false });
 
-                tbody.innerHTML = '';
-                if (!orders || orders.length === 0) {
-                    if (emptyRow) tbody.appendChild(emptyRow);
-                    return;
+                if (error) {
+                    console.error('Error fetching orders:', error);
+                    // Return empty data if table doesn't exist yet
+                    return {
+                        stats: { activeOrders: 0, totalOrders: 0, itemsPurchased: 0, totalSpent: 0 },
+                        recentOrders: [],
+                        orders: []
+                    };
                 }
 
-                orders.forEach((order) => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'border-b border-gray-100 hover:bg-gray-50';
+                // Calculate stats from real orders
+                const stats = calculateOrderStats(orders);
+                const recentOrders = orders.slice(0, 5); // Last 5 orders
 
-                    const itemsList = (order.items || []).map((item) => `${item.name} × ${item.quantity}`).join(', ');
+                return {
+                    stats,
+                    recentOrders: formatOrdersForDisplay(recentOrders),
+                    orders: formatOrdersForDisplay(orders)
+                };
 
-                    tr.innerHTML = `
-                        <td class="py-4">${order.orderNumber || order.id}</td>
-                        <td class="py-4">${formatDate(order.createdAt)}</td>
-                        <td class="py-4">${itemsList || '—'}</td>
-                        <td class="py-4 font-medium">${formatCurrency(order.totalAmount)}</td>
-                        <td class="py-4"></td>
-                        <td class="py-4">
-                            <button class="text-secondary hover:text-primary font-medium" data-order-id="${order.id}">View Details</button>
-                        </td>
-                    `;
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+                // Return empty data on error
+                return {
+                    stats: { activeOrders: 0, totalOrders: 0, itemsPurchased: 0, totalSpent: 0 },
+                    recentOrders: [],
+                    orders: []
+                };
+            }
+        }
 
-                    const statusCell = tr.children[4];
-                    statusCell.appendChild(createStatusBadge(order.status));
+        function calculateOrderStats(orders) {
+            if (!orders || orders.length === 0) {
+                return { activeOrders: 0, totalOrders: 0, itemsPurchased: 0, totalSpent: 0 };
+            }
 
-                    tbody.appendChild(tr);
-                });
+            const activeOrders = orders.filter(order => 
+                ['pending', 'confirmed', 'processing', 'shipped'].includes(order.status)
+            ).length;
 
-                tbody.querySelectorAll('button[data-order-id]').forEach((button) => {
-                    button.addEventListener('click', () => {
-                        alert('Order detail modal coming soon.');
+            const totalOrders = orders.length;
+
+            let itemsPurchased = 0;
+            let totalSpent = 0;
+
+            orders.forEach(order => {
+                if (order.order_items) {
+                    order.order_items.forEach(item => {
+                        itemsPurchased += item.quantity || 0;
+                        totalSpent += (item.product?.price || 0) * (item.quantity || 0);
                     });
-                });
-            }
-
-            function renderDashboard(data) {
-                renderStats(data?.stats || {});
-                renderRecentOrders(data?.recentOrders || []);
-                renderOrdersTable(data?.orders || []);
-            }
-
-            async function loadDashboard() {
-                try {
-                    await ensureSessionTokens();
-                    const profile = await fetchBuyerProfile();
-                    renderProfile(profile);
-
-                    const dashboard = await fetchBuyerOrders();
-                    apiState.dashboard = dashboard;
-                    renderDashboard(dashboard);
-
-                    toggleLoading(false);
-                } catch (error) {
-                    console.error('Buyer dashboard error:', error);
-                    toggleLoading(false);
-                    showErrorToast(error.message || 'Failed to load dashboard');
                 }
-            }
-
-            function toggleLoading(isLoading) {
-                setText('#stat-active-orders', isLoading ? '…' : document.getElementById('stat-active-orders').textContent);
-                setText('#stat-total-orders', isLoading ? '…' : document.getElementById('stat-total-orders').textContent);
-                setText('#stat-items-purchased', isLoading ? '…' : document.getElementById('stat-items-purchased').textContent);
-                if (isLoading) {
-                    setText('#stat-total-spent', 'Loading…');
+                // Fallback to order total if items aren't available
+                if (totalSpent === 0 && order.total_amount) {
+                    totalSpent = order.total_amount;
                 }
-            }
+            });
 
-            function showErrorToast(message) {
-                console.warn(message);
-                alert(message);
-            }
-
-            // --- Event wiring adjustments ---
-
-            // Navigation functionality
-            const navItems = document.querySelectorAll('.nav-item');
-            const contentSections = document.querySelectorAll('.content-section');
-            const pageTitle = document.getElementById('page-title');
-
-            // Page titles for each section
-            const pageTitles = {
-                'dashboard': 'Dashboard',
-                'orders': 'My Orders',
-                'wishlist': 'My Wishlist',
-                'cart': 'Shopping Cart',
-                'profile': 'My Profile',
-                'addresses': 'My Addresses',
-                'settings': 'Account Settings'
+            return {
+                activeOrders,
+                totalOrders,
+                itemsPurchased,
+                totalSpent
             };
+        }
 
-            // Navigation click handler
-            navItems.forEach(item => {
-                item.addEventListener('click', function (e) {
-                    e.preventDefault();
+        function formatOrdersForDisplay(orders) {
+            if (!orders) return [];
 
-                    // Remove active class from all nav items
-                    navItems.forEach(i => i.classList.remove('active'));
+            return orders.map(order => ({
+                id: order.id,
+                orderNumber: order.order_number || `ORD-${order.id.slice(-6)}`,
+                createdAt: order.created_at,
+                totalAmount: order.total_amount || 0,
+                status: order.status || 'pending',
+                items: order.order_items ? order.order_items.map(item => ({
+                    name: item.product?.name || 'Product',
+                    quantity: item.quantity || 1
+                })) : []
+            }));
+        }
 
-                    // Add active class to clicked nav item
-                    this.classList.add('active');
+        // --- DOM helpers ---
+        const formatCurrency = (amount) => {
+            if (Number.isNaN(amount) || amount === null || amount === undefined) return 'UGX 0';
+            return 'UGX ' + Number(amount).toLocaleString('en-US');
+        };
 
-                    // Get the target section
-                    const targetSection = this.getAttribute('data-section');
+        const formatDate = (value) => {
+            if (!value) return 'Unknown date';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return value;
+            return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        };
 
-                    // Hide all content sections
-                    contentSections.forEach(section => {
-                        section.classList.remove('active');
-                    });
+        const setText = (selector, text) => {
+            const el = document.querySelector(selector);
+            if (el) el.textContent = text;
+        };
 
-                    // Show the target section
-                    document.getElementById(targetSection).classList.add('active');
+        const setImage = (selector, src, fallback) => {
+            const el = document.querySelector(selector);
+            if (el && src) {
+                el.src = src;
+            } else if (el && fallback) {
+                el.src = fallback;
+            }
+        };
 
-                    // Update page title
-                    pageTitle.textContent = pageTitles[targetSection] || 'Herbal Wellness';
-                });
+        const createStatusBadge = (status) => {
+            const span = document.createElement('span');
+            span.className = 'px-3 py-1 rounded-full text-sm';
+            const s = String(status || '').toLowerCase();
+            span.textContent = status || 'Unknown';
+            const map = {
+                pending: 'bg-yellow-100 text-yellow-700',
+                confirmed: 'bg-blue-100 text-blue-700',
+                processing: 'bg-blue-100 text-blue-700',
+                shipped: 'bg-blue-100 text-blue-700',
+                delivered: 'bg-green-100 text-green-800',
+                cancelled: 'bg-red-100 text-red-700'
+            };
+            span.className += ' ' + (map[s] || 'bg-gray-100 text-gray-600');
+            return span;
+        };
+
+        const persistProfilePicture = (userId, dataUrl) => {
+            if (!userId || !dataUrl) return;
+            try {
+                localStorage.setItem(`buyerProfilePicture_${userId}`, dataUrl);
+            } catch { /* ignore */ }
+        };
+
+        const loadPersistedProfilePicture = (userId) => {
+            if (!userId) return null;
+            try {
+                return localStorage.getItem(`buyerProfilePicture_${userId}`);
+            } catch {
+                return null;
+            }
+        };
+
+        // --- Rendering helpers ---
+        function renderProfile(profile) {
+            if (!profile) return;
+
+            const fullName = profile.name || 'Buyer';
+            const nameParts = fullName.split(' ');
+            const firstName = document.getElementById('profile-first-name');
+            const lastName = document.getElementById('profile-last-name');
+            if (firstName) firstName.value = nameParts[0] || '';
+            if (lastName) lastName.value = nameParts.slice(1).join(' ');
+
+            setText('#profile-fullname', fullName);
+            setText('#header-user-name', fullName);
+            setText('#sidebar-user-name', fullName);
+
+            const email = profile.email || '';
+            setText('#header-user-email', email);
+            const emailInput = document.getElementById('profile-email');
+            if (emailInput) emailInput.value = email;
+
+            const phoneInput = document.getElementById('profile-phone');
+            if (phoneInput) phoneInput.value = profile.phone || '';
+
+            const bioTextarea = document.getElementById('profile-bio');
+            if (bioTextarea) bioTextarea.value = profile.bio || '';
+
+            setText('#profile-tier', 'Herbal Enthusiast');
+            if (profile.created_at) {
+                setText('#profile-joined', `Joined ${formatDate(profile.created_at)}`);
+            } else {
+                setText('#profile-joined', 'Welcome!');
+            }
+
+            const persistedPic = loadPersistedProfilePicture(profile.id);
+            const profilePic = profile.profile_picture || persistedPic;
+            setImage('#profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
+            setImage('#sidebar-profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
+            setImage('#header-profile-pic', profilePic, 'https://i.pravatar.cc/150?img=12');
+
+            apiState.profilePictureCacheKey = profile.id;
+        }
+
+        function renderStats(stats) {
+            setText('#stat-active-orders', stats?.activeOrders ?? 0);
+            setText('#stat-total-orders', stats?.totalOrders ?? 0);
+            setText('#stat-items-purchased', stats?.itemsPurchased ?? 0);
+            setText('#stat-total-spent', formatCurrency(stats?.totalSpent ?? 0));
+        }
+
+        function renderRecentOrders(orders) {
+            const container = document.getElementById('recent-orders');
+            const emptyState = document.getElementById('recent-orders-empty');
+            if (!container) return;
+
+            container.innerHTML = '';
+            if (!orders || orders.length === 0) {
+                if (emptyState) {
+                    emptyState.style.display = 'block';
+                    container.appendChild(emptyState);
+                }
+                return;
+            }
+
+            if (emptyState) emptyState.style.display = 'none';
+
+            orders.forEach((order) => {
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center p-3 border border-gray-100 rounded-lg hover:bg-gray-50';
+
+                const left = document.createElement('div');
+                left.innerHTML = `<p class="font-medium">${order.orderNumber || order.id}</p>
+                    <p class="text-sm text-gray-600">${formatDate(order.createdAt)}</p>`;
+
+                const right = document.createElement('div');
+                right.className = 'text-right';
+                right.innerHTML = `<p class="font-medium">${formatCurrency(order.totalAmount)}</p>`;
+                right.appendChild(createStatusBadge(order.status));
+
+                row.appendChild(left);
+                row.appendChild(right);
+                container.appendChild(row);
+            });
+        }
+
+        function renderOrdersTable(orders) {
+            const tbody = document.getElementById('orders-table-body');
+            const emptyRow = document.getElementById('orders-empty-row');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            if (!orders || orders.length === 0) {
+                if (emptyRow) tbody.appendChild(emptyRow);
+                return;
+            }
+
+            orders.forEach((order) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-100 hover:bg-gray-50';
+
+                const itemsList = (order.items || []).map((item) => `${item.name} × ${item.quantity}`).join(', ');
+
+                tr.innerHTML = `
+                    <td class="py-4">${order.orderNumber || order.id}</td>
+                    <td class="py-4">${formatDate(order.createdAt)}</td>
+                    <td class="py-4">${itemsList || '—'}</td>
+                    <td class="py-4 font-medium">${formatCurrency(order.totalAmount)}</td>
+                    <td class="py-4"></td>
+                    <td class="py-4">
+                        <button class="text-secondary hover:text-primary font-medium view-order-details" data-order-id="${order.id}">View Details</button>
+                    </td>
+                `;
+
+                const statusCell = tr.children[4];
+                statusCell.appendChild(createStatusBadge(order.status));
+
+                tbody.appendChild(tr);
             });
 
-            // Logout functionality
-            document.getElementById('logout-btn').addEventListener('click', async function (e) {
+            tbody.querySelectorAll('.view-order-details').forEach((button) => {
+                button.addEventListener('click', () => {
+                    const orderId = button.getAttribute('data-order-id');
+                    alert(`Order details for ${orderId} would show here.`);
+                });
+            });
+        }
+
+        function renderDashboard(data) {
+            renderStats(data?.stats || {});
+            renderRecentOrders(data?.recentOrders || []);
+            renderOrdersTable(data?.orders || []);
+        }
+
+        async function loadDashboard() {
+            try {
+                await ensureSessionTokens();
+                const profile = await fetchBuyerProfile();
+                renderProfile(profile);
+
+                const dashboard = await fetchBuyerOrders();
+                apiState.dashboard = dashboard;
+                renderDashboard(dashboard);
+
+                toggleLoading(false);
+                showSuccessToast('Dashboard loaded successfully!');
+            } catch (error) {
+                console.error('Buyer dashboard error:', error);
+                toggleLoading(false);
+                showErrorToast(error.message || 'Failed to load dashboard');
+                
+                // Show empty state on error
+                renderDashboard({ 
+                    stats: { activeOrders: 0, totalOrders: 0, itemsPurchased: 0, totalSpent: 0 }, 
+                    recentOrders: [], 
+                    orders: [] 
+                });
+            }
+        }
+
+        function toggleLoading(isLoading) {
+            if (isLoading) {
+                setText('#stat-active-orders', '…');
+                setText('#stat-total-orders', '…');
+                setText('#stat-items-purchased', '…');
+                setText('#stat-total-spent', 'Loading…');
+            }
+        }
+
+        function showErrorToast(message) {
+            console.error('Error:', message);
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    document.body.removeChild(toast);
+                }
+            }, 5000);
+        }
+
+        function showSuccessToast(message) {
+            console.log('Success:', message);
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 max-w-sm';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    document.body.removeChild(toast);
+                }
+            }, 3000);
+        }
+
+        // --- Profile Update (Saves to Supabase) ---
+        async function updateProfile(payload) {
+            try {
+                const sb = await initializeSupabaseOnce();
+                
+                // Update profile in Supabase
+                const { data, error } = await sb
+                    .from('profiles')
+                    .upsert({
+                        id: apiState.user.id,
+                        name: payload.name,
+                        phone: payload.phone,
+                        bio: payload.bio,
+                        updated_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                // Update local state
+                const updatedProfile = await fetchBuyerProfile();
+                renderProfile(updatedProfile);
+                
+                return { success: true, data };
+
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                throw new Error('Failed to update profile: ' + error.message);
+            }
+        }
+        
+
+
+
+        // Initialize the application
+        (async () => {
+            try {
+                toggleLoading(true);
+                await loadDashboard();
+
+                // Set up auth state listener
+                const sb = await initializeSupabaseOnce();
+                sb.auth.onAuthStateChange(async (event, session) => {
+                    console.log('Auth state changed:', event);
+                    
+                    if (event === 'SIGNED_OUT' || !session) {
+                        clearTokens();
+                        window.location.href = '/login';
+                        return;
+                    }
+                    
+                    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                        localStorage.setItem('buyerSupabaseToken', session.access_token);
+                        await loadDashboard();
+                    }
+                });
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showErrorToast('Failed to initialize dashboard');
+                toggleLoading(false);
+            }
+        })();
+                 // === NAVIGATION MENU FUNCTIONALITY ===
+        
+        // Navigation functionality
+        const navItems = document.querySelectorAll('.nav-item');
+        const contentSections = document.querySelectorAll('.content-section');
+        const pageTitle = document.getElementById('page-title');
+
+        // Page titles for each section
+        const pageTitles = {
+            'dashboard': 'Dashboard',
+            'orders': 'My Orders',
+            'wishlist': 'My Wishlist',
+            'cart': 'Shopping Cart',
+            'profile': 'My Profile',
+            'addresses': 'My Addresses',
+            'settings': 'Account Settings'
+        };
+
+        // Navigation click handler
+        navItems.forEach(item => {
+            item.addEventListener('click', function (e) {
                 e.preventDefault();
-                if (!confirm('Are you sure you want to log out?')) return;
 
-                const logoutBtn = this;
-                const original = logoutBtn.innerHTML;
-                logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span> Logging out...</span>';
+                // Remove active class from all nav items
+                navItems.forEach(i => i.classList.remove('active'));
 
-                try {
-                    const sb = await initializeSupabaseOnce();
-                    await sb.auth.signOut();
-                } catch { /* ignore */ }
+                // Add active class to clicked nav item
+                this.classList.add('active');
 
-                ['buyerSupabaseToken', 'token'].forEach((key) => {
-                    try { localStorage.removeItem(key); } catch { }
+                // Get the target section
+                const targetSection = this.getAttribute('data-section');
+
+                // Hide all content sections
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
                 });
 
-                window.location.href = '/login';
-                setTimeout(() => { logoutBtn.innerHTML = original; }, 2000);
+                // Show the target section
+                const targetElement = document.getElementById(targetSection);
+                if (targetElement) {
+                    targetElement.classList.add('active');
+                }
+
+                // Update page title
+                if (pageTitle) {
+                    pageTitle.textContent = pageTitles[targetSection] || 'Herbal Wellness';
+                }
+            });
+        });
+
+        // Home navigation
+        const homeLinks = document.querySelectorAll('a[href="http://localhost:5173/"]');
+        homeLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = 'http://localhost:5173/';
+            });
+        });
+
+        // View all orders link
+        const viewAllOrders = document.querySelector('.view-all-orders');
+        if (viewAllOrders) {
+            viewAllOrders.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Navigate to orders section
+                document.querySelector('a[data-section="orders"]').click();
+            });
+        }
+
+        // Browse all products link
+        const browseAllProducts = document.querySelector('.browse-all-products');
+        if (browseAllProducts) {
+            browseAllProducts.addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('This would navigate to the products page in a real app.');
+            });
+        }
+
+        // === SHOPPING CART FUNCTIONALITY ===
+        
+        // Shopping cart functionality
+        const increaseButtons = document.querySelectorAll('.increase-quantity');
+        const decreaseButtons = document.querySelectorAll('.decrease-quantity');
+        const removeCartButtons = document.querySelectorAll('.remove-from-cart');
+
+        // Format UGX currency for cart
+        function formatUGX(amount) {
+            return 'UGX ' + amount.toLocaleString('en-US');
+        }
+
+        // Update cart totals
+        function updateCartTotals() {
+            let subtotal = 0;
+            document.querySelectorAll('.cart-item').forEach(item => {
+                const quantityEl = item.querySelector('.quantity');
+                const priceEl = item.querySelector('.cart-item-price');
+                if (!quantityEl || !priceEl) return;
+
+                const quantity = parseInt(quantityEl.textContent || '0', 10) || 0;
+                const priceText = priceEl.textContent || 'UGX 0';
+                const price = parseFloat(priceText.replace('UGX', '').replace(/[,\s]/g, '')) || 0;
+                subtotal += quantity * price;
             });
 
-            // Profile picture functionality
-            const profilePicInput = document.getElementById('profile-pic-input');
-            const profilePic = document.getElementById('profile-pic');
-            const sidebarProfilePic = document.getElementById('sidebar-profile-pic');
-            const changeProfilePicBtn = document.getElementById('change-profile-pic-btn');
+            const shipping = 18500;
+            const total = subtotal + shipping;
 
+            const subtotalEl = document.querySelector('.cart-subtotal');
+            const totalEl = document.querySelector('.cart-total');
+            if (subtotalEl) subtotalEl.textContent = formatUGX(subtotal);
+            if (totalEl) totalEl.textContent = formatUGX(total);
+        }
+
+        // Increase quantity
+        increaseButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const quantitySpan = this.parentElement.querySelector('.quantity');
+                let quantity = parseInt(quantitySpan.textContent);
+                quantitySpan.textContent = quantity + 1;
+                updateCartTotals();
+            });
+        });
+
+        // Decrease quantity
+        decreaseButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const quantitySpan = this.parentElement.querySelector('.quantity');
+                let quantity = parseInt(quantitySpan.textContent);
+                if (quantity > 1) {
+                    quantitySpan.textContent = quantity - 1;
+                    updateCartTotals();
+                }
+            });
+        });
+
+        // Remove from cart
+        removeCartButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const cartItem = this.closest('.cart-item');
+                const productName = cartItem.querySelector('h4').textContent;
+                if (confirm(`Are you sure you want to remove ${productName} from your cart?`)) {
+                    cartItem.remove();
+                    updateCartTotals();
+
+                    // Update cart count
+                    const cartCount = document.querySelector('a[data-section="cart"] .bg-secondary');
+                    if (cartCount) {
+                        let count = parseInt(cartCount.textContent);
+                        if (count > 0) {
+                            cartCount.textContent = count - 1;
+                        }
+                    }
+                }
+            });
+        });
+
+        // Checkout button
+        const checkoutBtn = document.querySelector('.checkout-btn');
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', function () {
+                alert('Proceeding to checkout...');
+            });
+        }
+
+        // === WISHLIST FUNCTIONALITY ===
+        
+        // Add to cart from wishlist
+        const addToCartButtons = document.querySelectorAll('.add-to-cart-from-wishlist');
+        addToCartButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const productCard = this.closest('.product-card');
+                const productName = productCard.querySelector('h4').textContent;
+                alert(`${productName} has been added to your cart!`);
+
+                // Update cart count
+                const cartCount = document.querySelector('a[data-section="cart"] .bg-secondary');
+                if (cartCount) {
+                    let count = parseInt(cartCount.textContent);
+                    cartCount.textContent = count + 1;
+                }
+            });
+        });
+
+        // Remove from wishlist
+        const removeWishlistButtons = document.querySelectorAll('.remove-from-wishlist');
+        removeWishlistButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const productCard = this.closest('.product-card');
+                const productName = productCard.querySelector('h4').textContent;
+                if (confirm(`Are you sure you want to remove ${productName} from your wishlist?`)) {
+                    productCard.remove();
+                    alert(`${productName} has been removed from your wishlist.`);
+
+                    // Update wishlist count
+                    const wishlistCount = document.querySelector('a[data-section="wishlist"] .bg-red-500');
+                    if (wishlistCount) {
+                        let count = parseInt(wishlistCount.textContent);
+                        if (count > 0) {
+                            wishlistCount.textContent = count - 1;
+                        }
+                    }
+                }
+            });
+        });
+
+        // === PROFILE PICTURE FUNCTIONALITY ===
+        
+        const profilePicInput = document.getElementById('profile-pic-input');
+        const profilePic = document.getElementById('profile-pic');
+        const sidebarProfilePic = document.getElementById('sidebar-profile-pic');
+        const changeProfilePicBtn = document.getElementById('change-profile-pic-btn');
+
+        if (changeProfilePicBtn) {
             changeProfilePicBtn.addEventListener('click', function () {
                 profilePicInput.click();
             });
+        }
 
+        if (profilePicInput) {
             profilePicInput.addEventListener('change', function (e) {
                 if (e.target.files && e.target.files[0]) {
                     const reader = new FileReader();
@@ -1152,263 +1533,168 @@
                     reader.readAsDataURL(e.target.files[0]);
                 }
             });
+        }
 
-            // Add to cart functionality
-            const addToCartButtons = document.querySelectorAll('.add-to-cart-btn, .add-to-cart-from-wishlist');
-            addToCartButtons.forEach(button => {
-                button.addEventListener('click', function () {
-                    const productCard = this.closest('.product-card');
-                    const productName = productCard.querySelector('h4').textContent;
-                    alert(`${productName} has been added to your cart!`);
-
-                    // Update cart count
-                    const cartCount = document.querySelector('a[data-section="cart"] .bg-secondary');
-                    if (cartCount) {
-                        let count = parseInt(cartCount.textContent);
-                        cartCount.textContent = count + 1;
-                    }
-                });
-            });
-
-            // Remove from wishlist functionality
-            const removeWishlistButtons = document.querySelectorAll('.remove-from-wishlist');
-            removeWishlistButtons.forEach(button => {
-                button.addEventListener('click', function () {
-                    const productCard = this.closest('.product-card');
-                    const productName = productCard.querySelector('h4').textContent;
-                    if (confirm(`Are you sure you want to remove ${productName} from your wishlist?`)) {
-                        productCard.remove();
-                        alert(`${productName} has been removed from your wishlist.`);
-
-                        // Update wishlist count
-                        const wishlistCount = document.querySelector('a[data-section="wishlist"] .bg-red-500');
-                        if (wishlistCount) {
-                            let count = parseInt(wishlistCount.textContent);
-                            if (count > 0) {
-                                wishlistCount.textContent = count - 1;
-                            }
-                        }
-                    }
-                });
-            });
-
-            // Shopping cart functionality
-            const increaseButtons = document.querySelectorAll('.increase-quantity');
-            const decreaseButtons = document.querySelectorAll('.decrease-quantity');
-            const removeCartButtons = document.querySelectorAll('.remove-from-cart');
-
-            // Format UGX currency
-            function formatUGX(amount) {
-                return 'UGX ' + amount.toLocaleString('en-US');
-            }
-
-            // Update cart totals
-            function updateCartTotals() {
-                let subtotal = 0;
-                document.querySelectorAll('.cart-item').forEach(item => {
-                    const quantityEl = item.querySelector('.quantity');
-                    const priceEl = item.querySelector('.cart-item-price');
-                    if (!quantityEl || !priceEl) return;
-
-                    const quantity = parseInt(quantityEl.textContent || '0', 10) || 0;
-                    const priceText = priceEl.textContent || 'UGX 0';
-                    const price = parseFloat(priceText.replace('UGX', '').replace(/[,\s]/g, '')) || 0;
-                    subtotal += quantity * price;
-                });
-
-                const shipping = 18500;
-                const total = subtotal + shipping;
-
-                const subtotalEl = document.querySelector('.cart-subtotal');
-                const totalEl = document.querySelector('.cart-total');
-                if (subtotalEl) subtotalEl.textContent = formatUGX(subtotal);
-                if (totalEl) totalEl.textContent = formatUGX(total);
-            }
-
-            // Increase quantity
-            increaseButtons.forEach(button => {
-                button.addEventListener('click', function () {
-                    const quantitySpan = this.parentElement.querySelector('.quantity');
-                    let quantity = parseInt(quantitySpan.textContent);
-                    quantitySpan.textContent = quantity + 1;
-                    updateCartTotals();
-                });
-            });
-
-            // Decrease quantity
-            decreaseButtons.forEach(button => {
-                button.addEventListener('click', function () {
-                    const quantitySpan = this.parentElement.querySelector('.quantity');
-                    let quantity = parseInt(quantitySpan.textContent);
-                    if (quantity > 1) {
-                        quantitySpan.textContent = quantity - 1;
-                        updateCartTotals();
-                    }
-                });
-            });
-
-            // Remove from cart
-            removeCartButtons.forEach(button => {
-                button.addEventListener('click', function () {
-                    const cartItem = this.closest('.flex.items-center.justify-between.p-4');
-                    const productName = cartItem.querySelector('h4').textContent;
-                    if (confirm(`Are you sure you want to remove ${productName} from your cart?`)) {
-                        cartItem.remove();
-                        updateCartTotals();
-
-                        // Update cart count
-                        const cartCount = document.querySelector('a[data-section="cart"] .bg-secondary');
-                        if (cartCount) {
-                            let count = parseInt(cartCount.textContent);
-                            if (count > 0) {
-                                cartCount.textContent = count - 1;
-                            }
-                        }
-                    }
-                });
-            });
-
-            // Checkout button
-            document.querySelector('.checkout-btn').addEventListener('click', function () {
-                alert('Proceeding to checkout...');
-                // In a real app, this would redirect to checkout page
-            });
-
-            // Profile form submission
-            document.querySelector('.profile-form').addEventListener('submit', async function (e) {
+        // === PROFILE FORM SUBMISSION ===
+        
+        const profileForm = document.querySelector('.profile-form');
+        if (profileForm) {
+            profileForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
+                const submitBtn = this.querySelector('.save-profile');
+                const originalText = submitBtn.textContent;
+                
                 try {
+                    submitBtn.textContent = 'Saving...';
+                    submitBtn.disabled = true;
+
                     const payload = {
                         name: `${document.getElementById('profile-first-name').value || ''} ${document.getElementById('profile-last-name').value || ''}`.trim(),
                         phone: document.getElementById('profile-phone').value || null,
                         bio: document.getElementById('profile-bio').value || null
                     };
 
-                    const res = await fetch(PROFILE_ENDPOINT, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...authHeader()
-                        },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!res.ok) throw new Error('Failed to update profile');
-                    const json = await res.json();
-                    renderProfile(json?.data?.user || apiState.user);
-                    alert('Profile updated successfully!');
-                } catch (err) {
-                    alert(err.message || 'Profile update failed');
+                    await updateProfile(payload);
+                    showSuccessToast('Profile updated successfully!');
+                    
+                } catch (error) {
+                    showErrorToast(error.message || 'Failed to update profile');
+                } finally {
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
                 }
             });
+        }
 
-            // Cancel profile changes
-            document.querySelector('.cancel-profile').addEventListener('click', function () {
+        // Cancel profile changes
+        const cancelProfile = document.querySelector('.cancel-profile');
+        if (cancelProfile) {
+            cancelProfile.addEventListener('click', function () {
                 if (confirm('Are you sure you want to cancel? All unsaved changes will be lost.')) {
-                    // Reset form to original values
-                    document.querySelector('.profile-form').reset();
+                    // Reload the current profile data
+                    if (apiState.dashboard && apiState.user) {
+                        const profile = apiState.dashboard.profile || {};
+                        renderProfile(profile);
+                    }
                 }
             });
+        }
 
-            // Address management
-            const addressModal = document.getElementById('address-modal');
-            const addAddressBtn = document.querySelector('.add-address-btn');
-            const cancelAddressBtn = document.querySelector('.cancel-address');
-            const saveAddressBtn = document.querySelector('.save-address');
-            const addressForm = document.querySelector('.address-form');
+        // === ADDRESS MANAGEMENT ===
+        
+        const addressModal = document.getElementById('address-modal');
+        const addAddressBtn = document.querySelector('.add-address-btn');
+        const cancelAddressBtn = document.querySelector('.cancel-address');
+        const addressForm = document.querySelector('.address-form');
 
-            // Open address modal
+        // Open address modal
+        if (addAddressBtn) {
             addAddressBtn.addEventListener('click', function () {
-                addressModal.classList.add('active');
+                if (addressModal) addressModal.classList.add('active');
             });
+        }
 
-            // Close address modal
+        // Close address modal
+        if (cancelAddressBtn) {
             cancelAddressBtn.addEventListener('click', function () {
-                addressModal.classList.remove('active');
+                if (addressModal) addressModal.classList.remove('active');
             });
+        }
 
-            // Save address
+        // Save address
+        if (addressForm) {
             addressForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 alert('Address saved successfully!');
-                addressModal.classList.remove('active');
-
-                // In a real app, you would add the new address to the addresses list
+                if (addressModal) addressModal.classList.remove('active');
             });
+        }
 
-            // Edit address
-            document.querySelectorAll('.edit-address').forEach(button => {
-                button.addEventListener('click', function () {
-                    alert('Edit address functionality would open the address form with pre-filled data in a real app.');
-                });
+        // Edit address
+        document.querySelectorAll('.edit-address').forEach(button => {
+            button.addEventListener('click', function () {
+                alert('Edit address functionality would open the address form with pre-filled data in a real app.');
             });
+        });
 
-            // Remove address
-            document.querySelectorAll('.remove-address').forEach(button => {
-                button.addEventListener('click', function () {
-                    const addressCard = this.closest('.border');
-                    if (confirm('Are you sure you want to remove this address?')) {
-                        addressCard.remove();
-                        alert('Address removed successfully!');
-                    }
-                });
+        // Remove address
+        document.querySelectorAll('.remove-address').forEach(button => {
+            button.addEventListener('click', function () {
+                const addressCard = this.closest('.border');
+                if (confirm('Are you sure you want to remove this address?')) {
+                    addressCard.remove();
+                    alert('Address removed successfully!');
+                }
             });
+        });
 
-            // Set default address
-            document.querySelectorAll('.set-default-address').forEach(button => {
-                button.addEventListener('click', function () {
-                    alert('Address set as default!');
-                    // In a real app, this would update the default address
-                });
+        // Set default address
+        document.querySelectorAll('.set-default-address').forEach(button => {
+            button.addEventListener('click', function () {
+                alert('Address set as default!');
             });
+        });
 
-            // View all orders
-            document.querySelector('.view-all-orders').addEventListener('click', function (e) {
+        // === SETTINGS TOGGLES ===
+        
+        const toggleSwitches = document.querySelectorAll('input[type="checkbox"]');
+        toggleSwitches.forEach(toggle => {
+            toggle.addEventListener('change', function () {
+                const settingContainer = this.closest('.flex.justify-between');
+                if (settingContainer) {
+                    const settingSpan = settingContainer.querySelector('span');
+                    const settingName = settingSpan ? settingSpan.textContent : 'Setting';
+                    const status = this.checked ? 'enabled' : 'disabled';
+                    console.log(`${settingName} is now ${status}`);
+                }
+            });
+        });
+
+        // === LOGOUT FUNCTIONALITY ===
+        
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                if (!confirm('Are you sure you want to log out?')) return;
+
+                const original = logoutBtn.innerHTML;
+                logoutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span> Logging out...</span>';
+
+                try {
+                    const sb = await initializeSupabaseOnce();
+                    await sb.auth.signOut();
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+
+                clearTokens();
+                window.location.href = '/login';
+            });
+        }
+
+        // View all orders
+        const viewAllOrdersBtn = document.querySelector('.view-all-orders');
+        if (viewAllOrdersBtn) {
+            viewAllOrdersBtn.addEventListener('click', function (e) {
                 e.preventDefault();
                 // Navigate to orders section
-                document.querySelector('a[data-section="orders"]').click();
+                const ordersNavBtn = document.querySelector('a[data-section="orders"]');
+                if (ordersNavBtn) ordersNavBtn.click();
             });
+        }
 
-            // Browse all products
-            document.querySelector('.browse-all-products').addEventListener('click', function (e) {
+        // Browse all products
+        const browseAllProductsBtn = document.querySelector('.browse-all-products');
+        if (browseAllProductsBtn) {
+            browseAllProductsBtn.addEventListener('click', function (e) {
                 e.preventDefault();
                 alert('This would navigate to the products page in a real app.');
             });
+        }
 
-            // Load authenticated dashboard
-            (async () => {
-                try {
-                    toggleLoading(true);
-                    await loadDashboard();
 
-                    const sb = await initializeSupabaseOnce();
-                    sb.auth.onAuthStateChange(async (_event, session) => {
-                        if (!session?.access_token) {
-                            localStorage.removeItem('buyerSupabaseToken');
-                            localStorage.removeItem('token');
-                            window.location.href = '/login';
-                            return;
-                        }
-                        localStorage.setItem('buyerSupabaseToken', session.access_token);
-                        localStorage.removeItem('token');
-                        apiState.appToken = null;
-                        await loadDashboard();
-                    });
-                } catch (err) {
-                    console.error(err);
-                }
-            })();
-
-            // Toggle switch functionality
-            const toggleSwitches = document.querySelectorAll('input[type="checkbox"]');
-            toggleSwitches.forEach(toggle => {
-                toggle.addEventListener('change', function () {
-                    const settingName = this.closest('.flex.justify-between').querySelector('span').textContent;
-                    const status = this.checked ? 'enabled' : 'disabled';
-                    console.log(`${settingName} is now ${status}`);
-                });
-            });
-        });
+    });
     </script>
 </body>
 
