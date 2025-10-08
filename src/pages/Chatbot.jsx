@@ -173,94 +173,6 @@ export default function Chatbot() {
   };
 
   return (
-<<<<<<< HEAD
-    <div className="min-h-screen bg-white" style={{ backgroundImage: 'url("https://i.pinimg.com/1200x/16/ee/63/16ee633b73ea3e5c643d484095318337.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }}>
-      {/* Top Navbar */}
-      {/* <header className="sticky top-0 z-30 w-full border-b border-neutral-200 bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button className="p-2 rounded-lg hover:bg-neutral-100 lg:hidden focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle navigation" onClick={() => setNavOpen((v) => !v)}>
-              <Menu className="w-5 h-5 text-neutral-800" />
-            </button>
-            <a href="/" className="flex items-center gap-2 group">
-              <div className="h-7 w-7 rounded-md bg-blue-600 group-hover:opacity-90 transition" />
-              <span className="text-lg font-semibold tracking-tight text-neutral-900">Herbal</span>
-            </a>
-          </div>
-          <nav className="hidden lg:flex items-center gap-1 text-sm">
-            <a className="px-3 py-2 rounded-md text-neutral-900 hover:bg-neutral-100 transition" href="/">Home</a>
-            <a className="px-3 py-2 rounded-md text-neutral-900 hover:bg-neutral-100 transition" href="/chatbot">Chatbot</a>
-            <a className="px-3 py-2 rounded-md text-neutral-900 hover:bg-neutral-100 transition" href="/research-hub">Research Hub</a>
-            <a className="px-3 py-2 rounded-md text-neutral-900 hover:bg-neutral-100 transition" href="/products">Products</a>
-          </nav>
-          <div className="relative">
-            <button aria-haspopup="menu" aria-expanded={profileOpen} className="inline-flex items-center gap-2 rounded-full border border-neutral-300 px-2.5 py-1.5 shadow-sm hover:shadow transition focus:outline-none focus:ring-2 focus:ring-blue-500" onClick={() => setProfileOpen((v) => !v)}>
-              <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-neutral-200 text-neutral-800 text-xs font-medium">JD</span>
-              <span className="text-sm text-neutral-900">Account</span>
-              <ChevronDown className={`w-4 h-4 text-neutral-600 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {profileOpen && (
-              <div className="absolute right-0 mt-2 w-52 rounded-xl border border-neutral-200 bg-white shadow-lg overflow-hidden" role="menu">
-                <a className="block px-4 py-2.5 text-sm text-neutral-900 hover:bg-neutral-100" href="#" role="menuitem">Profile</a>
-                <a className="block px-4 py-2.5 text-sm text-neutral-900 hover:bg-neutral-100" href="#" role="menuitem">Settings</a>
-                <div className="h-px bg-neutral-200" />
-                <button className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50" role="menuitem">Logout</button>
-              </div>
-            )}
-          </div>
-        </div>
-        {navOpen && (
-          <div className="lg:hidden border-t border-neutral-200 bg-white">
-            <div className="mx-auto max-w-7xl px-4 py-3 flex flex-col gap-1 text-sm">
-              <a className="px-3 py-2 rounded-md text-neutral-900 hover:bg-neutral-100" href="/">Home</a>
-              <a className="px-3 py-2 rounded-md text-neutral-900 hover:bg-neutral-100" href="/chatbot">Chatbot</a>
-              <a className="px-3 py-2 rounded-md text-neutral-900 hover:bg-neutral-100" href="/research-hub">Research Hub</a>
-              <a className="px-3 py-2 rounded-md text-neutral-900 hover:bg-neutral-100" href="/products">Products</a>
-            </div>
-          </div>
-        )}
-      </header> */}
-
-      {/* Page Content */}
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-black" style={{paddingTop: '5px'}}>
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-black">Herbal Chat Assistant</h1>
-          <p className="text-base text-black mt-1">Informational only · Not a medical diagnosis</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Chat column */}
-          <div className="col-span-12 lg:col-span-8 rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
-            <div className="h-[60vh] md:h-[65vh] lg:h-[68vh] xl:h-[70vh] overflow-y-auto p-4 space-y-3">
-              <AnimatePresence>
-                {messages.map((m, idx) => (
-                  <motion.div key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    className={m.role === 'user' ? 'text-right' : 'text-left'}>
-                    <span className={`inline-block max-w-[80%] md:max-w-[75%] lg:max-w-[70%] px-4 py-2.5 rounded-2xl text-base leading-relaxed ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white text-black border border-neutral-200'}`}>
-                      {m.text}
-                    </span>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-
-            <div className="border-t border-neutral-200 p-3 flex items-center gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={'Describe your symptoms…'}
-                className="flex-1 rounded-xl bg-white border border-neutral-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-neutral-900 placeholder-neutral-400"
-                onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
-              />
-              <button
-                onClick={send}
-                className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm min-w-[96px] shadow-sm"
-                disabled={loading}
-              >
-                {loading ? (<><Loader2 className="w-4 h-4 animate-spin mr-2" /> Sending</>) : (<><Send className="w-4 h-4 mr-2" /> Send</>)}
-=======
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-7xl p-3 sm:p-4 lg:p-6">
         <div
@@ -292,7 +204,6 @@ export default function Chatbot() {
               <button onClick={() => setProfileOpen(v=>!v)} className="pl-2 pr-2.5 h-9 rounded-full bg-slate-800/60 border border-slate-700/50 flex items-center gap-2">
                 <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-slate-600 text-white text-xs">JD</span>
                 <ChevronDown className={`w-4 h-4 text-slate-300 transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
->>>>>>> Hackthon
               </button>
             </div>
           </header>
