@@ -533,17 +533,27 @@ const PlantHistory = ({ isOpen, onClose }) => {
 
           {/* Footer */}
           {!selectedItem && (
-            <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
-              <div className="flex items-center justify-between text-sm text-neutral-600 dark:text-neutral-400">
-                <p>
-                  Showing {filteredHistory.length} of {history.length} identifications
-                </p>
-                <p className="text-xs">
-                  Press <kbd className="px-2 py-1 bg-neutral-200 dark:bg-neutral-700 rounded">Esc</kbd> to close
-                </p>
-              </div>
-            </div>
-          )}
+                <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm text-neutral-600 dark:text-neutral-400">
+                    <p>
+                      Showing {filteredHistory.length} of {history.length} identifications
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={onClose}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Scanner
+                      </button>
+                      <p className="text-xs hidden sm:inline-block">
+                        or press <kbd className="px-2 py-1 bg-neutral-200 dark:bg-neutral-700 rounded">Esc</kbd>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
 
           {/* Navigation Buttons - Always visible for now */}
           <div className="fixed right-8 bottom-20 flex flex-col gap-3 z-[100]">
