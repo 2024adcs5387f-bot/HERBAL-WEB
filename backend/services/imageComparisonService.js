@@ -384,6 +384,24 @@ class ImageComparisonService {
         throw new Error('🔍 IMAGE TOO UNCLEAR\n\nCannot confidently identify a plant in this image.\n\n💡 TIPS FOR BETTER RESULTS:\n• Use natural daylight\n• Focus clearly on the plant\n• Show distinctive features (leaves, flowers, bark)\n• Get closer to the plant\n• Avoid shadows and glare\n• Take multiple angles if needed\n\nIf this is not a plant, please upload a plant photo instead.');
       }
       
+      // HARD FILTER: Keep only Plant materials (Plantae) with a minimum probability
+      const MIN_PLANT_PROB = parseFloat(process.env.MIN_PLANT_PROB || '0.12');
+      const plantOnlySuggestions = (result.suggestions || []).filter((s) => {
+        const isPlantFlag = s.is_plant === true;
+        const kingdom = s?.plant_details?.taxonomy?.kingdom;
+        const isPlantae = typeof kingdom === 'string' && /plantae/i.test(kingdom);
+        const okProb = typeof s.probability === 'number' && s.probability >= MIN_PLANT_PROB;
+        return (isPlantFlag || isPlantae) && okProb;
+      });
+
+      if (plantOnlySuggestions.length === 0) {
+        console.log('🚫 FILTERED OUT NON-PLANT SUGGESTIONS');
+        throw new Error('🚫 NOT A PLANT DETECTED\n\nNo verifiable plant material found in this image.\n\n✅ UPLOAD A PHOTO WITH:\n• Clear view of leaves or flowers\n• Good lighting (natural light preferred)\n• Focus on one plant\n• Close-up of plant features');
+      }
+
+      // Replace suggestions with filtered list
+      result.suggestions = plantOnlySuggestions;
+      
       // Additional check: Verify plant name is not generic or suspicious
       const plantName = topSuggestion.plant_name?.toLowerCase() || '';
       const suspiciousNames = ['unknown', 'unidentified', 'animal', 'person', 'object', 'food', 'product'];

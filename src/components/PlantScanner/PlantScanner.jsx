@@ -233,8 +233,26 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
         setResults(null);
         return;
       }
-      
-      setResults(resultData);
+
+      // Filter to PLANT materials only
+      const plantSuggestions = resultData.suggestions.filter((s) => {
+        const isPlantFlag = s.is_plant === true;
+        const kingdom = s?.plant_details?.taxonomy?.kingdom;
+        const isPlantae = typeof kingdom === 'string' && /plantae/i.test(kingdom);
+        return isPlantFlag || isPlantae;
+      });
+
+      if (plantSuggestions.length === 0) {
+        console.warn('🚫 Detected non-plant material.');
+        setError('NOT A PLANT\n\nWe could not verify this as a plant. Please upload a clear photo of a real plant with visible leaves, flowers, or stems.');
+        setResults(null);
+        return;
+      }
+
+      // Use filtered results going forward
+      const finalResult = { ...resultData, suggestions: plantSuggestions };
+
+      setResults(finalResult);
       setShowFeedback(true);
       setFeedbackSubmitted(false);
       
@@ -242,8 +260,8 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
       console.log('✅ showFeedback set to TRUE'); // Debug log
       
       // Save to history
-      if (resultData.suggestions && resultData.suggestions.length > 0) {
-        const topSuggestion = resultData.suggestions[0];
+      if (finalResult.suggestions && finalResult.suggestions.length > 0) {
+        const topSuggestion = finalResult.suggestions[0];
         saveToHistory({
           plant_name: topSuggestion.plant_name,
           scientific_name: topSuggestion.plant_details?.scientific_name || topSuggestion.scientific_name,
@@ -252,7 +270,7 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
           medicinal_uses: topSuggestion.medicinal_uses || [],
           safety_info: topSuggestion.safety_info,
           is_verified: topSuggestion.is_verified || false,
-          cache_hit_count: resultData.cache_hit_count || 0,
+          cache_hit_count: finalResult.cache_hit_count || 0,
           image_url: selectedImage?.preview || null
         });
         console.log('✅ Saved to history');
@@ -265,9 +283,9 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
       }, 100);
 
       // Fetch comparison data
-      if (resultData.suggestions && resultData.suggestions.length > 0) {
-        console.log('✅ Fetching comparison for:', resultData.suggestions[0].plant_name);
-        fetchComparisonData(resultData.suggestions[0]);
+      if (finalResult.suggestions && finalResult.suggestions.length > 0) {
+        console.log('✅ Fetching comparison for:', finalResult.suggestions[0].plant_name);
+        fetchComparisonData(finalResult.suggestions[0]);
       } else {
         console.warn('⚠️ No suggestions found in resultData');
       }

@@ -9,34 +9,40 @@ const ErrorDisplay = ({ error, onDismiss, onTryAgain }) => {
 
   // Determine error type for title
   const getErrorTitle = () => {
-    if (error.includes('NOT A PLANT')) return '🚫 Not a Plant Detected';
-    if (error.includes('UNCLEAR') || error.includes('TOO UNCLEAR')) return '🔍 Image Too Unclear';
-    if (error.includes('size') || error.includes('SIZE')) return '📏 Image Size Issue';
-    if (error.includes('Network') || error.includes('network')) return '🌐 Network Error';
-    return '⚠️ Error';
+    if (error.includes('NOT A PLANT')) return 'Not a Plant Detected';
+    if (error.includes('UNCLEAR') || error.includes('TOO UNCLEAR')) return 'Image Too Unclear';
+    if (error.includes('size') || error.includes('SIZE')) return 'Image Size Issue';
+    if (error.includes('Network') || error.includes('network')) return 'Network Error';
+    return 'Error';
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="bg-gray-200 dark:bg-gray-300 border-4 border-red-600 dark:border-red-500 rounded-2xl p-8 shadow-2xl"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className="max-w-2xl mx-auto"
     >
-      <div className="flex items-start gap-4">
-        {/* Icon */}
-        <div className="flex-shrink-0">
-          <div className="w-16 h-16 bg-white dark:bg-red-900 rounded-full flex items-center justify-center shadow-2xl ring-4 ring-red-400/30 animate-pulse">
-            <AlertCircle className="h-9 w-9 text-red-600 dark:text-red-300" />
+      {/* Card Container */}
+      <div className="bg-gradient-to-br from-red-50 via-red-100 to-rose-100 dark:from-red-900/30 dark:via-red-800/30 dark:to-rose-900/30 rounded-3xl shadow-2xl border-2 border-red-300 dark:border-red-700 overflow-hidden">
+        {/* Header Section */}
+        <div className="bg-gradient-to-r from-red-500 to-rose-600 dark:from-red-600 dark:to-rose-700 p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg ring-4 ring-white/30 animate-pulse">
+                <AlertCircle className="h-9 w-9 text-white" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-3xl font-extrabold text-white drop-shadow-lg">
+                {getErrorTitle()}
+              </h3>
+            </div>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Title */}
-          <h3 className="text-3xl font-extrabold text-red-600 dark:text-red-500 mb-4">
-            {getErrorTitle()}
-          </h3>
+        {/* Content Section */}
+        <div className="p-8">{/* Title */}
 
           {/* Error Message Sections */}
           <div className="space-y-4">

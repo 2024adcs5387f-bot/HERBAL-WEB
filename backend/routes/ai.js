@@ -61,12 +61,12 @@ router.post('/plant-identify', optionalAuth, async (req, res) => {
     );
 
     // Enhance with medicinal information from database
-    if (result.success && result.data.suggestions) {
+    if (result.success && result.data?.suggestions) {
       const enhancedSuggestions = await Promise.all(
         result.data.suggestions.map(async (suggestion) => {
           // Try to get medicinal info from database first
           const medicinalInfo = await getMedicinalUsesFromDatabase(suggestion.plant_name);
-          
+
           return {
             ...suggestion,
             medicinal_uses: suggestion.medicinal_uses || medicinalInfo.medicinal_uses || medicinalInfo,
@@ -77,8 +77,28 @@ router.post('/plant-identify', optionalAuth, async (req, res) => {
           };
         })
       );
-      
-      result.data.suggestions = enhancedSuggestions;
+
+      // Server-side PLANT-ONLY filter
+      const plantOnly = enhancedSuggestions.filter((s) => {
+        const isPlantFlag = s.is_plant === true;
+        const kingdom = s?.plant_details?.taxonomy?.kingdom;
+        const isPlantae = typeof kingdom === 'string' && /plantae/i.test(kingdom);
+        return isPlantFlag || isPlantae;
+      });
+
+      if (plantOnly.length === 0) {
+        return res.json({
+          success: false,
+          source: result.source || 'api',
+          message: 'NOT A PLANT',
+          data: {
+            suggestions: [],
+            note: 'We could not verify this as a plant. Please upload a clear photo of a real plant with visible leaves, flowers, or stems.'
+          }
+        });
+      }
+
+      result.data.suggestions = plantOnly;
     }
 
     res.json(result);
