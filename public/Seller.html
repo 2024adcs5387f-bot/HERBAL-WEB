@@ -841,6 +841,38 @@
                 text-align: center;
             }
         }
+
+        /* Empty State Styles */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .empty-state p {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+
+        .empty-state .btn {
+            margin-top: 10px;
+        }
     </style>
 </head>
 
@@ -974,40 +1006,8 @@
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>#ORD-7842</td>
-                                <td>John Smith</td>
-                                <td>May 15, 2023</td>
-                                <td>UGX 312,000</td>
-                                <td><span class="status pending">Pending</span></td>
-                                <td>
-                                    <button class="action-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn"><i class="fas fa-edit"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#ORD-7841</td>
-                                <td>Emma Johnson</td>
-                                <td>May 14, 2023</td>
-                                <td>UGX 468,000</td>
-                                <td><span class="status completed">Completed</span></td>
-                                <td>
-                                    <button class="action-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn"><i class="fas fa-edit"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#ORD-7840</td>
-                                <td>Michael Brown</td>
-                                <td>May 14, 2023</td>
-                                <td>UGX 230,000</td>
-                                <td><span class="status processing">Processing</span></td>
-                                <td>
-                                    <button class="action-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn"><i class="fas fa-edit"></i></button>
-                                </td>
-                            </tr>
+                        <tbody id="recent-orders-tbody">
+                            <!-- Orders will be populated dynamically -->
                         </tbody>
                     </table>
                 </div>
@@ -1054,29 +1054,8 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>#ORD-7842</td>
-                            <td>John Smith</td>
-                            <td>May 15, 2023</td>
-                            <td>UGX 312,000</td>
-                            <td><span class="status pending">Pending</span></td>
-                            <td>
-                                <button class="action-btn"><i class="fas fa-eye"></i></button>
-                                <button class="action-btn"><i class="fas fa-edit"></i></button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>#ORD-7841</td>
-                            <td>Emma Johnson</td>
-                            <td>May 14, 2023</td>
-                            <td>UGX 468,000</td>
-                            <td><span class="status completed">Completed</span></td>
-                            <td>
-                                <button class="action-btn"><i class="fas fa-eye"></i></button>
-                                <button class="action-btn"><i class="fas fa-edit"></i></button>
-                            </td>
-                        </tr>
+                    <tbody id="orders-tbody">
+                        <!-- Orders will be populated dynamically -->
                     </tbody>
                 </table>
             </div>
@@ -1152,31 +1131,8 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>#CUST-1001</td>
-                            <td>John Smith</td>
-                            <td>john@example.com</td>
-                            <td>+256 712 345 678</td>
-                            <td>5</td>
-                            <td>UGX 1,250,000</td>
-                            <td>
-                                <button class="action-btn"><i class="fas fa-eye"></i></button>
-                                <button class="action-btn"><i class="fas fa-edit"></i></button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>#CUST-1002</td>
-                            <td>Emma Johnson</td>
-                            <td>emma@example.com</td>
-                            <td>+256 772 987 654</td>
-                            <td>3</td>
-                            <td>UGX 890,000</td>
-                            <td>
-                                <button class="action-btn"><i class="fas fa-eye"></i></button>
-                                <button class="action-btn"><i class="fas fa-edit"></i></button>
-                            </td>
-                        </tr>
+                    <tbody id="customers-tbody">
+                        <!-- Customers will be populated dynamically -->
                     </tbody>
                 </table>
             </div>
@@ -2104,6 +2060,9 @@
             // Initialize image upload functionality
             setupImageUpload();
 
+            // Initialize empty states for orders and customers
+            initializeEmptyStates();
+
             // Logout functionality
             const logoutBtn = document.getElementById('logout-btn');
             if (logoutBtn) {
@@ -2647,6 +2606,122 @@
             // Time range change event for analytics
             document.getElementById('time-range').addEventListener('change', initializeSalesChart);
         });
+
+        // ========== EMPTY STATE FUNCTIONS ==========
+
+        function initializeEmptyStates() {
+            // Initialize empty states for orders and customers
+            showEmptyOrdersState();
+            showEmptyCustomersState();
+        }
+
+        function showEmptyOrdersState() {
+            // Recent Orders on Dashboard
+            const recentOrdersTbody = document.getElementById('recent-orders-tbody');
+            if (recentOrdersTbody) {
+                recentOrdersTbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-shopping-cart"></i>
+                                <h3>No Orders Yet</h3>
+                                <p>You haven't received any orders yet. Once customers start purchasing your products, their orders will appear here.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            // Orders Management Section
+            const ordersTbody = document.getElementById('orders-tbody');
+            if (ordersTbody) {
+                ordersTbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-clipboard-list"></i>
+                                <h3>No Orders to Manage</h3>
+                                <p>When customers place orders for your products, you'll be able to view and manage them here. Track order status, process payments, and handle fulfillment all in one place.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function showEmptyCustomersState() {
+            const customersTbody = document.getElementById('customers-tbody');
+            if (customersTbody) {
+                customersTbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <h3>No Customers Yet</h3>
+                                <p>Build your customer base by promoting your herbal products. Once customers start making purchases, you'll see their information and purchase history here.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Function to populate orders when they exist (for future use)
+        function populateOrders(orders) {
+            const recentOrdersTbody = document.getElementById('recent-orders-tbody');
+            const ordersTbody = document.getElementById('orders-tbody');
+            
+            if (orders && orders.length > 0) {
+                const orderRows = orders.map(order => `
+                    <tr>
+                        <td>${order.id}</td>
+                        <td>${order.customer_name}</td>
+                        <td>${new Date(order.created_at).toLocaleDateString()}</td>
+                        <td>UGX ${order.total_amount.toLocaleString()}</td>
+                        <td><span class="status ${order.status.toLowerCase()}">${order.status}</span></td>
+                        <td>
+                            <button class="action-btn"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn"><i class="fas fa-edit"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                if (recentOrdersTbody) {
+                    recentOrdersTbody.innerHTML = orderRows;
+                }
+                if (ordersTbody) {
+                    ordersTbody.innerHTML = orderRows;
+                }
+            } else {
+                showEmptyOrdersState();
+            }
+        }
+
+        // Function to populate customers when they exist (for future use)
+        function populateCustomers(customers) {
+            const customersTbody = document.getElementById('customers-tbody');
+            
+            if (customers && customers.length > 0) {
+                const customerRows = customers.map(customer => `
+                    <tr>
+                        <td>${customer.id}</td>
+                        <td>${customer.name}</td>
+                        <td>${customer.email}</td>
+                        <td>${customer.phone || 'N/A'}</td>
+                        <td>${customer.order_count || 0}</td>
+                        <td>UGX ${(customer.total_spent || 0).toLocaleString()}</td>
+                        <td>
+                            <button class="action-btn"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn"><i class="fas fa-edit"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                customersTbody.innerHTML = customerRows;
+            } else {
+                showEmptyCustomersState();
+            }
+        }
     </script>
 </body>
 
