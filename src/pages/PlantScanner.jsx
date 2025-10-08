@@ -104,7 +104,7 @@ const PlantScanner = () => {
     <div
       className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-800 pt-40 "
         style={{
-        backgroundImage: `url('https://www.webmobi360.com/wp-content/uploads/2024/06/Hologram-of-a-computerised-eye-depicting-computer-vision-1210x423-1.jpg')`,
+        backgroundImage: `url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQoHRRKN1Q6BSOLZxuob3iz-URDZkKFKKkxF4dKgPSveGAWKHsbxzZpRCshGNpyrJoC0pk&usqp=CAU')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
