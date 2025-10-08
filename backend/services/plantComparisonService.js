@@ -200,7 +200,31 @@ class PlantComparisonService {
         .select('*')
         .eq('verified', true);
 
-      if (error) throw error;
+      // Handle missing table gracefully
+      if (error) {
+        if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+          console.warn('⚠️ medicinal_plants table not found - comparison feature disabled');
+          return {
+            input_features: inputFeatures,
+            comparisons: [],
+            best_match: null,
+            top_matches: [],
+            message: 'Comparison feature is currently unavailable. The medicinal plants database table has not been set up yet.'
+          };
+        }
+        throw error;
+      }
+
+      // If no plants in database
+      if (!dbPlants || dbPlants.length === 0) {
+        return {
+          input_features: inputFeatures,
+          comparisons: [],
+          best_match: null,
+          top_matches: [],
+          message: 'No medicinal plants in database for comparison.'
+        };
+      }
 
       // Calculate similarity for each plant
       const comparisons = dbPlants.map(dbPlant => {

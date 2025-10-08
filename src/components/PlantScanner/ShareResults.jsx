@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, X, Facebook, Twitter, Link2, Mail, MessageCircle, Download, Check, ArrowLeft, Home, ChevronRight } from 'lucide-react';
+import { Share2, X, Facebook, Twitter, Link2, Mail, MessageCircle, Download, Check, ArrowLeft, Home, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
 
 const ShareResults = ({ plantData, onClose }) => {
   const [copied, setCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const [shareMethod, setShareMethod] = useState(null); // Track which share method was used
+  const [showScrollButtons, setShowScrollButtons] = useState(false);
+  const contentRef = useRef(null);
 
   const shareUrl = window.location.href;
   const shareTitle = `I identified ${plantData.plant_name}!`;
@@ -15,6 +17,32 @@ const ShareResults = ({ plantData, onClose }) => {
     setIsOpen(false);
     setTimeout(onClose, 300);
   };
+
+  const scrollToTop = () => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: contentRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  };
+
+  // Check if content is scrollable
+  useEffect(() => {
+    const checkScroll = () => {
+      if (contentRef.current) {
+        const hasScroll = contentRef.current.scrollHeight > contentRef.current.clientHeight;
+        setShowScrollButtons(hasScroll);
+      }
+    };
+
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, []);
 
   // Keyboard navigation
   useEffect(() => {
@@ -169,7 +197,7 @@ const ShareResults = ({ plantData, onClose }) => {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
+          className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden relative"
         >
           {/* Header with Breadcrumb */}
           <div className="p-6 border-b border-neutral-200 dark:border-neutral-700 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
@@ -229,6 +257,8 @@ const ShareResults = ({ plantData, onClose }) => {
             </motion.div>
           )}
 
+          {/* Scrollable Content */}
+          <div ref={contentRef} className="max-h-[60vh] overflow-y-auto">
           {/* Share Options */}
           <div className="p-6 space-y-4">
             {/* Native Share (Mobile) */}
@@ -316,6 +346,27 @@ const ShareResults = ({ plantData, onClose }) => {
               </div>
             </button>
           </div>
+          </div>
+
+          {/* Navigation Buttons */}
+          {showScrollButtons && (
+            <div className="absolute right-4 bottom-24 flex flex-col gap-2">
+              <button
+                onClick={scrollToTop}
+                className="p-3 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110"
+                title="Scroll to top"
+              >
+                <ArrowUp className="h-5 w-5" />
+              </button>
+              <button
+                onClick={scrollToBottom}
+                className="p-3 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110"
+                title="Scroll to bottom"
+              >
+                <ArrowDown className="h-5 w-5" />
+              </button>
+            </div>
+          )}
 
           {/* Preview & Footer */}
           <div className="p-6 bg-neutral-50 dark:bg-neutral-900/50 border-t border-neutral-200 dark:border-neutral-700">

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { History, X, Calendar, Leaf, TrendingUp, Search, Filter, Trash2, Eye, ArrowLeft, Home, ChevronRight, Download, RefreshCw } from 'lucide-react';
+import { History, X, Calendar, Leaf, TrendingUp, Search, Filter, Trash2, Eye, ArrowLeft, Home, ChevronRight, Download, RefreshCw, ArrowUp, ArrowDown } from 'lucide-react';
 
 const PlantHistory = ({ isOpen, onClose }) => {
   const [history, setHistory] = useState([]);
@@ -9,12 +9,49 @@ const PlantHistory = ({ isOpen, onClose }) => {
   const [filterBy, setFilterBy] = useState('all'); // all, verified, recent
   const [selectedItem, setSelectedItem] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // list or detail
+  const [showScrollButtons, setShowScrollButtons] = useState(false);
+  const contentRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchHistory();
     }
   }, [isOpen]);
+
+  const scrollToTop = () => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: contentRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  };
+
+  // Check if content is scrollable
+  useEffect(() => {
+    const checkScroll = () => {
+      if (contentRef.current) {
+        const hasScroll = contentRef.current.scrollHeight > contentRef.current.clientHeight;
+        console.log('History scroll check:', {
+          scrollHeight: contentRef.current.scrollHeight,
+          clientHeight: contentRef.current.clientHeight,
+          hasScroll
+        });
+        setShowScrollButtons(hasScroll);
+      }
+    };
+
+    checkScroll();
+    const timer = setTimeout(checkScroll, 100); // Check after content loads
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [history, searchTerm, filterBy, selectedItem]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -73,10 +110,21 @@ const PlantHistory = ({ isOpen, onClose }) => {
     }
   };
 
+  // Enhanced history loading with better error handling
   const loadLocalHistory = () => {
-    const localHistory = JSON.parse(localStorage.getItem('plantHistory') || '[]');
-    setHistory(localHistory);
+    try {
+      const localHistory = JSON.parse(localStorage.getItem('plantHistory') || '[]');
+      // Sort by creation date (newest first)
+      const sortedHistory = localHistory.sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      setHistory(sortedHistory);
+    } catch (error) {
+      console.error('Error loading local history:', error);
+      setHistory([]);
+    }
   };
+
 
   const saveToLocalHistory = (identification) => {
     const localHistory = JSON.parse(localStorage.getItem('plantHistory') || '[]');
@@ -157,7 +205,7 @@ const PlantHistory = ({ isOpen, onClose }) => {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col mt-8"
+          className="bg-white dark:bg-neutral-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col mt-8 relative"
         >
           {/* Header with Breadcrumb Navigation */}
           <div className="p-6 border-b border-neutral-200 dark:border-neutral-700 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20">
@@ -204,6 +252,11 @@ const PlantHistory = ({ isOpen, onClose }) => {
                       ? selectedItem.scientific_name || 'View details'
                       : `${history.length} plant${history.length !== 1 ? 's' : ''} identified`
                     }
+                    {!selectedItem && history.length > 0 && (
+                      <span className="ml-2 text-sm">
+                        ({filteredHistory.length} shown)
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -264,7 +317,7 @@ const PlantHistory = ({ isOpen, onClose }) => {
           </div>
 
           {/* History List or Detail View */}
-          <div className="flex-1 overflow-y-auto p-6">
+          <div ref={contentRef} className="flex-1 overflow-y-auto p-6">
             {selectedItem ? (
               /* Detail View */
               <motion.div
@@ -491,6 +544,24 @@ const PlantHistory = ({ isOpen, onClose }) => {
               </div>
             </div>
           )}
+
+          {/* Navigation Buttons - Always visible for now */}
+          <div className="fixed right-8 bottom-20 flex flex-col gap-3 z-[100]">
+            <button
+              onClick={scrollToTop}
+              className="p-4 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 border-2 border-white"
+              title="Scroll to top"
+            >
+              <ArrowUp className="h-6 w-6" />
+            </button>
+            <button
+              onClick={scrollToBottom}
+              className="p-4 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 border-2 border-white"
+              title="Scroll to bottom"
+            >
+              <ArrowDown className="h-6 w-6" />
+            </button>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>

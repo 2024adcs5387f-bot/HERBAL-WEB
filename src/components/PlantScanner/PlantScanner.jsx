@@ -198,22 +198,43 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
       console.log('Data.data:', data.data); // Debug log
 
       // Check if response was successful
-      if (!response.ok || !data.success) {
-        // Handle error response - Use the detailed error message from backend
+      // Only treat as error if BOTH conditions are true: bad HTTP status AND explicit success:false
+      if (!response.ok) {
+        // HTTP error (4xx, 5xx)
         const errorMessage = data.message || data.error || 'Failed to identify plant';
-        
-        console.log('Error message:', errorMessage); // Debug log
-        
-        // Display the error message as-is from backend (it's already formatted)
+        console.log('❌ HTTP Error:', errorMessage);
         setError(errorMessage);
-        return; // Stop processing
+        setResults(null);
+        return;
       }
 
-      // Success - set results
-      console.log('✅ SUCCESS - Setting results:', data.data); // Debug log
-      console.log('✅ Data structure:', JSON.stringify(data.data, null, 2)); // Debug log
+      // Check if the API explicitly returned success: false
+      if (data.success === false) {
+        const errorMessage = data.message || data.error || 'Failed to identify plant';
+        console.log('❌ API Error:', errorMessage);
+        setError(errorMessage);
+        setResults(null);
+        return;
+      }
+
+      // Extract the actual data - backend returns { success, source, data: {...} }
+      const resultData = data.data || data;
       
-      setResults(data.data);
+      // Success - set results
+      console.log('✅ SUCCESS - Setting results:', resultData); // Debug log
+      console.log('✅ Data structure:', JSON.stringify(resultData, null, 2)); // Debug log
+      console.log('✅ Suggestions array:', resultData?.suggestions); // Debug log
+      console.log('✅ Suggestions length:', resultData?.suggestions?.length); // Debug log
+      
+      // Ensure we have valid data before setting
+      if (!resultData || !resultData.suggestions || resultData.suggestions.length === 0) {
+        console.error('❌ No suggestions in response data');
+        setError('No plant identified. Please try a clearer image.');
+        setResults(null);
+        return;
+      }
+      
+      setResults(resultData);
       setShowFeedback(true);
       setFeedbackSubmitted(false);
       
@@ -221,8 +242,8 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
       console.log('✅ showFeedback set to TRUE'); // Debug log
       
       // Save to history
-      if (data.data.suggestions && data.data.suggestions.length > 0) {
-        const topSuggestion = data.data.suggestions[0];
+      if (resultData.suggestions && resultData.suggestions.length > 0) {
+        const topSuggestion = resultData.suggestions[0];
         saveToHistory({
           plant_name: topSuggestion.plant_name,
           scientific_name: topSuggestion.plant_details?.scientific_name || topSuggestion.scientific_name,
@@ -231,7 +252,7 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
           medicinal_uses: topSuggestion.medicinal_uses || [],
           safety_info: topSuggestion.safety_info,
           is_verified: topSuggestion.is_verified || false,
-          cache_hit_count: data.data.cache_hit_count || 0,
+          cache_hit_count: resultData.cache_hit_count || 0,
           image_url: selectedImage?.preview || null
         });
         console.log('✅ Saved to history');
@@ -244,11 +265,11 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
       }, 100);
 
       // Fetch comparison data
-      if (data.data.suggestions && data.data.suggestions.length > 0) {
-        console.log('✅ Fetching comparison for:', data.data.suggestions[0].plant_name);
-        fetchComparisonData(data.data.suggestions[0]);
+      if (resultData.suggestions && resultData.suggestions.length > 0) {
+        console.log('✅ Fetching comparison for:', resultData.suggestions[0].plant_name);
+        fetchComparisonData(resultData.suggestions[0]);
       } else {
-        console.warn('⚠️ No suggestions found in data.data');
+        console.warn('⚠️ No suggestions found in resultData');
       }
     } catch (err) {
       setError('🌐 Network error. Please check your connection and try again.');
@@ -278,11 +299,17 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
       const data = await response.json();
       
       if (data.success) {
-        setComparisonData(data.data);
-        console.log('Comparison data loaded:', data.data);
+        // Only set comparison data if there are actual comparisons
+        if (data.data && data.data.comparisons && data.data.comparisons.length > 0) {
+          setComparisonData(data.data);
+          console.log('Comparison data loaded:', data.data);
+        } else {
+          console.log('No comparison data available:', data.data?.message || 'No comparisons found');
+        }
       }
     } catch (err) {
       console.error('Comparison fetch error:', err);
+      // Don't show error to user - comparison is optional feature
     } finally {
       setIsLoadingComparison(false);
     }
@@ -301,6 +328,9 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
   };
 
   const submitFeedback = async (isCorrect, correctPlantName = null) => {
+    // Immediately show thank you message
+    setFeedbackSubmitted(true);
+    
     try {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       
@@ -322,11 +352,13 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
       const data = await response.json();
       
       if (data.success) {
-        setFeedbackSubmitted(true);
-        console.log('Feedback submitted successfully');
+        console.log('✅ Feedback submitted successfully to server');
+      } else {
+        console.warn('⚠️ Feedback saved locally but server submission failed');
       }
     } catch (err) {
-      console.error('Feedback submission error:', err);
+      console.error('❌ Feedback submission error (saved locally):', err);
+      // Don't revert feedbackSubmitted - user still gets thank you message
     }
   };
 
@@ -655,12 +687,14 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="hidden"
-              style={{ display: 'none' }}
             >
               <div className="flex items-start gap-3">
                 <div className="flex-1">
-                  <ErrorDisplay error={error} onDismiss={() => setError(null)} />
+                  <ErrorDisplay 
+                    error={error} 
+                    onDismiss={() => setError(null)} 
+                    onTryAgain={resetScanner}
+                  />
                 </div>
               </div>
             </motion.div>
@@ -828,21 +862,21 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-6 shadow-lg"
+                  className="bg-gray-200 dark:bg-gray-300 border-4 border-red-600 dark:border-red-500 rounded-xl p-6 shadow-lg"
                 >
-                  <h4 className="text-xl font-semibold text-neutral-900 dark:text-white mb-3">
+                  <h4 className="text-xl font-semibold text-red-700 dark:text-red-700 mb-3">
                     Was this identification correct?
                   </h4>
-                  <p className="text-base text-neutral-600 dark:text-neutral-400 mb-4">
+                  <p className="text-base text-red-700 dark:text-red-700 mb-4">
                     Your feedback helps improve our AI accuracy
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col sm:flex-row gap-4">
                     <button
                       onClick={() => submitFeedback(true)}
-                      className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="group flex-1 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-3 border-2 border-green-700 hover:border-green-800"
                     >
-                      <CheckCircle className="h-5 w-5" />
-                      Yes, Correct
+                      <CheckCircle className="h-6 w-6 group-hover:scale-110 transition-transform duration-300" />
+                      <span className="text-lg">Yes, Correct</span>
                     </button>
                     <button
                       onClick={() => {
@@ -851,10 +885,10 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
                           submitFeedback(false, correctName);
                         }
                       }}
-                      className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="group flex-1 px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-3 border-2 border-red-700 hover:border-red-800"
                     >
-                      <X className="h-5 w-5" />
-                      No, Incorrect
+                      <X className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
+                      <span className="text-lg">No, Incorrect</span>
                     </button>
                   </div>
                 </motion.div>
@@ -865,15 +899,26 @@ const PlantScanner = ({ onResultsChange, onAnalyzingChange, onErrorChange }) => 
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-6 text-center"
+                  className="bg-green-500 dark:bg-green-600 border-2 border-green-600 dark:border-green-700 rounded-2xl p-8 text-center shadow-xl"
                 >
-                  <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto mb-3" />
-                  <h4 className="text-xl font-semibold text-green-900 dark:text-green-100 mb-2">
-                    Thank You!
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  >
+                    <CheckCircle className="h-16 w-16 text-white mx-auto mb-4" />
+                  </motion.div>
+                  <h4 className="text-3xl font-bold text-white mb-3">
+                    Thank You for Your Reply!
                   </h4>
-                  <p className="text-base text-green-800 dark:text-green-200">
+                  <p className="text-lg text-white leading-relaxed">
                     Your feedback has been recorded and will help improve our plant identification system.
                   </p>
+                  <div className="mt-4 pt-4 border-t border-green-400 dark:border-green-700">
+                    <p className="text-sm text-white font-medium">
+                      ✨ We appreciate your contribution to making our AI more accurate!
+                    </p>
+                  </div>
                 </motion.div>
               )}
 
